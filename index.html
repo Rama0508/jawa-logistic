@@ -187,6 +187,10 @@
   .fc-field input { background:var(--paper); border:1px solid var(--line); border-radius:7px; padding:10px 11px; font-size:13.5px; font-family:inherit; color:var(--ink); width:100%; }
   .fc-field input:focus { outline:none; border-color:var(--navy); }
   .fc-hint { font-size:11px; color:var(--muted); margin: 4px 0 18px; line-height:1.5; }
+  .fc-subtitle { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--navy); margin: 16px 0 8px; }
+  .fc-subtitle:first-of-type { margin-top:0; }
+  .fc-subtitle span { text-transform:none; font-weight:500; color:var(--muted); letter-spacing:normal; }
+  .fc-result-row.math { font-family:ui-monospace, monospace; font-size:11.5px; color:var(--navy); background:var(--paper); border-radius:6px; padding:8px 10px; margin:8px 0; justify-content:flex-start; gap:8px; }
   .fc-btn { width:100%; background:var(--coral); color:#fff; border:none; border-radius:9px; padding:14px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; transition: background .2s ease; }
   .fc-btn:hover { background:var(--coral-deep); }
   .fc-result { margin-top:20px; border-top:1px dashed var(--line); padding-top:18px; display:none; }
@@ -519,6 +523,7 @@
               <button class="fc-origin-btn" data-origin="miami" type="button">🇺🇸 Miami</button>
             </div>
           </div>
+          <div class="fc-subtitle">Caja o bulto a enviar</div>
           <div class="fc-field-grid">
             <div class="fc-field"><label>Largo (cm)</label><input type="text" inputmode="decimal" id="sea-l" placeholder="0" /></div>
             <div class="fc-field"><label>Ancho (cm)</label><input type="text" inputmode="decimal" id="sea-w" placeholder="0" /></div>
@@ -529,7 +534,15 @@
             <div class="fc-field"><label>Peso total (kg)</label><input type="text" inputmode="decimal" id="sea-weight" placeholder="0" /></div>
             <div class="fc-field"><label>Valor FOB total (USD)</label><input type="text" inputmode="decimal" id="sea-fob" placeholder="0.00" /></div>
           </div>
-          <div class="fc-hint">Cobramos por metro cúbico (CBM) o por peso, lo que sea mayor — con un mínimo a consolidar de <strong>0.5 CBM</strong> por envío.</div>
+
+          <div class="fc-subtitle">Tu producto <span>(opcional — para ver el costo por unidad)</span></div>
+          <div class="fc-field-grid">
+            <div class="fc-field"><label>Largo prod. (cm)</label><input type="text" inputmode="decimal" id="sea-pl" placeholder="0" /></div>
+            <div class="fc-field"><label>Ancho prod. (cm)</label><input type="text" inputmode="decimal" id="sea-pw" placeholder="0" /></div>
+            <div class="fc-field"><label>Alto prod. (cm)</label><input type="text" inputmode="decimal" id="sea-ph" placeholder="0" /></div>
+            <div class="fc-field"><label>Unid. por caja</label><input type="text" inputmode="decimal" id="sea-punits" placeholder="Auto" /></div>
+          </div>
+          <div class="fc-hint">Cobramos por metro cúbico (CBM) o por peso, lo que sea mayor — con un mínimo a consolidar de <strong>0.5 CBM</strong> por envío. Si cargás las medidas de tu producto, estimamos cuántas unidades entran por caja (o completá vos ese número si ya lo sabés) para calcular el costo de envío por unidad.</div>
           <button class="fc-btn" id="fc-calc-sea" type="button">Calcular flete marítimo</button>
           <div class="fc-result" id="fc-result-sea"></div>
         </div>
@@ -1205,11 +1218,11 @@ Estimado puesto en Argentina: $${fmtQQ(total)}`;
 } catch (e) { console.error("cotizador rápido:", e); }
 
 // ---------- Cotizador marítimo / aéreo ----------
-// ⚠️ TARIFAS DE EJEMPLO — reemplazá estos 4 valores por tus tarifas reales antes de publicar.
+// ⚠️ Tarifa aérea todavía sin confirmar — reemplazá esos 2 valores en cuanto la tengas.
 // Marítimo se cobra en USD por CBM (metro cúbico). Aéreo se cobra en USD por KG.
 const FLETE_RATES = {
-  sea: { china: 0, miami: 0 },  // USD por CBM
-  air: { china: 0, miami: 0 },  // USD por KG
+  sea: { china: 1000, miami: 1000 },  // USD por CBM
+  air: { china: 0, miami: 0 },        // USD por KG
 };
 const CBM_MINIMO = 0.5;
 const DIVISOR_VOLUMETRICO_AEREO = 6000;
@@ -1261,26 +1274,55 @@ try {
       const qty = pNum("sea-qty") || 1;
       const pesoKg = pNum("sea-weight");
       const fob = pNum("sea-fob");
+      const pl = pNum("sea-pl"), pw = pNum("sea-pw"), ph = pNum("sea-ph");
+      const unidadesManual = pNum("sea-punits");
 
       if (!l || !w || !h) { alert("Cargá largo, ancho y alto de cada bulto."); return; }
 
+      // Volumen del bulto: cm³ → m³ se divide por 1.000.000 (100cm × 100cm × 100cm = 1 m³)
       const cbmPorBulto = (l * w * h) / 1000000;
       const cbmTotal = cbmPorBulto * qty;
       const toneladas = pesoKg / 1000;
       const cbmCobrable = Math.max(cbmTotal, toneladas, CBM_MINIMO);
       const rate = FLETE_RATES.sea[origenSea];
+      // Regla de 3 simple: si 1 CBM cuesta "rate", cbmCobrable CBM cuestan cbmCobrable × rate
       const costoFlete = cbmCobrable * rate;
       const total = costoFlete + fob;
 
+      // Unidades por caja: si el usuario lo completó a mano, se respeta ese número.
+      // Si no, se estima por volumen (volumen de la caja ÷ volumen del producto).
+      let unidadesPorCaja = 0;
+      if (unidadesManual > 0) {
+        unidadesPorCaja = Math.floor(unidadesManual);
+      } else if (pl > 0 && pw > 0 && ph > 0) {
+        const volProducto = (pl * pw * ph) / 1000000;
+        unidadesPorCaja = volProducto > 0 ? Math.floor(cbmPorBulto / volProducto) : 0;
+      }
+      const unidadesTotales = unidadesPorCaja * qty;
+
       const sinTarifa = !rate;
-      document.getElementById("fc-result-sea").innerHTML = `
-        <div class="fc-result-row"><span>CBM real del envío</span><span class="v">${cbmTotal.toFixed(3)} m³</span></div>
+      let html = `
+        <div class="fc-result-row math">${l}cm × ${w}cm × ${h}cm = ${(l*w*h).toLocaleString("es-AR")}cm³ ÷ 1.000.000 = ${cbmPorBulto.toFixed(3)} m³ por bulto</div>
+        <div class="fc-result-row"><span>CBM real del envío (${qty} bulto${qty === 1 ? "" : "s"})</span><span class="v">${cbmTotal.toFixed(3)} m³</span></div>
         <div class="fc-result-row"><span>Equivalente en peso</span><span class="v">${toneladas.toFixed(3)} ton</span></div>
         <div class="fc-result-row"><span>CBM a cobrar (mínimo ${CBM_MINIMO})</span><span class="v">${cbmCobrable.toFixed(3)} m³</span></div>
-        <div class="fc-result-row"><span>Tarifa (${origenLabel(origenSea)})</span><span class="v">$${fmt(rate)} / CBM</span></div>
+        <div class="fc-result-row math">${cbmCobrable.toFixed(3)} m³ × $${fmt(rate)}/m³ (${origenLabel(origenSea)}) = $${fmt(costoFlete)}</div>
         ${sinTarifa ? `<div class="fc-result-row warn">⚠️ Tarifa no configurada todavía para este origen</div>` : ""}
-        <div class="fc-result-total"><span class="lbl">Total estimado</span><span class="val">$${fmt(total)}</span></div>
+        <div class="fc-result-total"><span class="lbl">Total estimado (flete + FOB)</span><span class="val">$${fmt(total)}</span></div>
       `;
+
+      if (unidadesTotales > 0) {
+        html += `
+        <div class="fc-subtitle" style="margin-top:18px;">Costo por producto</div>
+        <div class="fc-result-row"><span>Unidades por caja (estimado)</span><span class="v">${unidadesPorCaja}</span></div>
+        <div class="fc-result-row"><span>Unidades totales (${qty} caja${qty === 1 ? "" : "s"})</span><span class="v">${unidadesTotales}</span></div>
+        <div class="fc-result-total"><span class="lbl">Flete + FOB por unidad</span><span class="val">$${fmt(total / unidadesTotales)}</span></div>
+        `;
+      } else if (pl > 0 && pw > 0 && ph > 0) {
+        html += `<div class="fc-result-row warn">⚠️ El producto no entra en la caja con esas medidas — revisá los datos.</div>`;
+      }
+
+      document.getElementById("fc-result-sea").innerHTML = html;
       document.getElementById("fc-result-sea").classList.add("show");
     });
 
