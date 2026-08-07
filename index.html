@@ -82,8 +82,8 @@
   }
 
   /* ---------- Hero ---------- */
-  .hero { background: var(--navy); color: var(--white); position:relative; overflow:hidden; }
-  .ship-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; animation: ship-breathe 9s ease-in-out infinite; transform-origin:center; }
+  .hero { background: var(--navy) url("images/hero-ship.jpg") center 42% / cover no-repeat; color: var(--white); position:relative; overflow:hidden; }
+  .hero-bg-photo { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 42%; animation: ship-breathe 14s ease-in-out infinite; transform-origin:center; }
   @keyframes ship-breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.025); } }
   .hero-overlay { position:absolute; inset:0; background: linear-gradient(180deg, rgba(13,23,48,0.72) 0%, rgba(13,23,48,0.45) 45%, rgba(13,23,48,0.82) 100%); pointer-events:none; }
   .hero-shimmer { position:absolute; inset:0; background: linear-gradient(115deg, transparent 40%, rgba(215,182,134,0.10) 50%, transparent 60%); background-size: 220% 220%; animation: shimmer-sweep 7s ease-in-out infinite; pointer-events:none; }
@@ -244,12 +244,24 @@
   .contact-wa-btn { display:inline-flex; align-items:center; gap:10px; background:#25d366; color:#0b1f19; font-weight:800; font-size:14.5px; padding:15px 26px; border-radius:8px; text-decoration:none; }
   .contact-hours { font-size:11.5px; color: rgba(255,255,255,0.65); }
 
+  /* Photo banner */
+  .photo-banner { position:relative; height:340px; overflow:hidden; }
+  .photo-banner img { width:100%; height:100%; object-fit:cover; object-position:15% 25%; display:block; }
+  .photo-banner-overlay { position:absolute; inset:0; background: linear-gradient(90deg, rgba(22,34,61,0.88) 0%, rgba(22,34,61,0.55) 45%, rgba(22,34,61,0.15) 75%); display:flex; align-items:center; }
+  .photo-banner-copy { max-width:420px; padding: 0 20px 0 40px; color:var(--white); }
+  @media (max-width:760px) { .photo-banner-copy { padding: 0 20px; max-width:100%; } .photo-banner-overlay { background: linear-gradient(180deg, rgba(22,34,61,0.55) 0%, rgba(22,34,61,0.88) 70%); align-items:flex-end; padding-bottom:24px; } }
+  .photo-banner-copy .eyebrow { color: var(--gold-bright); }
+  .photo-banner-copy h3 { font-size: clamp(19px, 2.4vw, 25px); font-weight:800; margin: 8px 0 10px; text-wrap:balance; }
+  .photo-banner-copy p { font-size:13px; line-height:1.6; color: rgba(255,255,255,0.82); margin:0; }
+
   /* Nosotros */
-  .about-grid { display:grid; grid-template-columns: 1.1fr 0.9fr; gap:48px; align-items:center; }
+  .about-grid { display:grid; grid-template-columns: 0.95fr 1.05fr; gap:44px; align-items:center; }
   @media (max-width:820px) { .about-grid { grid-template-columns:1fr; gap:28px; } }
+  .about-photo { border-radius:16px; overflow:hidden; box-shadow: 0 24px 50px -26px rgba(22,34,61,0.5); }
+  .about-photo img { width:100%; height:100%; object-fit:cover; display:block; aspect-ratio: 4/5; }
   .about-text p { font-size:14px; line-height:1.75; color: var(--ink); margin: 0 0 14px; }
   .about-text p:last-child { margin-bottom:0; }
-  .about-checks { display:flex; flex-direction:column; gap:16px; background:var(--white); border:1px solid var(--line); border-radius:12px; padding:24px; }
+  .about-checks { display:flex; flex-direction:column; gap:16px; background:var(--white); border:1px solid var(--line); border-radius:12px; padding:24px; margin-top:20px; }
   .about-check { display:flex; gap:12px; align-items:flex-start; }
   .about-check .ck { flex:none; width:22px; height:22px; border-radius:50%; background: var(--navy); color:var(--white); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:1px; }
   .about-check .tx { font-size:13px; color:var(--ink); line-height:1.5; }
@@ -405,7 +417,7 @@
 </div>
 
 <header class="hero" id="top">
-  <canvas class="ship-canvas" id="ship-canvas" aria-hidden="true"></canvas>
+  <img class="hero-bg-photo" src="images/hero-ship.jpg" alt="Buque portacontenedores visto desde arriba, navegando en mar abierto" />
   <div class="hero-overlay"></div>
   <div class="hero-shimmer"></div>
 
@@ -627,31 +639,47 @@
     </div>
   </section>
 
+  <div class="photo-banner">
+    <img src="images/dispatch.jpg" alt="Verificación y embalaje de cajas antes del despacho" loading="lazy" />
+    <div class="photo-banner-overlay">
+      <div class="photo-banner-copy">
+        <div class="eyebrow">Control de calidad</div>
+        <h3>Cada caja se revisa antes de salir del depósito</h3>
+        <p>Fotos reales del embalaje, la etiqueta de tracking y la cantidad de bultos — así confirmamos que lo que se despacha es exactamente tu pedido.</p>
+      </div>
+    </div>
+  </div>
+
   <section id="nosotros" class="section">
     <div class="wrap">
       <div class="about-grid">
-        <div class="about-text reveal">
-          <div class="eyebrow">Quiénes somos</div>
-          <h2 style="font-size: clamp(23px, 2.9vw, 31px); font-weight:800; letter-spacing:-.01em; margin: 8px 0 16px;">Especialistas en traer tu mercadería de China</h2>
-          <p>Somos una empresa argentina dedicada exclusivamente a la importación puerta a puerta desde China. No tercerizamos el depósito ni el seguimiento: nosotros mismos consolidamos tu carga en Guangzhou y la acompañamos hasta que llega a tu domicilio.</p>
-          <p>Todo el proceso — desde la cotización hasta el aviso de entrega — se maneja directo con vos por WhatsApp, sin formularios ni esperas en call centers.</p>
+        <div class="about-photo reveal">
+          <img src="images/warehouse.jpg" alt="Interior de un depósito logístico con estanterías cargadas de cajas" loading="lazy" />
         </div>
-        <div class="about-checks reveal">
-          <div class="about-check">
-            <div class="ck">✓</div>
-            <div class="tx"><strong>3 años en el rubro</strong>Ya llevamos tres años importando desde China para clientes en toda Argentina.</div>
+        <div class="reveal">
+          <div class="about-text">
+            <div class="eyebrow">Quiénes somos</div>
+            <h2 style="font-size: clamp(23px, 2.9vw, 31px); font-weight:800; letter-spacing:-.01em; margin: 8px 0 16px;">Especialistas en traer tu mercadería de China</h2>
+            <p>Somos una empresa argentina dedicada exclusivamente a la importación puerta a puerta desde China. No tercerizamos el depósito ni el seguimiento: nosotros mismos consolidamos tu carga en Guangzhou y la acompañamos hasta que llega a tu domicilio.</p>
+            <p>Todo el proceso — desde la cotización hasta el aviso de entrega — se maneja directo con vos por WhatsApp, sin formularios ni esperas en call centers.</p>
           </div>
-          <div class="about-check">
-            <div class="ck">✓</div>
-            <div class="tx"><strong>+10.000 envíos gestionados</strong>Volumen real de pedidos procesados por nuestro depósito.</div>
-          </div>
-          <div class="about-check">
-            <div class="ck">✓</div>
-            <div class="tx"><strong>Atención 24/7</strong>Te respondemos por WhatsApp los 7 días de la semana, a cualquier hora.</div>
-          </div>
-          <div class="about-check">
-            <div class="ck">✓</div>
-            <div class="tx"><strong>Depósito propio, no tercerizado</strong>Controlamos cada caja antes de que salga hacia Argentina.</div>
+          <div class="about-checks">
+            <div class="about-check">
+              <div class="ck">✓</div>
+              <div class="tx"><strong>3 años en el rubro</strong>Ya llevamos tres años importando desde China para clientes en toda Argentina.</div>
+            </div>
+            <div class="about-check">
+              <div class="ck">✓</div>
+              <div class="tx"><strong>+10.000 envíos gestionados</strong>Volumen real de pedidos procesados por nuestro depósito.</div>
+            </div>
+            <div class="about-check">
+              <div class="ck">✓</div>
+              <div class="tx"><strong>Atención 24/7</strong>Te respondemos por WhatsApp los 7 días de la semana, a cualquier hora.</div>
+            </div>
+            <div class="about-check">
+              <div class="ck">✓</div>
+              <div class="tx"><strong>Depósito propio, no tercerizado</strong>Controlamos cada caja antes de que salga hacia Argentina.</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1079,109 +1107,6 @@ try {
     }, 2500);
   })();
 } catch (e) { console.error("reveal on scroll:", e); }
-
-// ---------- Ilustración del barco (hero) ----------
-try {
-  (function () {
-    const canvas = document.getElementById("ship-canvas");
-    if (!canvas || !canvas.getContext) return;
-  const ctx = canvas.getContext("2d");
-
-  function draw() {
-    const dpr = window.devicePixelRatio || 1;
-    const w = canvas.clientWidth, h = canvas.clientHeight;
-    if (!w || !h) return;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-
-    // ocean
-    const ocean = ctx.createLinearGradient(0, 0, 0, h);
-    ocean.addColorStop(0, "#1f3157");
-    ocean.addColorStop(1, "#0d1730");
-    ctx.fillStyle = ocean;
-    ctx.fillRect(0, 0, w, h);
-
-    // subtle wave texture
-    ctx.strokeStyle = "rgba(255,255,255,0.05)";
-    ctx.lineWidth = 1;
-    const rows = 12;
-    for (let i = 0; i < rows; i++) {
-      const y = (h / rows) * i + h / (rows * 2);
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      for (let x = 0; x <= w; x += 36) {
-        ctx.lineTo(x, y + Math.sin(x / 70 + i) * 4);
-      }
-      ctx.stroke();
-    }
-
-    const cx = w * 0.54;
-    const cy = h * 0.6;
-    const shipLen = Math.min(w * 0.62, 640);
-    const shipW = shipLen * 0.15;
-
-    // wake
-    ctx.strokeStyle = "rgba(255,255,255,0.16)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(cx - shipLen * 0.5, cy);
-    ctx.quadraticCurveTo(cx - shipLen * 1.05, cy - shipW * 1.5, cx - shipLen * 1.6, cy - shipW * 2.3);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(cx - shipLen * 0.5, cy);
-    ctx.quadraticCurveTo(cx - shipLen * 1.05, cy + shipW * 1.5, cx - shipLen * 1.6, cy + shipW * 2.3);
-    ctx.stroke();
-
-    // hull
-    ctx.fillStyle = "#0e1830";
-    ctx.beginPath();
-    ctx.moveTo(cx - shipLen * 0.5, cy - shipW * 0.5);
-    ctx.lineTo(cx + shipLen * 0.4, cy - shipW * 0.5);
-    ctx.quadraticCurveTo(cx + shipLen * 0.5, cy, cx + shipLen * 0.4, cy + shipW * 0.5);
-    ctx.lineTo(cx - shipLen * 0.5, cy + shipW * 0.5);
-    ctx.closePath();
-    ctx.fill();
-
-    // containers
-    const cols = 18, crows = 2;
-    const padX = shipLen * 0.05;
-    const usableLen = shipLen * 0.8;
-    const cw = usableLen / cols - 3;
-    const chH = shipW * 0.34;
-    const colors = ["#c9502e", "#a9865a", "#e7e2d6", "#2c436f"];
-    for (let r = 0; r < crows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const x = cx - shipLen * 0.5 + padX + c * (usableLen / cols);
-        const y = cy - shipW * 0.42 + r * (chH + 4);
-        ctx.fillStyle = colors[(r * cols + c) % colors.length];
-        ctx.fillRect(x, y, cw, chH);
-      }
-    }
-
-    // deckhouse
-    ctx.fillStyle = "#e7e2d6";
-    ctx.fillRect(cx + shipLen * 0.30, cy - shipW * 0.4, shipLen * 0.09, shipW * 0.8);
-
-    // bow accent
-    ctx.fillStyle = "#c9502e";
-    ctx.beginPath();
-    ctx.moveTo(cx + shipLen * 0.4, cy - shipW * 0.2);
-    ctx.quadraticCurveTo(cx + shipLen * 0.5, cy, cx + shipLen * 0.4, cy + shipW * 0.2);
-    ctx.lineTo(cx + shipLen * 0.34, cy);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  draw();
-  let resizeTimer;
-  window.addEventListener("resize", function () {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(draw, 120);
-  });
-  })();
-} catch (e) { console.error("ilustración del barco:", e); }
 
 // ---------- Config oculta ----------
 const FLETE_USD_KG = 80; // tarifa interna, no se muestra en ningún lado
