@@ -126,12 +126,16 @@
   .fact .n { font-family: ui-monospace, monospace; color: var(--gold-bright); font-weight:700; }
 
   /* ---------- Sections ---------- */
-  .section { padding: 74px 0; }
+  .section { padding: 74px 0; position:relative; overflow:hidden; }
+  body { background-image: radial-gradient(rgba(22,34,61,0.05) 1px, transparent 1px); background-size: 24px 24px; }
   .section-head { max-width: 560px; margin: 0 0 40px; }
   .section-head.center { max-width:640px; margin-left:auto; margin-right:auto; text-align:center; }
   .section-head h2 { font-size: clamp(23px, 2.9vw, 31px); font-weight:800; letter-spacing:-.01em; margin: 8px 0 10px; text-wrap: balance; }
   .section-head p { font-size:14.5px; color: var(--muted); line-height:1.6; margin:0; }
-  .section-alt { background: var(--paper-2); }
+  .section-alt { background-color: var(--paper-2); background-image: radial-gradient(rgba(22,34,61,0.06) 1px, transparent 1px); background-size: 24px 24px; }
+  .section-blob { position:absolute; border-radius:50%; filter: blur(50px); pointer-events:none; z-index:0; }
+  .section > .wrap, .section-head, .globe-section-inner, .lane-grid, .process-list, .why-grid, .compare-grid, .glossary, .testi-placeholder, .faq { position:relative; z-index:1; }
+  .watermark-compass { position:absolute; pointer-events:none; z-index:0; opacity:.05; }
 
   /* Reveal-on-scroll */
   .reveal { opacity:0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
@@ -393,6 +397,8 @@
 <main>
 
   <section id="ruta" class="section">
+    <div class="section-blob" style="width:340px;height:340px;left:-120px;top:40px;background:radial-gradient(circle, rgba(201,80,46,0.14), transparent 70%);"></div>
+    <div class="section-blob" style="width:300px;height:300px;right:-100px;bottom:20px;background:radial-gradient(circle, rgba(169,134,90,0.16), transparent 70%);"></div>
     <div class="wrap">
       <div class="section-head center reveal">
         <div class="eyebrow">Dos países, un solo trámite</div>
@@ -544,6 +550,17 @@
   </section>
 
   <section id="por-que" class="section">
+    <svg class="watermark-compass" viewBox="0 0 200 200" width="420" height="420" style="right:-140px; top:-80px;">
+      <circle fill="none" stroke="#16223d" stroke-width="7" cx="100" cy="100" r="92"/>
+      <polygon fill="#c9502e" points="100,100 100,15 121,79"/>
+      <polygon fill="#a23f22" points="100,100 100,15 79,79"/>
+      <polygon fill="#2c436f" points="100,100 121,79 185,100"/>
+      <polygon fill="#16223d" points="100,100 185,100 121,121"/>
+      <polygon fill="#2c436f" points="100,100 121,121 100,185"/>
+      <polygon fill="#16223d" points="100,100 100,185 79,121"/>
+      <polygon fill="#2c436f" points="100,100 79,121 15,100"/>
+      <polygon fill="#16223d" points="100,100 15,100 79,79"/>
+    </svg>
     <div class="wrap">
       <div class="section-head center reveal">
         <div class="eyebrow">Por qué Jawa Logistic</div>
@@ -608,6 +625,7 @@
   <div class="lane-divider"></div>
 
   <section id="cotizador" class="section section-alt">
+    <div class="section-blob" style="width:320px;height:320px;right:-110px;top:60px;background:radial-gradient(circle, rgba(169,134,90,0.14), transparent 70%);"></div>
     <div class="wrap">
       <div class="section-head reveal" style="margin-left:auto;margin-right:auto;text-align:center;">
         <div class="eyebrow">Calculadora</div>
@@ -771,6 +789,7 @@
   </section>
 
   <section id="testimonios" class="section section-alt">
+    <div class="section-blob" style="width:280px;height:280px;left:50%;top:-60px;margin-left:-140px;background:radial-gradient(circle, rgba(201,80,46,0.10), transparent 70%);"></div>
     <div class="wrap">
       <div class="section-head center reveal">
         <div class="eyebrow">Clientes</div>
