@@ -209,6 +209,21 @@
   .why-card .t { font-size:13.5px; font-weight:700; margin-bottom:6px; }
   .why-card .d { font-size:12px; color: var(--muted); line-height:1.6; }
 
+  /* Comparativa */
+  .compare-grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; max-width:760px; margin:0 auto; }
+  @media (max-width:660px) { .compare-grid { grid-template-columns: 1fr; } }
+  .compare-card { border-radius:12px; padding:24px; }
+  .compare-card.us { background: var(--navy); color: var(--white); border:1px solid var(--navy); }
+  .compare-card.diy { background: var(--white); border:1px solid var(--line); }
+  .compare-card .ct { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; margin-bottom:14px; }
+  .compare-card.us .ct { color: var(--gold-bright); }
+  .compare-card.diy .ct { color: var(--muted); }
+  .compare-card ul { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:12px; }
+  .compare-card li { font-size:13px; line-height:1.5; display:flex; gap:10px; align-items:flex-start; }
+  .compare-card.us li { color: rgba(255,255,255,0.9); }
+  .compare-card.diy li { color: var(--muted); }
+  .compare-card .ic { flex:none; width:18px; height:18px; margin-top:1px; }
+
   /* Glosario */
   .glossary { display:grid; grid-template-columns: repeat(2, 1fr); gap: 14px 32px; }
   @media (max-width: 700px) { .glossary { grid-template-columns: 1fr; } }
@@ -555,6 +570,36 @@
           <div class="why-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#16223d" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div>
           <div class="t">Seguimiento real</div>
           <div class="d">Pedimos fotos del paquete antes de despachar y te acompañamos con el tracking hasta que llega.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-alt">
+    <div class="wrap">
+      <div class="section-head center reveal">
+        <div class="eyebrow">La diferencia</div>
+        <h2>Importar con nosotros vs. por tu cuenta</h2>
+        <p>Lo que cambia cuando alguien ya conoce el camino.</p>
+      </div>
+      <div class="compare-grid reveal-group">
+        <div class="compare-card us reveal">
+          <div class="ct">Con Jawa Logistic</div>
+          <ul>
+            <li><span class="ic">✓</span> Un solo precio, con flete ya incluido — sin cotizar por separado</li>
+            <li><span class="ic">✓</span> Dirección y trámite aduanero resueltos por nosotros</li>
+            <li><span class="ic">✓</span> Control de fotos antes de despachar, para evitar sorpresas</li>
+            <li><span class="ic">✓</span> Todo el seguimiento centralizado en un chat de WhatsApp</li>
+          </ul>
+        </div>
+        <div class="compare-card diy reveal">
+          <div class="ct">Importando por tu cuenta</div>
+          <ul>
+            <li><span class="ic">−</span> Tenés que cotizar el flete internacional vos mismo</li>
+            <li><span class="ic">−</span> Gestionás la aduana y la documentación solo</li>
+            <li><span class="ic">−</span> No hay control del embalaje antes de que salga de fábrica</li>
+            <li><span class="ic">−</span> El seguimiento depende de varios proveedores distintos</li>
+          </ul>
         </div>
       </div>
     </div>
