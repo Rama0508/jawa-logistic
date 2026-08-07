@@ -3,110 +3,197 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<title>Jawa Logistic — Importá desde China sin sorpresas</title>
+<title>Jawa Logistic — Importación China → Argentina</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='112' fill='%237a1f22' stroke='%23e0942f' stroke-width='6'/%3E%3C/svg%3E" />
 <style>
   :root{
-    --bg:#0f1512; --panel:#161f1a; --panel-2:#1c2721; --line:#2a3a32;
-    --text:#e9efe9; --muted:#8fa398; --accent:#5fd88f; --accent-dim:#3a8f5f; --warn:#e0a758;
+    --ink:#18120f;
+    --paper:#faf6ef;
+    --paper-2:#f1e9db;
+    --red:#7a1f22;
+    --red-deep:#3a0d0f;
+    --gold:#c97a1f;
+    --gold-bright:#e0942f;
+    --line:#e2d5bf;
+    --muted:#7a6f60;
+    --white:#fffdfa;
+    font-size: 16px;
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
-  body {
-    margin:0; background:var(--bg); color:var(--text);
-    font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
   }
-  a { color: inherit; }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 0 12px; }
+  body {
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color:inherit; }
+  img, svg { display:block; max-width:100%; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  .data { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-variant-numeric: tabular-nums; }
+  .eyebrow { font-size: 11px; font-weight:700; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
 
   /* ---------- Nav ---------- */
-  .navbar { position: sticky; top: 0; z-index: 20; background: rgba(15,21,18,0.92); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
-  .navbar-inner { max-width: 760px; margin: 0 auto; padding: 12px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  .brand { display:flex; align-items:center; gap:10px; }
-  .logo-box { width:36px; height:36px; border-radius:8px; background:var(--panel-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; overflow:hidden; flex:none; }
-  .brand-name { font-size:14px; font-weight:700; }
-  .nav-cta { font-size:11.5px; font-weight:700; color:#0b1f19; background:#25d366; padding:8px 12px; border-radius:8px; text-decoration:none; white-space:nowrap; }
+  .navbar { position: sticky; top: 0; z-index: 40; background: rgba(250,246,239,0.9); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  .navbar-inner { max-width: 1080px; margin: 0 auto; padding: 14px 20px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .brand { display:flex; align-items:center; gap:10px; text-decoration:none; }
+  .logo-box { width:34px; height:34px; flex:none; }
+  .brand-name { font-size:15px; font-weight:800; letter-spacing:-.01em; color: var(--red); }
+  .nav-links { display:flex; align-items:center; gap:22px; }
+  .nav-links a { font-size:13px; font-weight:600; text-decoration:none; color: var(--ink); opacity:.75; }
+  .nav-links a:hover { opacity:1; }
+  .nav-cta { font-size:12.5px; font-weight:700; color:var(--white); background:var(--red); padding:9px 16px; border-radius:6px; text-decoration:none; white-space:nowrap; }
+  @media (max-width: 720px) { .nav-links a:not(.nav-cta) { display:none; } }
 
   /* ---------- Hero ---------- */
-  .hero { padding: 40px 0 28px; text-align:center; }
-  .hero h1 { font-size: 24px; line-height:1.3; margin: 0 0 10px; }
-  .hero h1 span { color: var(--accent); }
-  .hero p { font-size: 13px; color: var(--muted); line-height:1.6; max-width: 520px; margin: 0 auto 20px; }
-  .hero-cta { display:inline-block; background:var(--accent-dim); color:#fff; font-weight:700; font-size:13px; padding:13px 22px; border-radius:8px; text-decoration:none; }
-  .hero-badges { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:18px; }
-  .hero-badge { font-size:10.5px; color:var(--muted); background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:5px 12px; }
+  .hero { background: linear-gradient(180deg, var(--red-deep), var(--red) 78%); color: var(--white); position:relative; overflow:hidden; }
+  .hero-inner { max-width:1080px; margin:0 auto; padding: 64px 20px 0; display:grid; grid-template-columns: 1.05fr 0.95fr; gap: 40px; align-items:center; }
+  @media (max-width: 860px) { .hero-inner { grid-template-columns: 1fr; padding-top:44px; } }
+  .hero-copy .eyebrow { color: var(--gold-bright); }
+  .hero h1 { font-size: clamp(30px, 4.6vw, 46px); line-height:1.08; font-weight:800; letter-spacing:-.015em; margin: 12px 0 16px; text-wrap: balance; }
+  .hero h1 em { font-style:normal; color: var(--gold-bright); }
+  .hero p { font-size: 15px; line-height:1.65; color: rgba(255,255,255,0.82); max-width: 460px; margin: 0 0 26px; }
+  .hero-actions { display:flex; gap:12px; flex-wrap:wrap; margin-bottom: 8px; }
+  .btn-primary { display:inline-flex; align-items:center; gap:8px; background: var(--gold-bright); color: var(--red-deep); font-weight:800; font-size:14px; padding:14px 22px; border-radius:7px; text-decoration:none; border:none; cursor:pointer; font-family:inherit; }
+  .btn-ghost { display:inline-flex; align-items:center; gap:8px; background: transparent; color: var(--white); font-weight:700; font-size:14px; padding:14px 20px; border-radius:7px; text-decoration:none; border:1px solid rgba(255,255,255,0.35); }
 
-  /* ---------- Steps ---------- */
-  .section { padding: 30px 0; }
-  .section-title { font-size:16px; font-weight:700; margin: 0 0 4px; text-align:center; }
-  .section-sub { font-size:12px; color:var(--muted); text-align:center; margin: 0 0 22px; }
-  .steps { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; }
-  .step { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 10px; text-align:center; }
-  .step-num { width:24px; height:24px; border-radius:50%; background:var(--accent-dim); color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; margin: 0 auto 8px; }
-  .step-title { font-size:11.5px; font-weight:700; margin-bottom:4px; }
-  .step-text { font-size:10.5px; color:var(--muted); line-height:1.5; }
-  @media (max-width: 620px) { .steps { grid-template-columns: repeat(2, 1fr); } }
+  /* Route graphic */
+  .route-card { background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.16); border-radius:14px; padding:22px 20px 18px; }
+  .route-label { display:flex; justify-content:space-between; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color: rgba(255,255,255,0.6); margin-bottom:10px; }
+  .route-svg { width:100%; height:auto; }
+  .route-path { fill:none; stroke: var(--gold-bright); stroke-width:2.5; stroke-linecap:round; stroke-dasharray: 6 7; }
+  .route-line-draw { fill:none; stroke: rgba(255,255,255,0.28); stroke-width:1; }
+  .route-node circle.dot { fill: var(--gold-bright); }
+  .route-node circle.ring { fill:none; stroke: var(--gold-bright); stroke-width:1.4; opacity:.7; transform-origin: center; animation: ring-pulse 2.6s ease-out infinite; }
+  .route-node.end circle.dot { fill: var(--white); }
+  .route-node.end circle.ring { stroke: var(--white); animation-delay: 1.3s; }
+  @keyframes ring-pulse { 0% { r:5; opacity:.8; } 100% { r:16; opacity:0; } }
+  .route-node text { fill: rgba(255,255,255,0.85); font-size:9.5px; font-family: ui-monospace, monospace; }
+  .route-flight { animation: fly 4.5s linear infinite; }
+  @keyframes fly { 0% { offset-distance: 0%; } 100% { offset-distance: 100%; } }
+  .route-meta { display:flex; justify-content:space-between; margin-top:14px; padding-top:12px; border-top:1px dashed rgba(255,255,255,0.2); }
+  .route-meta div { font-size:10.5px; color: rgba(255,255,255,0.55); text-transform:uppercase; letter-spacing:.06em; }
+  .route-meta strong { display:block; color: var(--white); font-size:13px; font-family: ui-monospace, monospace; margin-top:3px; letter-spacing:0; text-transform:none; }
 
-  /* ---------- Why us ---------- */
-  .why-grid { display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; }
-  .why-card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; }
-  .why-card .ic { font-size:18px; margin-bottom:6px; }
-  .why-card .t { font-size:12px; font-weight:700; margin-bottom:4px; }
-  .why-card .d { font-size:10.5px; color:var(--muted); line-height:1.5; }
-  @media (max-width: 620px) { .why-grid { grid-template-columns: 1fr; } }
+  /* Fact strip */
+  .factstrip { margin-top: 46px; border-top: 1px solid rgba(255,255,255,0.14); }
+  .factstrip-inner { max-width:1080px; margin:0 auto; padding: 16px 20px; display:grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  @media (max-width: 720px) { .factstrip-inner { grid-template-columns: repeat(2, 1fr); } }
+  .fact { font-size:12px; color: rgba(255,255,255,0.85); display:flex; align-items:baseline; gap:8px; }
+  .fact .n { font-family: ui-monospace, monospace; color: var(--gold-bright); font-weight:700; }
 
-  /* ---------- Calculator (original) ---------- */
-  #cotizador { padding-top: 34px; }
-  .intro { font-size:12.5px; color:var(--muted); line-height:1.5; margin: 12px 0 20px; padding:12px; background:var(--panel); border:1px solid var(--line); border-radius:8px; }
-  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding: 14px; margin-bottom:14px; }
-  .prod-card { border-bottom:1px dashed var(--line); padding: 14px 0; }
-  .prod-card:last-child { border-bottom:none; }
+  /* ---------- Sections ---------- */
+  .section { padding: 76px 0; }
+  .section-head { max-width: 560px; margin: 0 0 40px; }
+  .section-head.center { max-width:620px; margin-left:auto; margin-right:auto; text-align:center; }
+  .section-head h2 { font-size: clamp(24px, 3vw, 32px); font-weight:800; letter-spacing:-.01em; margin: 8px 0 10px; text-wrap: balance; }
+  .section-head p { font-size:14.5px; color: var(--muted); line-height:1.6; margin:0; }
+  .section-alt { background: var(--paper-2); }
+
+  /* Reveal-on-scroll */
+  .reveal { opacity:0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.is-visible { opacity:1; transform:none; }
+  .reveal-group .reveal:nth-child(2) { transition-delay: .08s; }
+  .reveal-group .reveal:nth-child(3) { transition-delay: .16s; }
+  .reveal-group .reveal:nth-child(4) { transition-delay: .24s; }
+
+  /* Timeline (Cómo funciona) */
+  .timeline { position:relative; display:grid; grid-template-columns: repeat(4, 1fr); gap:0; counter-reset: step; }
+  .timeline::before { content:""; position:absolute; top:19px; left: 12.5%; right:12.5%; height:1px; background: var(--line); z-index:0; }
+  @media (max-width: 780px) { .timeline { grid-template-columns: 1fr; gap: 22px; } .timeline::before { display:none; } }
+  .tl-step { position:relative; z-index:1; padding: 0 14px; text-align:center; }
+  @media (max-width: 780px) { .tl-step { text-align:left; padding-left:52px; } }
+  .tl-num { width:38px; height:38px; border-radius:50%; background: var(--red); color: var(--white); font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; margin: 0 auto 14px; font-family: ui-monospace, monospace; }
+  @media (max-width: 780px) { .tl-num { position:absolute; left:0; top:0; margin:0; } }
+  .tl-title { font-size:14.5px; font-weight:700; margin-bottom:6px; }
+  .tl-text { font-size:12.5px; color: var(--muted); line-height:1.6; }
+
+  /* Why cards */
+  .why-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:16px; }
+  @media (max-width: 900px) { .why-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .why-grid { grid-template-columns: 1fr; } }
+  .why-card { background: var(--white); border:1px solid var(--line); border-radius:10px; padding:22px 18px; transition: border-color .2s ease, transform .2s ease; }
+  .why-card:hover { border-color: var(--gold); transform: translateY(-2px); }
+  .why-mark { width:34px; height:34px; border-radius:8px; background: var(--paper-2); display:flex; align-items:center; justify-content:center; margin-bottom:14px; }
+  .why-mark svg { width:18px; height:18px; }
+  .why-card .t { font-size:13.5px; font-weight:700; margin-bottom:6px; }
+  .why-card .d { font-size:12px; color: var(--muted); line-height:1.6; }
+
+  /* ---------- Calculator (restyled, same IDs/classes for JS) ---------- */
+  #cotizador .section-head { margin-left:auto; margin-right:auto; text-align:center; max-width:560px; }
+  .calc-shell { max-width: 640px; margin: 0 auto; }
+  .intro { font-size:13px; color:var(--muted); line-height:1.6; margin: 0 0 20px; padding:14px 16px; background:var(--white); border:1px solid var(--line); border-radius:10px; }
+  .card { background:var(--white); border:1px solid var(--line); border-radius:10px; padding: 18px; margin-bottom:16px; }
+  .card-label { font-size:13px; font-weight:700; margin-bottom:12px; }
+  .prod-card { border-bottom:1px dashed var(--line); padding: 16px 0; }
+  .prod-card:first-child { padding-top:0; }
+  .prod-card:last-child { border-bottom:none; padding-bottom:0; }
   .prod-row1 { display:flex; gap:8px; margin-bottom:10px; align-items:center; }
-  .prod-row1 input[type=text] { flex:1; font-size:15px; }
+  .prod-row1 input[type=text] { flex:1; font-size:14.5px; }
   .field-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-bottom:10px; }
-  .field { display:flex; flex-direction:column; gap:3px; }
-  .field label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
-  input, select { background:var(--panel-2); border:1px solid var(--line); border-radius:6px; color:var(--text); font-size:14px; padding:8px 8px; font-family:inherit; outline:none; width:100%; }
+  .field { display:flex; flex-direction:column; gap:4px; }
+  .field label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; font-weight:600; }
+  input, select {
+    background:var(--paper); border:1px solid var(--line); border-radius:6px; color:var(--ink);
+    font-size:14px; padding:9px 10px; font-family:inherit; outline:none; width:100%;
+  }
+  input:focus, select:focus { border-color: var(--red); }
   .peso-row { display:flex; gap:6px; }
   .peso-row input { flex:1; }
-  .peso-row select { width:64px; flex:none; }
+  .peso-row select { width:66px; flex:none; }
 
-  .results { display:flex; justify-content:space-between; align-items:center; background:var(--panel-2); border-radius:8px; padding:10px 12px; margin-top:4px; }
-  .results .lbl { font-size:11px; color:var(--muted); }
-  .results .val { font-size:18px; font-weight:700; color:var(--accent); }
+  .results { display:flex; justify-content:space-between; align-items:center; background:var(--paper-2); border-radius:8px; padding:11px 14px; margin-top:6px; }
+  .results .lbl { font-size:11.5px; color:var(--muted); }
+  .results .val { font-size:17px; font-weight:800; color:var(--red); font-family: ui-monospace, monospace; }
 
-  .del-btn { background:transparent; border:none; color:var(--muted); font-size:20px; cursor:pointer; padding:2px 6px; flex:none; }
+  .del-btn { background:transparent; border:none; color:var(--muted); font-size:18px; cursor:pointer; padding:2px 6px; flex:none; }
+  .del-btn:hover { color: var(--red); }
 
-  .add-btn { width:100%; padding:14px; background:transparent; border:1px dashed var(--accent-dim); border-radius:8px; color:var(--accent); font-size:14px; cursor:pointer; margin-top:6px; font-family:inherit; font-weight:700; }
+  .add-btn { width:100%; padding:14px; background:transparent; border:1.5px dashed var(--gold); border-radius:8px; color:var(--gold); font-size:13.5px; cursor:pointer; margin-top:4px; font-family:inherit; font-weight:700; }
+  .add-btn:hover { background: var(--paper-2); }
 
-  .resumen { background: var(--panel-2); border:1px solid var(--accent-dim); border-radius:10px; padding:16px; }
-  .resumen-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; font-size:13px; color:var(--muted); }
-  .resumen-row.total { border-top:1px solid var(--line); margin-top:6px; padding-top:12px; font-size:17px; font-weight:700; color:var(--text); }
-  .resumen-row.total .val { color: var(--accent); font-size:22px; }
+  .resumen { background: var(--red-deep); color: var(--white); border:none; border-radius:10px; padding:20px; }
+  .resumen-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; font-size:13px; color: rgba(255,255,255,0.7); }
+  .resumen-row.total { border-top:1px solid rgba(255,255,255,0.2); margin-top:6px; padding-top:14px; font-size:15px; font-weight:700; color: var(--white); }
+  .resumen-row.total .val { color: var(--gold-bright); font-size:24px; font-family: ui-monospace, monospace; }
 
-  .send-btn { width:100%; padding:14px; margin-top:14px; background:var(--accent-dim); border:none; border-radius:8px; color:#ffffff; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
-  .send-btn:active { opacity:0.85; }
+  .send-btn { width:100%; padding:15px; margin-top:14px; background:var(--red); border:none; border-radius:8px; color:#ffffff; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .send-btn:hover { background: var(--red-deep); }
+  .send-btn:active { opacity:0.9; }
 
-  .note { margin-top:14px; font-size:10.5px; color:var(--muted); line-height:1.5; text-align:center; }
+  .note { margin-top:16px; font-size:11px; color:var(--muted); line-height:1.6; text-align:center; }
 
-  /* ---------- Testimonials placeholder ---------- */
-  .testi-placeholder { border: 1px dashed var(--line); border-radius:10px; padding:18px; text-align:center; font-size:11.5px; color:var(--muted); line-height:1.6; }
+  /* Testimonials */
+  .testi-placeholder { border: 1px dashed var(--line); background: var(--white); border-radius:10px; padding:24px; text-align:center; font-size:12.5px; color:var(--muted); line-height:1.7; max-width:560px; margin:0 auto; }
+
+  /* FAQ accordion */
+  .faq { max-width: 700px; margin: 0 auto; }
+  .faq-item { border-bottom: 1px solid var(--line); }
+  .faq-item summary { list-style:none; cursor:pointer; padding: 18px 4px; display:flex; align-items:center; justify-content:space-between; gap:16px; font-size:14px; font-weight:700; }
+  .faq-item summary::-webkit-details-marker { display:none; }
+  .faq-item .chevron { flex:none; width:18px; height:18px; transition: transform .25s ease; color: var(--red); }
+  .faq-item[open] .chevron { transform: rotate(45deg); }
+  .faq-item p { margin: 0 0 18px; font-size:13px; color: var(--muted); line-height:1.7; padding-right:34px; }
 
   /* ---------- Footer ---------- */
-  footer { border-top:1px solid var(--line); margin-top: 20px; padding: 28px 0 40px; }
-  .footer-grid { display:flex; flex-wrap:wrap; gap:20px; justify-content:space-between; margin-bottom: 18px; }
-  .footer-col .t { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); margin-bottom:8px; }
-  .footer-col a, .footer-col div { font-size:12px; line-height:2; }
-  .footer-bottom { font-size:10.5px; color:var(--muted); text-align:center; padding-top:16px; border-top:1px solid var(--line); }
+  footer { background: var(--red-deep); color: rgba(255,255,255,0.85); }
+  .footer-grid { display:flex; flex-wrap:wrap; gap:32px; justify-content:space-between; padding: 46px 0 26px; }
+  .footer-col .t { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color: var(--gold-bright); margin-bottom:12px; }
+  .footer-col a, .footer-col div.line { font-size:13px; line-height:2.1; color: rgba(255,255,255,0.75); text-decoration:none; }
+  .footer-col a:hover { color: var(--white); }
+  .footer-bottom { font-size:11px; color: rgba(255,255,255,0.45); text-align:center; padding: 18px 0 26px; border-top:1px solid rgba(255,255,255,0.12); }
 </style>
 </head>
 <body>
 
 <div class="navbar">
   <div class="navbar-inner">
-    <div class="brand">
+    <a class="brand" href="#top">
       <div class="logo-box">
-        <svg width="28" height="28" viewBox="0 0 236 236">
+        <svg viewBox="0 0 236 236" width="34" height="34">
           <defs>
             <linearGradient id="jawaBadgeNav" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stop-color="#7a1f22"/><stop offset="100%" stop-color="#4a1013"/>
@@ -116,7 +203,7 @@
             </linearGradient>
           </defs>
           <g transform="translate(118,118)">
-            <circle r="112" fill="url(#jawaBadgeNav)" stroke="#ffcf6b" stroke-width="3"/>
+            <circle r="112" fill="url(#jawaBadgeNav)" stroke="#e0942f" stroke-width="3"/>
             <path d="M -64,19 Q -40,-66 0,-44 Q 32,-25 64,-15" fill="none" stroke="url(#jawaSunNav)" stroke-width="6" stroke-linecap="round"/>
             <circle cx="-64" cy="19" r="7" fill="#ffcf6b"/>
             <circle cx="0" cy="-44" r="6" fill="#ffffff"/>
@@ -125,205 +212,302 @@
         </svg>
       </div>
       <div class="brand-name">Jawa Logistic</div>
+    </a>
+    <div class="nav-links">
+      <a href="#como-funciona">Cómo funciona</a>
+      <a href="#por-que">Por qué elegirnos</a>
+      <a href="#faq">Preguntas</a>
+      <a class="nav-cta" href="#cotizador">Cotizar ahora</a>
     </div>
-    <a class="nav-cta" href="#cotizador">Cotizar ahora</a>
   </div>
 </div>
 
-<div class="wrap">
+<header class="hero" id="top">
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <div class="eyebrow">Importación China → Argentina</div>
+      <h1>De la fábrica en China<br/>a tu puerta en Argentina,<br/><em>a precio cerrado.</em></h1>
+      <p>Cargá el precio FOB, el peso y la cantidad de lo que querés traer. La calculadora te muestra el costo puesto en Argentina al instante — flete internacional incluido, sin costos ocultos.</p>
+      <div class="hero-actions">
+        <a class="btn-primary" href="#cotizador">Cotizar mi pedido →</a>
+        <a class="btn-ghost" href="#como-funciona">Ver cómo funciona</a>
+      </div>
+    </div>
 
-  <section class="hero">
-    <h1>Importá de China<br/><span>sin sorpresas en el bolsillo</span></h1>
-    <p>Cargá el precio FOB de tu producto, el peso y la cantidad. En segundos sabés cuánto sale puesto en tu puerta en Argentina — flete y costos de importación ya incluidos, sin letra chica.</p>
-    <a class="hero-cta" href="#cotizador">Cotizar mi pedido</a>
-    <div class="hero-badges">
-      <div class="hero-badge">Precio final, sin sorpresas</div>
-      <div class="hero-badge">Gestión 100% por WhatsApp</div>
-      <div class="hero-badge">Depósito propio en China</div>
+    <div class="route-card">
+      <div class="route-label"><span>Ruta comercial</span><span class="data">CN → AR</span></div>
+      <svg class="route-svg" viewBox="0 0 320 150" aria-hidden="true">
+        <path class="route-line-draw" d="M 30,110 Q 160,10 290,90" />
+        <path class="route-path" d="M 30,110 Q 160,10 290,90" />
+        <circle class="route-flight" r="3.2" fill="#faf6ef" style="offset-path: path('M 30,110 Q 160,10 290,90');" />
+        <g class="route-node start" transform="translate(30,110)">
+          <circle class="ring" r="5" />
+          <circle class="dot" r="4.5" />
+          <text x="0" y="24" text-anchor="middle">GUANGZHOU</text>
+        </g>
+        <g class="route-node end" transform="translate(290,90)">
+          <circle class="ring" r="5" />
+          <circle class="dot" r="4.5" />
+          <text x="0" y="-14" text-anchor="middle">ARGENTINA</text>
+        </g>
+      </svg>
+      <div class="route-meta">
+        <div>Origen<strong>Depósito propio</strong></div>
+        <div>Destino<strong>Tu domicilio</strong></div>
+        <div>Gestión<strong>WhatsApp</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="factstrip">
+    <div class="factstrip-inner">
+      <div class="fact"><span class="n">01</span> Depósito propio en Guangzhou</div>
+      <div class="fact"><span class="n">02</span> Precio con flete ya incluido</div>
+      <div class="fact"><span class="n">03</span> Gestión 100% por WhatsApp</div>
+      <div class="fact"><span class="n">04</span> Seguimiento hasta la entrega</div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <section id="como-funciona" class="section">
+    <div class="wrap">
+      <div class="section-head center reveal">
+        <div class="eyebrow">Proceso</div>
+        <h2>Cómo funciona</h2>
+        <p>Cuatro pasos, del presupuesto a la entrega en tu puerta.</p>
+      </div>
+      <div class="timeline reveal-group">
+        <div class="tl-step reveal">
+          <div class="tl-num">1</div>
+          <div class="tl-title">Cotizás</div>
+          <div class="tl-text">Cargás tus productos en la calculadora y ves el costo final en el momento.</div>
+        </div>
+        <div class="tl-step reveal">
+          <div class="tl-num">2</div>
+          <div class="tl-title">Confirmás</div>
+          <div class="tl-text">Cerrás el pedido por WhatsApp y te pasamos tu código y la dirección en China.</div>
+        </div>
+        <div class="tl-step reveal">
+          <div class="tl-num">3</div>
+          <div class="tl-title">Despachás</div>
+          <div class="tl-text">Tu proveedor envía las cajas a nuestro depósito, con fotos reales del paquete.</div>
+        </div>
+        <div class="tl-step reveal">
+          <div class="tl-num">4</div>
+          <div class="tl-title">Recibís</div>
+          <div class="tl-text">Seguís el tracking paso a paso hasta que el pedido llega a tu casa.</div>
+        </div>
+      </div>
     </div>
   </section>
 
-  <section class="section">
-    <div class="section-title">Cómo funciona</div>
-    <div class="section-sub">De la cotización a tu puerta, en 4 pasos</div>
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <div class="step-title">Cotizás</div>
-        <div class="step-text">Cargás tus productos en la calculadora y ves el costo final en el momento.</div>
+  <section id="por-que" class="section section-alt">
+    <div class="wrap">
+      <div class="section-head center reveal">
+        <div class="eyebrow">Por qué Jawa Logistic</div>
+        <h2>Importar sin vueltas, de punta a punta</h2>
+        <p>Todo lo que necesitás para traer mercadería de China sin sorpresas en el camino.</p>
       </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <div class="step-title">Confirmás</div>
-        <div class="step-text">Cerrás el pedido por WhatsApp y te pasamos tu código y la dirección en China.</div>
-      </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <div class="step-title">Despachás</div>
-        <div class="step-text">Tu proveedor envía las cajas a nuestro depósito, con fotos reales del paquete.</div>
-      </div>
-      <div class="step">
-        <div class="step-num">4</div>
-        <div class="step-title">Recibís</div>
-        <div class="step-text">Seguís el tracking paso a paso hasta que el pedido llega a tu casa.</div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="section-title">Por qué elegir Jawa Logistic</div>
-    <div class="section-sub">Importar sin vueltas, de punta a punta</div>
-    <div class="why-grid">
-      <div class="why-card">
-        <div class="ic">💰</div>
-        <div class="t">Precio todo incluido</div>
-        <div class="d">El flete internacional ya está sumado al costo por kilo: el número que ves en la calculadora es el que pagás.</div>
-      </div>
-      <div class="why-card">
-        <div class="ic">📦</div>
-        <div class="t">Depósito propio en China</div>
-        <div class="d">Consolidamos tu carga antes de despacharla, para que llegue todo junto y controlado.</div>
-      </div>
-      <div class="why-card">
-        <div class="ic">💬</div>
-        <div class="t">Todo por WhatsApp</div>
-        <div class="d">Confirmación, despacho y seguimiento se manejan por chat — sin formularios ni trámites eternos.</div>
-      </div>
-      <div class="why-card">
-        <div class="ic">🔍</div>
-        <div class="t">Seguimiento real</div>
-        <div class="d">Pedimos fotos del paquete antes de despachar y te acompañamos con el tracking hasta que llega.</div>
+      <div class="why-grid reveal-group">
+        <div class="why-card reveal">
+          <div class="why-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#7a1f22" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg></div>
+          <div class="t">Precio todo incluido</div>
+          <div class="d">El flete internacional ya está sumado al costo por kilo: el número que ves en la calculadora es el que pagás.</div>
+        </div>
+        <div class="why-card reveal">
+          <div class="why-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#7a1f22" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="1"/><path d="M3 11h18M8 7V4h8v3"/></svg></div>
+          <div class="t">Depósito propio en China</div>
+          <div class="d">Consolidamos tu carga antes de despacharla, para que llegue todo junto y controlado.</div>
+        </div>
+        <div class="why-card reveal">
+          <div class="why-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#7a1f22" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+          <div class="t">Todo por WhatsApp</div>
+          <div class="d">Confirmación, despacho y seguimiento se manejan por chat — sin formularios ni trámites eternos.</div>
+        </div>
+        <div class="why-card reveal">
+          <div class="why-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#7a1f22" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div>
+          <div class="t">Seguimiento real</div>
+          <div class="d">Pedimos fotos del paquete antes de despachar y te acompañamos con el tracking hasta que llega.</div>
+        </div>
       </div>
     </div>
   </section>
 
   <section id="cotizador" class="section">
-    <div class="section-title">Armá tu pedido</div>
-    <div class="intro">
-      Cargá los productos que querés importar (nombre, precio FOB en USD, peso y cantidad) y vas a ver al instante el costo final puesto en Argentina, con el flete internacional ya incluido.
-    </div>
-
-    <div class="card" id="datos-cliente">
-      <div style="font-size:13px;font-weight:700;margin-bottom:10px;">Tus datos</div>
-      <div class="field-grid" style="grid-template-columns: repeat(2, 1fr);">
-        <div class="field">
-          <label>Nombre</label>
-          <input type="text" id="cli-nombre" placeholder="Nombre" />
-        </div>
-        <div class="field">
-          <label>Apellido</label>
-          <input type="text" id="cli-apellido" placeholder="Apellido" />
-        </div>
-        <div class="field">
-          <label>DNI</label>
-          <input type="text" inputmode="numeric" id="cli-dni" placeholder="00.000.000" />
-        </div>
-        <div class="field">
-          <label>Teléfono</label>
-          <input type="text" inputmode="tel" id="cli-telefono" placeholder="11 1234-5678" />
-        </div>
-        <div class="field" style="grid-column: 1 / -1;">
-          <label>Email</label>
-          <input type="email" id="cli-email" placeholder="tuemail@ejemplo.com" />
-        </div>
-      </div>
-    </div>
-
-    <div class="card" id="productos-container"></div>
-    <button class="add-btn" id="add-btn">+ Agregar producto</button>
-
-    <div class="card resumen" id="resumen-container" style="margin-top:16px;"></div>
-
-    <button class="send-btn" id="whatsapp-pedido-btn" style="background:#25d366; color:#0b1f19;">Enviar cotización por WhatsApp</button>
-    <button class="send-btn" id="descargar-btn" style="margin-top:8px;">Descargar mi cotización</button>
-
-    <div class="note" style="margin-bottom:18px;">Los precios se calculan puertas adentro con el flete internacional y costos de importación ya incluidos.</div>
-
-    <div class="card" id="confirmacion-gate" style="border-color: var(--line);">
-      <div style="font-size:13px;font-weight:700;margin-bottom:4px;">🔒 ¿Ya cerraste tu pedido con nosotros?</div>
-      <div style="font-size:11px; color: var(--muted); margin-bottom:10px;">Una vez que confirmemos tu compra, te vamos a pasar un código. Cargalo acá para destrabar la dirección y los datos que necesitás para tu proveedor.</div>
-      <div class="field">
-        <label>Código de confirmación</label>
-        <input type="text" id="codigo-confirmacion" placeholder="Te lo pasamos por WhatsApp" />
-      </div>
-      <div id="confirmacion-error" style="font-size:11px; color: var(--warn); margin-top:6px; display:none;">Código incorrecto. Revisá que esté bien escrito.</div>
-      <button id="desbloquear-btn" style="width:100%; padding:10px; margin-top:10px; background:var(--panel-2); border:1px solid var(--accent-dim); border-radius:8px; color:var(--accent); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;">Desbloquear</button>
-      <div style="font-size:10px; color:var(--muted); margin-top:8px;">Al desbloquear se abre WhatsApp para avisarnos que ya tenés tu código — solo tenés que tocar enviar.</div>
-    </div>
-
-    <div id="post-confirmacion" style="display:none;">
-
-      <div class="card" id="direccion-basica" style="border-color: var(--accent-dim);">
-        <div style="font-size:13px;font-weight:700;margin-bottom:4px; color: var(--accent);">📍 Dirección para tu proveedor (Alibaba)</div>
-        <div style="font-size:11px; color: var(--muted); margin-bottom:10px;">Pasale esto a tu proveedor como dirección de envío al pedir la cotización de flete.</div>
-        <div style="font-size:13px; line-height:1.7;">
-          <div><b>Dirección:</b><br/><span id="direccion-texto"></span></div>
-          <div style="margin-top:4px;"><b>Código postal:</b> <span id="cp-texto"></span></div>
-          <div style="margin-top:4px;"><b>Tu ID de cliente:</b> <span id="id-cliente-texto" style="color:var(--accent); font-weight:700;"></span></div>
-        </div>
-        <div style="margin-top:8px; font-size:11px; color:var(--warn);">⚠️ Alibaba te va a pedir estos datos al finalizar la compra — incluí tu ID de cliente en las notas del pedido si te lo permite.</div>
+    <div class="wrap">
+      <div class="section-head reveal" style="margin-left:auto;margin-right:auto;text-align:center;">
+        <div class="eyebrow">Calculadora</div>
+        <h2>Armá tu pedido</h2>
+        <p>Cargá los productos que querés importar y mirá el costo final puesto en Argentina.</p>
       </div>
 
-      <div class="card" id="fotos-obligatorias" style="border-color: var(--warn); background: rgba(224,167,88,0.06);">
-        <div style="font-size:13px;font-weight:700;margin-bottom:4px; color: var(--warn);">⚠️ Paso obligatorio antes de que tu proveedor entregue las cajas</div>
-        <div style="font-size:12px; color: var(--text); line-height:1.6;">
-          Pedile a tu proveedor <b>fotos reales</b> de cada caja antes de que las entregue en el depósito, donde se vean bien:
+      <div class="calc-shell">
+        <div class="intro">
+          Cargá el nombre, precio FOB en USD, peso y cantidad de cada producto. Vas a ver al instante el costo final puesto en Argentina, con el flete internacional ya incluido.
         </div>
-        <ul style="margin:8px 0 0; padding-left:18px; font-size:12px; color:var(--text); line-height:1.8;">
-          <li>La etiqueta con el <b>tracking number</b> legible</li>
-          <li>El estado del embalaje (que no esté dañado)</li>
-          <li>La cantidad de cajas, si es más de una</li>
-        </ul>
-        <div style="margin-top:8px; font-size:11.5px; color: var(--warn);">No sirven fotos genéricas del producto ni imágenes del catálogo — tienen que ser del paquete físico real que se está enviando. Sin esto no podemos confirmar tu envío.</div>
-      </div>
 
-      <div class="card" id="tracking-trigger">
-        <div style="font-size:13px;font-weight:700;margin-bottom:4px;">📦 ¿Ya despachaste tu pedido?</div>
-        <div style="font-size:11px; color: var(--muted); margin-bottom:10px;">Cuando tu proveedor te dé el número de seguimiento, cargalo acá.</div>
-        <div class="field">
-          <label>Tracking number</label>
-          <input type="text" id="trigger-tracking" placeholder="Ej: SF123456789CN" />
-        </div>
-      </div>
-
-      <div class="card" id="datos-envio" style="display:none; border-color: var(--warn);">
-        <div style="font-size:13px;font-weight:700;margin-bottom:4px; color: var(--warn);">📲 Confirmá el envío</div>
-        <div style="font-size:11px; color: var(--muted); margin-bottom:12px;">Completá esto y mandanos el aviso.</div>
-
-        <div class="field-grid" style="grid-template-columns: 1fr;">
-          <div class="field">
-            <label>Peso del envío (kg)</label>
-            <input type="text" inputmode="decimal" id="envio-peso" placeholder="Ej: 12.5" />
+        <div class="card" id="datos-cliente">
+          <div class="card-label">Tus datos</div>
+          <div class="field-grid" style="grid-template-columns: repeat(2, 1fr);">
+            <div class="field">
+              <label>Nombre</label>
+              <input type="text" id="cli-nombre" placeholder="Nombre" />
+            </div>
+            <div class="field">
+              <label>Apellido</label>
+              <input type="text" id="cli-apellido" placeholder="Apellido" />
+            </div>
+            <div class="field">
+              <label>DNI</label>
+              <input type="text" inputmode="numeric" id="cli-dni" placeholder="00.000.000" />
+            </div>
+            <div class="field">
+              <label>Teléfono</label>
+              <input type="text" inputmode="tel" id="cli-telefono" placeholder="11 1234-5678" />
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label>Email</label>
+              <input type="email" id="cli-email" placeholder="tuemail@ejemplo.com" />
+            </div>
           </div>
         </div>
-        <div style="font-size:11px; color: var(--muted); margin-bottom:10px;">Cuando se abra WhatsApp, adjuntá la foto del paquete directo en el chat antes de enviar.</div>
-        <div style="margin-top:8px; padding:10px; background:rgba(224,167,88,0.12); border:1px solid var(--warn); border-radius:8px; font-size:11.5px; color:var(--warn); font-weight:700;">⚠️ La foto tiene que ser real, del paquete físico con la etiqueta de tracking visible — no sirven capturas, fotos bajadas de internet ni de otro envío.</div>
-        <button id="whatsapp-btn" style="width:100%; padding:12px; background:#25d366; border:none; border-radius:8px; color:#0b1f19; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:14px;">Enviar aviso por WhatsApp</button>
-        <button id="descargar-comprobante-btn" style="width:100%; padding:10px; margin-top:8px; background:transparent; border:1px solid var(--line); border-radius:8px; color:var(--text); font-size:12px; cursor:pointer; font-family:inherit;">Descargar comprobante (con foto)</button>
-        <div style="font-size:10.5px; color:var(--muted); margin-top:8px;">Al enviar el mensaje de WhatsApp, adjuntá ahí mismo la foto del paquete (📎 → Galería) antes de mandarlo.</div>
+
+        <div class="card" id="productos-container"></div>
+        <button class="add-btn" id="add-btn">+ Agregar producto</button>
+
+        <div class="card resumen" id="resumen-container" style="margin-top:16px;"></div>
+
+        <button class="send-btn" id="whatsapp-pedido-btn" style="background:#25d366; color:#0b1f19;">Enviar cotización por WhatsApp</button>
+        <button class="send-btn" id="descargar-btn" style="margin-top:8px;">Descargar mi cotización</button>
+
+        <div class="note">Los precios se calculan puertas adentro con el flete internacional y costos de importación ya incluidos.</div>
+
+        <div class="card" id="confirmacion-gate" style="margin-top:20px;">
+          <div class="card-label">🔒 ¿Ya cerraste tu pedido con nosotros?</div>
+          <div style="font-size:12px; color: var(--muted); margin-bottom:12px;">Una vez que confirmemos tu compra, te vamos a pasar un código. Cargalo acá para destrabar la dirección y los datos que necesitás para tu proveedor.</div>
+          <div class="field">
+            <label>Código de confirmación</label>
+            <input type="text" id="codigo-confirmacion" placeholder="Te lo pasamos por WhatsApp" />
+          </div>
+          <div id="confirmacion-error" style="font-size:11.5px; color: var(--red); margin-top:6px; display:none;">Código incorrecto. Revisá que esté bien escrito.</div>
+          <button id="desbloquear-btn" style="width:100%; padding:11px; margin-top:12px; background:var(--paper-2); border:1px solid var(--gold); border-radius:8px; color:var(--red); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;">Desbloquear</button>
+          <div style="font-size:10.5px; color:var(--muted); margin-top:8px;">Al desbloquear se abre WhatsApp para avisarnos que ya tenés tu código — solo tenés que tocar enviar.</div>
+        </div>
+
+        <div id="post-confirmacion" style="display:none;">
+
+          <div class="card" id="direccion-basica" style="border-color: var(--gold); border-width:1.5px;">
+            <div class="card-label" style="color: var(--red);">📍 Dirección para tu proveedor (Alibaba)</div>
+            <div style="font-size:12px; color: var(--muted); margin-bottom:12px;">Pasale esto a tu proveedor como dirección de envío al pedir la cotización de flete.</div>
+            <div style="font-size:13.5px; line-height:1.8;">
+              <div><b>Dirección:</b><br/><span id="direccion-texto"></span></div>
+              <div style="margin-top:4px;"><b>Código postal:</b> <span id="cp-texto" class="data"></span></div>
+              <div style="margin-top:4px;"><b>Tu ID de cliente:</b> <span id="id-cliente-texto" class="data" style="color:var(--red); font-weight:700;"></span></div>
+            </div>
+            <div style="margin-top:10px; font-size:11.5px; color:var(--gold);">⚠️ Alibaba te va a pedir estos datos al finalizar la compra — incluí tu ID de cliente en las notas del pedido si te lo permite.</div>
+          </div>
+
+          <div class="card" id="fotos-obligatorias" style="border-color: var(--gold); background: #fff8ec;">
+            <div class="card-label" style="color: #a05a00;">⚠️ Paso obligatorio antes de que tu proveedor entregue las cajas</div>
+            <div style="font-size:12.5px; color: var(--ink); line-height:1.7;">
+              Pedile a tu proveedor <b>fotos reales</b> de cada caja antes de que las entregue en el depósito, donde se vean bien:
+            </div>
+            <ul style="margin:10px 0 0; padding-left:18px; font-size:12.5px; color: var(--ink); line-height:1.9;">
+              <li>La etiqueta con el <b>tracking number</b> legible</li>
+              <li>El estado del embalaje (que no esté dañado)</li>
+              <li>La cantidad de cajas, si es más de una</li>
+            </ul>
+            <div style="margin-top:10px; font-size:11.5px; color: #a05a00;">No sirven fotos genéricas del producto ni imágenes del catálogo — tienen que ser del paquete físico real que se está enviando. Sin esto no podemos confirmar tu envío.</div>
+          </div>
+
+          <div class="card" id="tracking-trigger">
+            <div class="card-label">📦 ¿Ya despachaste tu pedido?</div>
+            <div style="font-size:12px; color: var(--muted); margin-bottom:12px;">Cuando tu proveedor te dé el número de seguimiento, cargalo acá.</div>
+            <div class="field">
+              <label>Tracking number</label>
+              <input type="text" id="trigger-tracking" placeholder="Ej: SF123456789CN" />
+            </div>
+          </div>
+
+          <div class="card" id="datos-envio" style="display:none; border-color: var(--gold);">
+            <div class="card-label" style="color: #a05a00;">📲 Confirmá el envío</div>
+            <div style="font-size:12px; color: var(--muted); margin-bottom:14px;">Completá esto y mandanos el aviso.</div>
+
+            <div class="field-grid" style="grid-template-columns: 1fr;">
+              <div class="field">
+                <label>Peso del envío (kg)</label>
+                <input type="text" inputmode="decimal" id="envio-peso" placeholder="Ej: 12.5" />
+              </div>
+            </div>
+            <div style="font-size:12px; color: var(--muted); margin-bottom:10px;">Cuando se abra WhatsApp, adjuntá la foto del paquete directo en el chat antes de enviar.</div>
+            <div style="margin-top:8px; padding:12px; background:#fff4de; border:1px solid var(--gold); border-radius:8px; font-size:11.5px; color:#a05a00; font-weight:700;">⚠️ La foto tiene que ser real, del paquete físico con la etiqueta de tracking visible — no sirven capturas, fotos bajadas de internet ni de otro envío.</div>
+            <button id="whatsapp-btn" style="width:100%; padding:13px; background:#25d366; border:none; border-radius:8px; color:#0b1f19; font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:14px;">Enviar aviso por WhatsApp</button>
+            <button id="descargar-comprobante-btn" style="width:100%; padding:11px; margin-top:8px; background:transparent; border:1px solid var(--line); border-radius:8px; color:var(--ink); font-size:12.5px; cursor:pointer; font-family:inherit;">Descargar comprobante (con foto)</button>
+            <div style="font-size:11px; color:var(--muted); margin-top:8px;">Al enviar el mensaje de WhatsApp, adjuntá ahí mismo la foto del paquete (📎 → Galería) antes de mandarlo.</div>
+          </div>
+
+        </div>
       </div>
-
     </div>
   </section>
 
-  <section class="section">
-    <div class="section-title">Lo que dicen nuestros clientes</div>
-    <div class="section-sub">Esta sección está lista para tus testimonios reales</div>
-    <div class="testi-placeholder">
-      Acá van citas reales de clientes que ya importaron con vos (nombre, qué trajeron, y su experiencia).<br/>
-      No completamos esto con testimonios inventados — sumalos vos a medida que los tengas.
+  <section id="testimonios" class="section section-alt">
+    <div class="wrap">
+      <div class="section-head center reveal">
+        <div class="eyebrow">Clientes</div>
+        <h2>Lo que dicen quienes ya importaron con nosotros</h2>
+        <p>Esta sección está lista para tus testimonios reales — no la completamos con citas inventadas.</p>
+      </div>
+      <div class="testi-placeholder reveal">
+        Acá van citas reales de clientes que ya importaron con vos (nombre, qué trajeron, y su experiencia).<br/>
+        Sumalos a medida que los tengas y esta sección se va a sentir tan sólida como el resto de la página.
+      </div>
     </div>
   </section>
 
-</div>
+  <section id="faq" class="section">
+    <div class="wrap">
+      <div class="section-head center reveal">
+        <div class="eyebrow">Preguntas frecuentes</div>
+        <h2>Antes de que preguntes por WhatsApp</h2>
+        <p>Lo más consultado sobre cómo importar con Jawa Logistic.</p>
+      </div>
+      <div class="faq reveal">
+        <details class="faq-item" open>
+          <summary>¿Qué es el precio FOB y dónde lo consigo?<span class="chevron">＋</span></summary>
+          <p>Es el precio del producto que te da tu proveedor antes del flete internacional — lo encontrás en la cotización que te pasa por Alibaba, 1688 o el proveedor que estés usando. Es el número que cargás en la calculadora.</p>
+        </details>
+        <details class="faq-item">
+          <summary>¿Qué incluye el precio que me muestra la calculadora?<span class="chevron">＋</span></summary>
+          <p>El FOB de tu producto más el flete internacional puesto en Argentina. No tenés que sumarle nada más al número que ves en el resumen del pedido.</p>
+        </details>
+        <details class="faq-item">
+          <summary>¿Cómo le paso la dirección a mi proveedor en China?<span class="chevron">＋</span></summary>
+          <p>Una vez que confirmamos tu pedido por WhatsApp y nos pagás, te pasamos un código. Lo cargás en la calculadora y se destraba la dirección de nuestro depósito y tu ID de cliente, listos para pasarle a tu proveedor.</p>
+        </details>
+        <details class="faq-item">
+          <summary>¿Por qué piden fotos del paquete antes de despachar?<span class="chevron">＋</span></summary>
+          <p>Para confirmar que lo que se despacha es realmente tu pedido: la etiqueta de tracking, el estado del embalaje y la cantidad de cajas. Sin esas fotos reales no podemos confirmar el envío.</p>
+        </details>
+        <details class="faq-item">
+          <summary>¿Puedo hacer seguimiento de mi pedido?<span class="chevron">＋</span></summary>
+          <p>Sí. Apenas tu proveedor despacha, nos pasás el tracking number por WhatsApp y seguimos el envío juntos hasta que llega a tu domicilio.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+</main>
 
 <footer>
   <div class="wrap">
     <div class="footer-grid">
       <div class="footer-col">
         <div class="t">Jawa Logistic</div>
-        <div>Importación China → Argentina</div>
-        <div>Puertas adentro, flete incluido</div>
+        <div class="line">Importación China → Argentina</div>
+        <div class="line">Puertas adentro, flete incluido</div>
       </div>
       <div class="footer-col">
         <div class="t">Contacto</div>
@@ -332,6 +516,7 @@
       <div class="footer-col">
         <div class="t">Enlaces</div>
         <a href="#cotizador">Cotizar mi pedido</a>
+        <a href="#faq">Preguntas frecuentes</a>
       </div>
     </div>
     <div class="footer-bottom">© <span id="anio-actual"></span> Jawa Logistic. Todos los derechos reservados.</div>
@@ -339,6 +524,25 @@
 </footer>
 
 <script>
+// ---------- Reveal on scroll ----------
+(function () {
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var items = document.querySelectorAll(".reveal");
+  if (reduce || !("IntersectionObserver" in window)) {
+    items.forEach(function (el) { el.classList.add("is-visible"); });
+    return;
+  }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("is-visible");
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  items.forEach(function (el) { io.observe(el); });
+})();
+
 // ---------- Config oculta ----------
 const FLETE_USD_KG = 80; // tarifa interna, no se muestra en ningún lado
 
