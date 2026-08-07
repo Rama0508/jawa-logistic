@@ -167,9 +167,14 @@
   .reveal-group .reveal:nth-child(5) { transition-delay: .32s; }
   .reveal-group .reveal:nth-child(6) { transition-delay: .40s; }
 
-  /* Globe */
-  .globe-section-inner { display:flex; flex-direction:column; align-items:center; }
-  .globe-wrap { width: 100%; max-width: 480px; margin: 0 auto; }
+  /* Globe stage */
+  .globe-stage { position:relative; background: linear-gradient(160deg, var(--navy-2), var(--navy) 75%); border-radius:22px; padding: 52px 24px 44px; overflow:hidden; }
+  .globe-stage::before { content:""; position:absolute; inset:0; background-image: radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px); background-size:22px 22px; }
+  .globe-stage-lanes { position:absolute; inset:0; opacity:.5; }
+  .globe-stage-lanes::before { content:""; position:absolute; inset:-20% -20%; background-image: repeating-linear-gradient(115deg, rgba(201,80,46,0.25) 0 2px, transparent 2px 46px); animation: lane-move-slow 9s linear infinite; }
+  @keyframes lane-move-slow { to { transform: translateX(46px); } }
+  .globe-section-inner { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; }
+  .globe-wrap { width: 100%; max-width: 460px; margin: 0 auto; filter: drop-shadow(0 30px 40px rgba(0,0,0,0.35)); }
   .globe-svg { width:100%; height:auto; }
   .globe-sphere { fill: url(#globeGrad); stroke: rgba(215,182,134,0.4); stroke-width:1.5; }
   .globe-grid-line { fill:none; stroke: rgba(215,182,134,0.32); stroke-width:1; }
@@ -183,14 +188,19 @@
   }
   .globe-route { fill:none; stroke: var(--coral); stroke-width:2.5; stroke-linecap:round; stroke-dasharray: 6 7; animation: dash-flow 1.6s linear infinite; }
   .globe-flight { animation: fly 4s linear infinite; }
-  .globe-node text { fill: var(--navy); font-size:10px; font-weight:700; font-family: ui-monospace, monospace; }
+  .globe-node text { fill: var(--white); font-size:10px; font-weight:700; font-family: ui-monospace, monospace; }
   .globe-node circle.dot { fill: var(--coral); }
   .globe-node circle.ring { fill:none; stroke: var(--coral); stroke-width:1.4; opacity:.7; transform-origin:center; animation: ring-pulse 2.6s ease-out infinite; }
-  .globe-node.end circle.dot { fill: var(--navy); }
-  .globe-node.end circle.ring { stroke: var(--navy); animation-delay: 1.3s; }
+  .globe-node.end circle.dot { fill: var(--gold-bright); }
+  .globe-node.end circle.ring { stroke: var(--gold-bright); animation-delay: 1.3s; }
+  .globe-orbit { transform-box: fill-box; transform-origin: 200px 200px; animation: orbit-spin 22s linear infinite; }
+  .globe-orbit.rev { animation-direction: reverse; animation-duration: 30s; }
+  .globe-orbit circle { fill: var(--gold-bright); opacity:.85; }
+  .globe-orbit.rev circle { fill: rgba(255,255,255,0.55); }
+  @keyframes orbit-spin { to { transform: rotate(360deg); } }
 
-  .stats-row { display:flex; justify-content:center; gap: 46px; flex-wrap:wrap; margin-top: 40px; }
-  .stat-badge { width:118px; height:118px; border-radius:50%; background: var(--paper-2); border:2px solid var(--gold); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; transition: transform .25s ease, border-color .25s ease; }
+  .stats-row { display:flex; justify-content:center; gap: 46px; flex-wrap:wrap; margin-top: 44px; position:relative; z-index:1; }
+  .stat-badge { width:118px; height:118px; border-radius:50%; background: rgba(255,255,255,0.95); border:2px solid var(--gold-bright); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; transition: transform .25s ease, border-color .25s ease; }
   .stat-badge:hover { transform: translateY(-4px) scale(1.03); border-color: var(--coral); }
   .stat-badge .num { font-size:22px; font-weight:800; color: var(--navy); font-family: ui-monospace, monospace; line-height:1; }
   .stat-badge .lbl { font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color: var(--muted); margin-top:6px; line-height:1.3; padding:0 6px; }
@@ -496,43 +506,48 @@
         <p>Nosotros manejamos las dos puntas de la operación — vos solo cotizás, confirmás y esperás el tracking.</p>
       </div>
 
-      <div class="globe-section-inner reveal">
-        <div class="globe-wrap">
-          <svg class="globe-svg" viewBox="0 0 400 400">
-            <defs>
-              <radialGradient id="globeGrad" cx="35%" cy="30%" r="75%">
-                <stop offset="0%" stop-color="#2c436f"/>
-                <stop offset="100%" stop-color="#16223d"/>
-              </radialGradient>
-              <clipPath id="globeClip"><circle cx="200" cy="200" r="150"/></clipPath>
-            </defs>
-            <circle class="globe-sphere" cx="200" cy="200" r="150"/>
-            <g clip-path="url(#globeClip)">
-              <ellipse class="globe-grid-line" cx="200" cy="150" rx="150" ry="20"/>
-              <ellipse class="globe-grid-line" cx="200" cy="250" rx="150" ry="20"/>
-              <ellipse class="globe-grid-line globe-merid m1" cx="200" cy="200" rx="150" ry="150"/>
-              <ellipse class="globe-grid-line globe-merid m2" cx="200" cy="200" rx="150" ry="150"/>
-              <ellipse class="globe-grid-line globe-merid m3" cx="200" cy="200" rx="150" ry="150"/>
-            </g>
-            <path class="globe-route" d="M130,160 Q200,90 300,230"/>
-            <circle class="globe-flight" r="4.5" fill="#d7b686" style="offset-path: path('M130,160 Q200,90 300,230');"/>
-            <g class="globe-node start" transform="translate(130,160)">
-              <circle class="ring" r="6"/>
-              <circle class="dot" r="5.5"/>
-              <text x="0" y="-16" text-anchor="middle">🇨🇳 GUANGZHOU</text>
-            </g>
-            <g class="globe-node end" transform="translate(300,230)">
-              <circle class="ring" r="6"/>
-              <circle class="dot" r="5.5"/>
-              <text x="0" y="26" text-anchor="middle">🇦🇷 ARGENTINA</text>
-            </g>
-          </svg>
-        </div>
+      <div class="globe-stage reveal">
+        <div class="globe-stage-lanes"></div>
+        <div class="globe-section-inner">
+          <div class="globe-wrap">
+            <svg class="globe-svg" viewBox="0 0 400 400">
+              <defs>
+                <radialGradient id="globeGrad" cx="35%" cy="30%" r="75%">
+                  <stop offset="0%" stop-color="#2c436f"/>
+                  <stop offset="100%" stop-color="#16223d"/>
+                </radialGradient>
+                <clipPath id="globeClip"><circle cx="200" cy="200" r="150"/></clipPath>
+              </defs>
+              <circle class="globe-sphere" cx="200" cy="200" r="150"/>
+              <g clip-path="url(#globeClip)">
+                <ellipse class="globe-grid-line" cx="200" cy="150" rx="150" ry="20"/>
+                <ellipse class="globe-grid-line" cx="200" cy="250" rx="150" ry="20"/>
+                <ellipse class="globe-grid-line globe-merid m1" cx="200" cy="200" rx="150" ry="150"/>
+                <ellipse class="globe-grid-line globe-merid m2" cx="200" cy="200" rx="150" ry="150"/>
+                <ellipse class="globe-grid-line globe-merid m3" cx="200" cy="200" rx="150" ry="150"/>
+              </g>
+              <g class="globe-orbit"><circle cx="200" cy="30" r="3.2"/></g>
+              <g class="globe-orbit rev"><circle cx="200" cy="16" r="2.4"/></g>
+              <path class="globe-route" d="M130,160 Q200,90 300,230"/>
+              <circle class="globe-flight" r="4.5" fill="#d7b686" style="offset-path: path('M130,160 Q200,90 300,230');"/>
+              <g class="globe-node start" transform="translate(130,160)">
+                <circle class="ring" r="6"/>
+                <circle class="dot" r="5.5"/>
+                <text x="0" y="-16" text-anchor="middle">🇨🇳 GUANGZHOU</text>
+              </g>
+              <g class="globe-node end" transform="translate(300,230)">
+                <circle class="ring" r="6"/>
+                <circle class="dot" r="5.5"/>
+                <text x="0" y="26" text-anchor="middle">🇦🇷 ARGENTINA</text>
+              </g>
+            </svg>
+          </div>
 
-        <div class="stats-row">
-          <div class="stat-badge"><div class="num">3</div><div class="lbl">Años trabajando</div></div>
-          <div class="stat-badge"><div class="num">10K+</div><div class="lbl">Envíos gestionados</div></div>
-          <div class="stat-badge"><div class="num">24/7</div><div class="lbl">Atención personalizada</div></div>
+          <div class="stats-row">
+            <div class="stat-badge"><div class="num">3</div><div class="lbl">Años trabajando</div></div>
+            <div class="stat-badge"><div class="num">10K+</div><div class="lbl">Envíos gestionados</div></div>
+            <div class="stat-badge"><div class="num">24/7</div><div class="lbl">Atención personalizada</div></div>
+          </div>
         </div>
       </div>
 
