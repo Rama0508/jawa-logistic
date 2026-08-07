@@ -133,11 +133,6 @@
   .qq-cta-wa { background:#25d366; color:#0b1f19; font-weight:800; font-size:12.5px; padding:11px 16px; border-radius:7px; text-decoration:none; }
   .qq-cta-full { color:var(--navy); font-weight:700; font-size:12.5px; padding:11px 2px; text-decoration:none; border-bottom:1px solid var(--navy); }
 
-  /* Route graphic */
-  @keyframes dash-flow { to { stroke-dashoffset: -26; } }
-  @keyframes ring-pulse { 0% { r:5; opacity:.8; } 100% { r:16; opacity:0; } }
-  @keyframes fly { 0% { offset-distance: 0%; } 100% { offset-distance: 100%; } }
-
   /* Fact strip */
   .factstrip { position:relative; z-index:1; margin-top: 44px; border-top: 1px solid rgba(255,255,255,0.14); }
   .factstrip-inner { max-width:1100px; margin:0 auto; padding: 16px 20px; display:grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
@@ -167,50 +162,48 @@
   .reveal-group .reveal:nth-child(5) { transition-delay: .32s; }
   .reveal-group .reveal:nth-child(6) { transition-delay: .40s; }
 
-  /* Globe stage */
-  .globe-stage { position:relative; background: linear-gradient(160deg, var(--navy-2), var(--navy) 75%); border-radius:22px; padding: 52px 24px 44px; overflow:hidden; }
-  .globe-stage::before { content:""; position:absolute; inset:0; background-image: radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px); background-size:22px 22px; }
-  .globe-stage-lanes { position:absolute; inset:0; opacity:.5; }
-  .globe-stage-lanes::before { content:""; position:absolute; inset:-20% -20%; background-image: repeating-linear-gradient(115deg, rgba(201,80,46,0.25) 0 2px, transparent 2px 46px); animation: lane-move-slow 9s linear infinite; }
-  @keyframes lane-move-slow { to { transform: translateX(46px); } }
-  .globe-section-inner { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; }
-  .globe-wrap { width: 100%; max-width: 460px; margin: 0 auto; filter: drop-shadow(0 30px 40px rgba(0,0,0,0.35)); }
-  .globe-svg { width:100%; height:auto; }
-  .globe-sphere { fill: url(#globeGrad); stroke: rgba(215,182,134,0.4); stroke-width:1.5; }
-  .globe-grid-line { fill:none; stroke: rgba(215,182,134,0.32); stroke-width:1; }
-  .globe-merid { transform-box: fill-box; transform-origin: center; animation: merid-spin 9s linear infinite; }
-  .globe-merid.m2 { animation-delay: -3s; }
-  .globe-merid.m3 { animation-delay: -6s; }
-  @keyframes merid-spin {
-    0% { transform: scaleX(1); }
-    50% { transform: scaleX(0.05); }
-    100% { transform: scaleX(1); }
-  }
-  .globe-route { fill:none; stroke: var(--coral); stroke-width:2.5; stroke-linecap:round; stroke-dasharray: 6 7; animation: dash-flow 1.6s linear infinite; }
-  .globe-flight { animation: fly 4s linear infinite; }
-  .globe-node text { fill: var(--white); font-size:10px; font-weight:700; font-family: ui-monospace, monospace; }
-  .globe-node circle.dot { fill: var(--coral); }
-  .globe-node circle.ring { fill:none; stroke: var(--coral); stroke-width:1.4; opacity:.7; transform-origin:center; animation: ring-pulse 2.6s ease-out infinite; }
-  .globe-node.end circle.dot { fill: var(--gold-bright); }
-  .globe-node.end circle.ring { stroke: var(--gold-bright); animation-delay: 1.3s; }
-  .globe-orbit { transform-box: fill-box; transform-origin: 200px 200px; animation: orbit-spin 22s linear infinite; }
-  .globe-orbit.rev { animation-direction: reverse; animation-duration: 30s; }
-  .globe-orbit circle { fill: var(--gold-bright); opacity:.85; }
-  .globe-orbit.rev circle { fill: rgba(255,255,255,0.55); }
-  @keyframes orbit-spin { to { transform: rotate(360deg); } }
-
-  .stats-row { display:flex; justify-content:center; gap: 46px; flex-wrap:wrap; margin-top: 44px; position:relative; z-index:1; }
-  .stat-badge { width:118px; height:118px; border-radius:50%; background: rgba(255,255,255,0.95); border:2px solid var(--gold-bright); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; transition: transform .25s ease, border-color .25s ease; }
+  .stats-row { display:flex; justify-content:center; gap: 36px; flex-wrap:wrap; margin: 28px 0 40px; }
+  .stat-badge { width:104px; height:104px; border-radius:50%; background: var(--paper-2); border:2px solid var(--gold); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; transition: transform .25s ease, border-color .25s ease; }
   .stat-badge:hover { transform: translateY(-4px) scale(1.03); border-color: var(--coral); }
   .stat-badge .num { font-size:22px; font-weight:800; color: var(--navy); font-family: ui-monospace, monospace; line-height:1; }
   .stat-badge .lbl { font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color: var(--muted); margin-top:6px; line-height:1.3; padding:0 6px; }
 
+  /* Cotizador marítimo/aéreo */
+  .freight-calc { max-width:720px; margin:0 auto; background:var(--white); border:1px solid var(--line); border-radius:16px; padding:8px; box-shadow: 0 30px 60px -34px rgba(22,34,61,0.35); }
+  .fc-tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:6px; }
+  .fc-tab { background:transparent; border:none; border-radius:10px; padding:14px; font-size:14px; font-weight:800; font-family:inherit; cursor:pointer; color:var(--muted); transition: all .2s ease; }
+  .fc-tab.active { background: var(--navy); color:var(--white); }
+  .fc-panel { padding: 22px 26px 26px; }
+  .fc-origin-row { display:flex; align-items:center; gap:14px; margin-bottom:20px; flex-wrap:wrap; }
+  .fc-origin-label { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .fc-origin-options { display:flex; gap:8px; }
+  .fc-origin-btn { display:flex; align-items:center; gap:7px; background:var(--paper); border:1.5px solid var(--line); border-radius:8px; padding:8px 14px; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; color:var(--ink); transition: all .2s ease; }
+  .fc-origin-btn.active { border-color:var(--coral); background:#fff3ef; color:var(--coral-deep); }
+  .fc-field-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:8px; }
+  .fc-field-grid.air-grid { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width:640px) { .fc-field-grid, .fc-field-grid.air-grid { grid-template-columns: repeat(2, 1fr); } }
+  .fc-field { display:flex; flex-direction:column; gap:5px; }
+  .fc-field label { font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  .fc-field input { background:var(--paper); border:1px solid var(--line); border-radius:7px; padding:10px 11px; font-size:13.5px; font-family:inherit; color:var(--ink); width:100%; }
+  .fc-field input:focus { outline:none; border-color:var(--navy); }
+  .fc-hint { font-size:11px; color:var(--muted); margin: 4px 0 18px; line-height:1.5; }
+  .fc-btn { width:100%; background:var(--coral); color:#fff; border:none; border-radius:9px; padding:14px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; transition: background .2s ease; }
+  .fc-btn:hover { background:var(--coral-deep); }
+  .fc-result { margin-top:20px; border-top:1px dashed var(--line); padding-top:18px; display:none; }
+  .fc-result.show { display:block; }
+  .fc-result-row { display:flex; justify-content:space-between; padding:5px 0; font-size:12.5px; color:var(--muted); }
+  .fc-result-row .v { font-family:ui-monospace, monospace; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .fc-result-row.warn { color:#a05a00; font-weight:700; }
+  .fc-result-total { display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:14px; border-top:1px solid var(--line); }
+  .fc-result-total .lbl { font-size:13px; font-weight:700; color:var(--ink); }
+  .fc-result-total .val { font-size:24px; font-weight:800; color:var(--navy); font-family:ui-monospace, monospace; }
+  .fc-note { font-size:10.5px; color:var(--muted); text-align:center; margin-top:14px; }
+
   /* Ruta comercial (country cards) */
-  .lane-grid { display:grid; grid-template-columns: 1fr auto 1fr; gap: 22px; align-items:center; }
-  @media (max-width: 760px) { .lane-grid { grid-template-columns: 1fr; } }
+  .lane-grid { display:grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 18px; align-items:center; }
+  @media (max-width: 900px) { .lane-grid { grid-template-columns: 1fr; } .lane-connector { flex-direction:row; justify-content:center; } .lane-connector svg { width:24px; height:70px; } }
   .lane-connector { display:flex; flex-direction:column; align-items:center; gap:6px; padding: 0 6px; }
   .lane-connector svg { width:70px; height:24px; }
-  @media (max-width: 760px) { .lane-connector { flex-direction:row; justify-content:center; } .lane-connector svg { width:24px; height:70px; } }
   .lane-connector .lane-tag { font-size:10px; color: var(--muted); font-family: ui-monospace, monospace; letter-spacing:.04em; }
   .country-card { background: var(--white); border:1px solid var(--line); border-radius:12px; padding:24px; transition: transform .2s ease, box-shadow .2s ease; }
   .country-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px -18px rgba(22,34,61,0.35); }
@@ -439,7 +432,7 @@
 
   <div class="hero-inner">
     <div class="hero-kicker">Air &amp; Ocean Freight</div>
-    <h1>China → Argentina<br/><em>puertas adentro</em></h1>
+    <h1>China o Miami → Argentina<br/><em>puertas adentro</em></h1>
     <p>Cargá el precio FOB, el peso y la cantidad de lo que querés traer. Mirá el costo puesto en Argentina al instante — flete internacional incluido, sin costos ocultos.</p>
 
     <div class="quick-quote">
@@ -501,54 +494,70 @@
     <div class="section-blob" style="width:300px;height:300px;right:-100px;bottom:20px;background:radial-gradient(circle, rgba(169,134,90,0.16), transparent 70%);"></div>
     <div class="wrap">
       <div class="section-head center reveal">
-        <div class="eyebrow">Dos países, un solo trámite</div>
-        <h2>De Guangzhou a tu puerta</h2>
-        <p>Nosotros manejamos las dos puntas de la operación — vos solo cotizás, confirmás y esperás el tracking.</p>
+        <div class="eyebrow">China o Miami, a tu puerta</div>
+        <h2>Cotizá tu flete marítimo o aéreo</h2>
+        <p>Elegí el origen y el modo de envío. Calculamos el volumen o el peso volumétrico automáticamente, igual que lo cotiza cualquier naviera o aerolínea de carga.</p>
       </div>
 
-      <div class="globe-stage reveal">
-        <div class="globe-stage-lanes"></div>
-        <div class="globe-section-inner">
-          <div class="globe-wrap">
-            <svg class="globe-svg" viewBox="0 0 400 400">
-              <defs>
-                <radialGradient id="globeGrad" cx="35%" cy="30%" r="75%">
-                  <stop offset="0%" stop-color="#2c436f"/>
-                  <stop offset="100%" stop-color="#16223d"/>
-                </radialGradient>
-                <clipPath id="globeClip"><circle cx="200" cy="200" r="150"/></clipPath>
-              </defs>
-              <circle class="globe-sphere" cx="200" cy="200" r="150"/>
-              <g clip-path="url(#globeClip)">
-                <ellipse class="globe-grid-line" cx="200" cy="150" rx="150" ry="20"/>
-                <ellipse class="globe-grid-line" cx="200" cy="250" rx="150" ry="20"/>
-                <ellipse class="globe-grid-line globe-merid m1" cx="200" cy="200" rx="150" ry="150"/>
-                <ellipse class="globe-grid-line globe-merid m2" cx="200" cy="200" rx="150" ry="150"/>
-                <ellipse class="globe-grid-line globe-merid m3" cx="200" cy="200" rx="150" ry="150"/>
-              </g>
-              <g class="globe-orbit"><circle cx="200" cy="30" r="3.2"/></g>
-              <g class="globe-orbit rev"><circle cx="200" cy="16" r="2.4"/></g>
-              <path class="globe-route" d="M130,160 Q200,90 300,230"/>
-              <circle class="globe-flight" r="4.5" fill="#d7b686" style="offset-path: path('M130,160 Q200,90 300,230');"/>
-              <g class="globe-node start" transform="translate(130,160)">
-                <circle class="ring" r="6"/>
-                <circle class="dot" r="5.5"/>
-                <text x="0" y="-16" text-anchor="middle">🇨🇳 GUANGZHOU</text>
-              </g>
-              <g class="globe-node end" transform="translate(300,230)">
-                <circle class="ring" r="6"/>
-                <circle class="dot" r="5.5"/>
-                <text x="0" y="26" text-anchor="middle">🇦🇷 ARGENTINA</text>
-              </g>
-            </svg>
-          </div>
+      <div class="stats-row reveal">
+        <div class="stat-badge"><div class="num">3</div><div class="lbl">Años trabajando</div></div>
+        <div class="stat-badge"><div class="num">10K+</div><div class="lbl">Envíos gestionados</div></div>
+        <div class="stat-badge"><div class="num">24/7</div><div class="lbl">Atención personalizada</div></div>
+      </div>
 
-          <div class="stats-row">
-            <div class="stat-badge"><div class="num">3</div><div class="lbl">Años trabajando</div></div>
-            <div class="stat-badge"><div class="num">10K+</div><div class="lbl">Envíos gestionados</div></div>
-            <div class="stat-badge"><div class="num">24/7</div><div class="lbl">Atención personalizada</div></div>
-          </div>
+      <div class="freight-calc reveal">
+        <div class="fc-tabs">
+          <button class="fc-tab active" id="fc-tab-sea" type="button">🚢 Marítimo (LCL)</button>
+          <button class="fc-tab" id="fc-tab-air" type="button">✈️ Aéreo</button>
         </div>
+
+        <div class="fc-panel" id="fc-panel-sea">
+          <div class="fc-origin-row">
+            <span class="fc-origin-label">Origen</span>
+            <div class="fc-origin-options" id="fc-origin-sea">
+              <button class="fc-origin-btn active" data-origin="china" type="button">🇨🇳 China</button>
+              <button class="fc-origin-btn" data-origin="miami" type="button">🇺🇸 Miami</button>
+            </div>
+          </div>
+          <div class="fc-field-grid">
+            <div class="fc-field"><label>Largo (cm)</label><input type="text" inputmode="decimal" id="sea-l" placeholder="0" /></div>
+            <div class="fc-field"><label>Ancho (cm)</label><input type="text" inputmode="decimal" id="sea-w" placeholder="0" /></div>
+            <div class="fc-field"><label>Alto (cm)</label><input type="text" inputmode="decimal" id="sea-h" placeholder="0" /></div>
+            <div class="fc-field"><label>Bultos</label><input type="text" inputmode="decimal" id="sea-qty" placeholder="1" /></div>
+          </div>
+          <div class="fc-field-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="fc-field"><label>Peso total (kg)</label><input type="text" inputmode="decimal" id="sea-weight" placeholder="0" /></div>
+            <div class="fc-field"><label>Valor FOB total (USD)</label><input type="text" inputmode="decimal" id="sea-fob" placeholder="0.00" /></div>
+          </div>
+          <div class="fc-hint">Cobramos por metro cúbico (CBM) o por peso, lo que sea mayor — con un mínimo a consolidar de <strong>0.5 CBM</strong> por envío.</div>
+          <button class="fc-btn" id="fc-calc-sea" type="button">Calcular flete marítimo</button>
+          <div class="fc-result" id="fc-result-sea"></div>
+        </div>
+
+        <div class="fc-panel" id="fc-panel-air" style="display:none;">
+          <div class="fc-origin-row">
+            <span class="fc-origin-label">Origen</span>
+            <div class="fc-origin-options" id="fc-origin-air">
+              <button class="fc-origin-btn active" data-origin="china" type="button">🇨🇳 China</button>
+              <button class="fc-origin-btn" data-origin="miami" type="button">🇺🇸 Miami</button>
+            </div>
+          </div>
+          <div class="fc-field-grid air-grid">
+            <div class="fc-field"><label>Largo (cm)</label><input type="text" inputmode="decimal" id="air-l" placeholder="0" /></div>
+            <div class="fc-field"><label>Ancho (cm)</label><input type="text" inputmode="decimal" id="air-w" placeholder="0" /></div>
+            <div class="fc-field"><label>Alto (cm)</label><input type="text" inputmode="decimal" id="air-h" placeholder="0" /></div>
+          </div>
+          <div class="fc-field-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+            <div class="fc-field"><label>Bultos</label><input type="text" inputmode="decimal" id="air-qty" placeholder="1" /></div>
+            <div class="fc-field"><label>Peso real total (kg)</label><input type="text" inputmode="decimal" id="air-weight" placeholder="0" /></div>
+            <div class="fc-field"><label>Valor FOB (USD)</label><input type="text" inputmode="decimal" id="air-fob" placeholder="0.00" /></div>
+          </div>
+          <div class="fc-hint">Aéreo se cobra por peso — el real o el <strong>peso volumétrico</strong> (Largo×Ancho×Alto ÷ 6000), el que sea mayor.</div>
+          <button class="fc-btn" id="fc-calc-air" type="button">Calcular flete aéreo</button>
+          <div class="fc-result" id="fc-result-air"></div>
+        </div>
+
+        <div class="fc-note">Es una estimación automática — la confirmamos siempre por WhatsApp antes de cerrar tu pedido.</div>
       </div>
 
       <div class="lane-grid reveal-group" style="margin-top:56px;">
@@ -563,9 +572,20 @@
           </ul>
         </div>
         <div class="lane-connector reveal">
-          <span class="lane-tag data">FLETE</span>
           <svg viewBox="0 0 70 24"><path d="M2,12 H68" stroke="#c9a67a" stroke-width="2" stroke-dasharray="4 5" fill="none"/><path d="M60,6 L68,12 L60,18" stroke="#c9a67a" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span class="lane-tag data">INTERNACIONAL</span>
+        </div>
+        <div class="country-card reveal">
+          <div class="flag">🇺🇸</div>
+          <div class="role">Origen alternativo</div>
+          <h3>Miami, Estados Unidos</h3>
+          <ul>
+            <li>Segundo punto de consolidación</li>
+            <li>Ideal para compras hechas en EE.UU.</li>
+            <li>Mismo proceso de control y despacho</li>
+          </ul>
+        </div>
+        <div class="lane-connector reveal">
+          <svg viewBox="0 0 70 24"><path d="M2,12 H68" stroke="#c9a67a" stroke-width="2" stroke-dasharray="4 5" fill="none"/><path d="M60,6 L68,12 L60,18" stroke="#c9a67a" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div class="country-card reveal">
           <div class="flag">🇦🇷</div>
@@ -1183,6 +1203,115 @@ Estimado puesto en Argentina: $${fmtQQ(total)}`;
     });
   })();
 } catch (e) { console.error("cotizador rápido:", e); }
+
+// ---------- Cotizador marítimo / aéreo ----------
+// ⚠️ TARIFAS DE EJEMPLO — reemplazá estos 4 valores por tus tarifas reales antes de publicar.
+// Marítimo se cobra en USD por CBM (metro cúbico). Aéreo se cobra en USD por KG.
+const FLETE_RATES = {
+  sea: { china: 0, miami: 0 },  // USD por CBM
+  air: { china: 0, miami: 0 },  // USD por KG
+};
+const CBM_MINIMO = 0.5;
+const DIVISOR_VOLUMETRICO_AEREO = 6000;
+
+try {
+  (function () {
+    const tabSea = document.getElementById("fc-tab-sea");
+    const tabAir = document.getElementById("fc-tab-air");
+    const panelSea = document.getElementById("fc-panel-sea");
+    const panelAir = document.getElementById("fc-panel-air");
+    if (!tabSea || !tabAir) return;
+
+    tabSea.addEventListener("click", () => {
+      tabSea.classList.add("active"); tabAir.classList.remove("active");
+      panelSea.style.display = "block"; panelAir.style.display = "none";
+    });
+    tabAir.addEventListener("click", () => {
+      tabAir.classList.add("active"); tabSea.classList.remove("active");
+      panelAir.style.display = "block"; panelSea.style.display = "none";
+    });
+
+    let origenSea = "china";
+    let origenAir = "china";
+    document.querySelectorAll("#fc-origin-sea .fc-origin-btn").forEach((b) => {
+      b.addEventListener("click", () => {
+        document.querySelectorAll("#fc-origin-sea .fc-origin-btn").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        origenSea = b.getAttribute("data-origin");
+      });
+    });
+    document.querySelectorAll("#fc-origin-air .fc-origin-btn").forEach((b) => {
+      b.addEventListener("click", () => {
+        document.querySelectorAll("#fc-origin-air .fc-origin-btn").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        origenAir = b.getAttribute("data-origin");
+      });
+    });
+
+    const pNum = (id) => {
+      const el = document.getElementById(id);
+      const n = parseFloat(String(el && el.value || "").trim().replace(",", "."));
+      return isNaN(n) ? 0 : n;
+    };
+    const fmt = (n) => (n || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const origenLabel = (o) => (o === "miami" ? "🇺🇸 Miami" : "🇨🇳 China");
+
+    document.getElementById("fc-calc-sea").addEventListener("click", () => {
+      const l = pNum("sea-l"), w = pNum("sea-w"), h = pNum("sea-h");
+      const qty = pNum("sea-qty") || 1;
+      const pesoKg = pNum("sea-weight");
+      const fob = pNum("sea-fob");
+
+      if (!l || !w || !h) { alert("Cargá largo, ancho y alto de cada bulto."); return; }
+
+      const cbmPorBulto = (l * w * h) / 1000000;
+      const cbmTotal = cbmPorBulto * qty;
+      const toneladas = pesoKg / 1000;
+      const cbmCobrable = Math.max(cbmTotal, toneladas, CBM_MINIMO);
+      const rate = FLETE_RATES.sea[origenSea];
+      const costoFlete = cbmCobrable * rate;
+      const total = costoFlete + fob;
+
+      const sinTarifa = !rate;
+      document.getElementById("fc-result-sea").innerHTML = `
+        <div class="fc-result-row"><span>CBM real del envío</span><span class="v">${cbmTotal.toFixed(3)} m³</span></div>
+        <div class="fc-result-row"><span>Equivalente en peso</span><span class="v">${toneladas.toFixed(3)} ton</span></div>
+        <div class="fc-result-row"><span>CBM a cobrar (mínimo ${CBM_MINIMO})</span><span class="v">${cbmCobrable.toFixed(3)} m³</span></div>
+        <div class="fc-result-row"><span>Tarifa (${origenLabel(origenSea)})</span><span class="v">$${fmt(rate)} / CBM</span></div>
+        ${sinTarifa ? `<div class="fc-result-row warn">⚠️ Tarifa no configurada todavía para este origen</div>` : ""}
+        <div class="fc-result-total"><span class="lbl">Total estimado</span><span class="val">$${fmt(total)}</span></div>
+      `;
+      document.getElementById("fc-result-sea").classList.add("show");
+    });
+
+    document.getElementById("fc-calc-air").addEventListener("click", () => {
+      const l = pNum("air-l"), w = pNum("air-w"), h = pNum("air-h");
+      const qty = pNum("air-qty") || 1;
+      const pesoReal = pNum("air-weight");
+      const fob = pNum("air-fob");
+
+      if (!pesoReal && (!l || !w || !h)) { alert("Cargá el peso real o las dimensiones del bulto."); return; }
+
+      const pesoVolPorBulto = (l * w * h) / DIVISOR_VOLUMETRICO_AEREO;
+      const pesoVolTotal = pesoVolPorBulto * qty;
+      const pesoCobrable = Math.max(pesoReal, pesoVolTotal);
+      const rate = FLETE_RATES.air[origenAir];
+      const costoFlete = pesoCobrable * rate;
+      const total = costoFlete + fob;
+
+      const sinTarifa = !rate;
+      document.getElementById("fc-result-air").innerHTML = `
+        <div class="fc-result-row"><span>Peso real</span><span class="v">${pesoReal.toFixed(2)} kg</span></div>
+        <div class="fc-result-row"><span>Peso volumétrico</span><span class="v">${pesoVolTotal.toFixed(2)} kg</span></div>
+        <div class="fc-result-row"><span>Peso a cobrar (el mayor)</span><span class="v">${pesoCobrable.toFixed(2)} kg</span></div>
+        <div class="fc-result-row"><span>Tarifa (${origenLabel(origenAir)})</span><span class="v">$${fmt(rate)} / kg</span></div>
+        ${sinTarifa ? `<div class="fc-result-row warn">⚠️ Tarifa no configurada todavía para este origen</div>` : ""}
+        <div class="fc-result-total"><span class="lbl">Total estimado</span><span class="val">$${fmt(total)}</span></div>
+      `;
+      document.getElementById("fc-result-air").classList.add("show");
+    });
+  })();
+} catch (e) { console.error("cotizador marítimo/aéreo:", e); }
 
 // ---------- Estado ----------
 function uid() { return Math.random().toString(36).slice(2, 9); }
