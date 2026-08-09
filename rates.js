@@ -9,7 +9,14 @@
 const SUPABASE_URL = "https://hthyehsqfrfwdqkbqrwj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_Dlh15glcRPYtVKmvkytcbw_LGfPqN7F"; // key pública, segura para el navegador
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Si el script del CDN no cargó (sin conexión, bloqueado por el navegador, etc.)
+// esto no debe tirar abajo el resto de la página — se degrada sin tarifas en vivo.
+let supabaseClient = null;
+if (window.supabase && typeof window.supabase.createClient === "function") {
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} else {
+  console.error("No se pudo cargar el cliente de Supabase (¿sin conexión o bloqueado?). Tarifas en vivo y autocompletado de links no van a funcionar hasta recargar la página.");
+}
 
 // URL de la función que lee links de productos (reemplaza el backend de EasyPanel)
 const EXTRACT_PRODUCT_URL = `${SUPABASE_URL}/functions/v1/extract-product`;

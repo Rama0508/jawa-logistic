@@ -1630,9 +1630,11 @@ try {
       const total = costoFlete + fob;
 
       // Guarda el lead aunque el cliente no llegue a mandar el WhatsApp (no bloquea la UI).
-      supabaseClient.from("cotizaciones").insert({
-        origen: origenSea, modo: "maritimo", fob, peso: pesoKg, cbm: cbmCobrable, total_estimado: total,
-      }).then(() => {}, () => {});
+      if (supabaseClient) {
+        supabaseClient.from("cotizaciones").insert({
+          origen: origenSea, modo: "maritimo", fob, peso: pesoKg, cbm: cbmCobrable, total_estimado: total,
+        }).then(() => {}, () => {});
+      }
 
       // Unidades por caja: si el usuario lo completó a mano, se respeta ese número.
       // Si no, se prueba cada orientación posible del producto dentro de la caja
@@ -1694,9 +1696,11 @@ try {
       const costoFlete = pesoCobrable * rate;
       const total = costoFlete + fob;
 
-      supabaseClient.from("cotizaciones").insert({
-        origen: origenAir, modo: "aereo", fob, peso: pesoCobrable, total_estimado: total,
-      }).then(() => {}, () => {});
+      if (supabaseClient) {
+        supabaseClient.from("cotizaciones").insert({
+          origen: origenAir, modo: "aereo", fob, peso: pesoCobrable, total_estimado: total,
+        }).then(() => {}, () => {});
+      }
 
       const sinTarifa = !rate;
       document.getElementById("fc-result-air").innerHTML = `
