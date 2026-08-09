@@ -42,6 +42,27 @@
   .producto-card { border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:14px; position:relative; }
   .producto-card .del { position:absolute; top:10px; right:10px; background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer; padding:4px 8px; }
   .producto-card .del:hover { color:var(--coral); }
+
+  /* ---------- Foto + descripción + resultado en vivo por producto ---------- */
+  .foto-drop { width:88px; height:88px; border-radius:8px; border:1.5px dashed var(--line); background:var(--paper); cursor:pointer; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; outline:none; flex:none; }
+  .foto-drop img { width:100%; height:100%; object-fit:cover; }
+  .foto-drop .hint { text-align:center; font-size:9.5px; color:var(--muted); line-height:1.4; padding:4px; }
+  .live-resultado { margin-top:12px; padding:12px 14px; background:var(--paper); border-radius:8px; border:1px solid var(--line); }
+  table.metodos-mini { width:100%; border-collapse:collapse; font-size:11.5px; margin-top:8px; }
+  table.metodos-mini th { text-align:right; padding:4px 6px; font-size:9.5px; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--line); }
+  table.metodos-mini th:first-child, table.metodos-mini td:first-child { text-align:left; }
+  table.metodos-mini td { text-align:right; padding:6px; border-bottom:1px solid var(--line); }
+  table.metodos-mini tr.selected td:first-child { font-weight:800; color:var(--navy); }
+  .riesgo-badge { display:inline-block; margin-top:6px; padding:5px 9px; border-radius:6px; font-size:10.5px; }
+  .riesgo-badge.ok { background:var(--green-bg); color:var(--green); }
+  .riesgo-badge.no { background:#fdeceb; color:var(--coral-deep); }
+
+  /* ---------- Presupuestos por cliente ---------- */
+  .presupuesto-card { border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:12px; }
+  .presupuesto-item-row { display:flex; gap:6px; margin-bottom:6px; align-items:center; flex-wrap:wrap; }
+  .presupuesto-item-row select { flex:1; min-width:160px; }
+  .del-btn { background:none; border:none; color:var(--muted); font-size:15px; cursor:pointer; padding:2px 6px; }
+  .del-btn:hover { color:var(--coral); }
   .add-btn { width:100%; padding:12px; background:transparent; border:1.5px dashed var(--gold); border-radius:8px; color:var(--gold); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
   .add-btn:hover { background:var(--paper-2); }
 
@@ -192,7 +213,10 @@
     <div class="field-row" style="grid-template-columns: repeat(3, 1fr);">
       <div class="field">
         <label>Dólar blue hoy (ARS)</label>
-        <input type="text" inputmode="decimal" id="cfg-blue" value="1550" />
+        <div style="display:flex; gap:6px;">
+          <input type="text" inputmode="decimal" id="cfg-blue" value="1550" style="flex:1;" />
+          <button type="button" id="blue-actualizar" class="btn-ghost" style="padding:0 12px; font-size:11px; white-space:nowrap;">↻ actualizar</button>
+        </div>
       </div>
       <div class="field">
         <label>Origen</label>
@@ -206,6 +230,18 @@
         <input type="text" inputmode="decimal" id="cfg-margen" value="40" />
       </div>
     </div>
+    <div id="blue-estado" style="font-size:11px; color:var(--muted); margin-top:2px;"></div>
+    <div style="display:flex; gap:10px; align-items:flex-end; max-width:320px; margin-top:12px;">
+      <div class="field" style="flex:1;">
+        <label>Convertir USD</label>
+        <input type="text" inputmode="decimal" id="conv-usd" placeholder="0" />
+      </div>
+      <span style="color:var(--muted); padding-bottom:9px;">=</span>
+      <div class="field" style="flex:1;">
+        <label>ARS</label>
+        <input type="text" inputmode="decimal" id="conv-ars" placeholder="0" />
+      </div>
+    </div>
   </div>
 
   <div id="productos-admin"></div>
@@ -213,6 +249,14 @@
 
   <div id="form-actions" style="margin-top:20px; display:flex; gap:12px; flex-wrap:wrap;">
     <button class="btn-primary" id="generar-informe">Generar informe</button>
+  </div>
+
+  <div class="card" style="margin-top:24px;">
+    <div class="card-title">📋 Presupuestos por cliente</div>
+    <p class="sub" style="margin-bottom:12px;">Repartí el stock cargado arriba entre distintos clientes y armá presupuestos individuales — se descuenta del disponible automáticamente.</p>
+    <div id="stock-disponible-container" style="margin-bottom:12px;"></div>
+    <div id="presupuestos-container"></div>
+    <button class="add-btn" id="add-presupuesto-btn">+ Nuevo presupuesto</button>
   </div>
 
   <div id="reporte">
@@ -327,15 +371,16 @@
 </script>
 <script>
 // ---------- Estado ----------
-let productos = [];
 function uidA() { return Math.random().toString(36).slice(2, 9); }
 function nuevoProductoAdmin() {
   return {
-    id: uidA(), nombre: "", cantidad: "", fob: "", peso: "",
+    id: uidA(), nombre: "", cantidad: "", fob: "",
+    pesoModo: "total", peso: "", pesoTotalRef: "", pesoUnidad: "kg",
     largo: "", ancho: "", alto: "", margen: "", precioML: "", metodo: "auto",
+    foto: "", descripcion: "",
+    fleteCourierManual: "", seguroCourier: "",
   };
 }
-productos.push(nuevoProductoAdmin());
 
 function pNumA(v) {
   const n = parseFloat(String(v || "").trim().replace(",", "."));
@@ -348,105 +393,62 @@ function fmtInt(n) {
   return Math.round(n || 0).toLocaleString("es-AR");
 }
 
-// ---------- Render formulario ----------
-function renderFormulario() {
-  const cont = document.getElementById("productos-admin");
-  cont.innerHTML = "";
-  productos.forEach((p, i) => {
-    const div = document.createElement("div");
-    div.className = "producto-card";
-    div.innerHTML = `
-      ${productos.length > 1 ? `<button class="del" data-del="${p.id}">✕</button>` : ""}
-      <div class="field-row">
-        <div class="field" style="grid-column: span 2;">
-          <label>Nombre del producto</label>
-          <input type="text" data-field="nombre" data-id="${p.id}" value="${p.nombre.replace(/"/g, "&quot;")}" placeholder="Ej: soporte magnético" />
-        </div>
-        <div class="field">
-          <label>Cantidad</label>
-          <input type="text" inputmode="decimal" data-field="cantidad" data-id="${p.id}" value="${p.cantidad}" placeholder="100" />
-        </div>
-        <div class="field">
-          <label>FOB por unidad (USD)</label>
-          <input type="text" inputmode="decimal" data-field="fob" data-id="${p.id}" value="${p.fob}" placeholder="0.00" />
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Peso total (kg)</label>
-          <input type="text" inputmode="decimal" data-field="peso" data-id="${p.id}" value="${p.peso}" placeholder="0" />
-        </div>
-        <div class="field">
-          <label>Largo bulto (cm)</label>
-          <input type="text" inputmode="decimal" data-field="largo" data-id="${p.id}" value="${p.largo}" placeholder="0" />
-        </div>
-        <div class="field">
-          <label>Ancho bulto (cm)</label>
-          <input type="text" inputmode="decimal" data-field="ancho" data-id="${p.id}" value="${p.ancho}" placeholder="0" />
-        </div>
-        <div class="field">
-          <label>Alto bulto (cm)</label>
-          <input type="text" inputmode="decimal" data-field="alto" data-id="${p.id}" value="${p.alto}" placeholder="0" />
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Margen (%) — vacío usa el general</label>
-          <input type="text" inputmode="decimal" data-field="margen" data-id="${p.id}" value="${p.margen}" placeholder="40" />
-        </div>
-        <div class="field">
-          <label>Precio ref. Mercado Libre (USD, opcional)</label>
-          <input type="text" inputmode="decimal" data-field="precioML" data-id="${p.id}" value="${p.precioML}" placeholder="0.00" />
-        </div>
-        <div class="field" style="grid-column: span 2;">
-          <label>Vía a usar</label>
-          <select data-field="metodo" data-id="${p.id}">
-            <option value="auto" ${p.metodo === "auto" ? "selected" : ""}>Automático (la más barata)</option>
-            <option value="aereo" ${p.metodo === "aereo" ? "selected" : ""}>✈️ Aéreo</option>
-            <option value="maritimo" ${p.metodo === "maritimo" ? "selected" : ""}>🚢 Marítimo</option>
-            <option value="courier" ${p.metodo === "courier" ? "selected" : ""}>📦 Courier</option>
-          </select>
-        </div>
-      </div>
-    `;
-    cont.appendChild(div);
-  });
+// ---------- Persistencia (localStorage) ----------
+// Se guarda en este navegador para no perder la carga si se recarga la
+// página a mitad de una cotización — igual que ya hacía la calculadora
+// standalone de referencia.
+const PRODUCTOS_KEY = "jawa_admin_productos_v1";
+const PRESUPUESTOS_KEY = "jawa_admin_presupuestos_v1";
+const DOLAR_BLUE_KEY = "jawa_admin_dolar_blue_v1";
+
+let productos = [];
+try {
+  const saved = JSON.parse(localStorage.getItem(PRODUCTOS_KEY) || "null");
+  productos = Array.isArray(saved) && saved.length ? saved.map((p) => ({ ...nuevoProductoAdmin(), ...p })) : [nuevoProductoAdmin()];
+} catch (e) {
+  productos = [nuevoProductoAdmin()];
+}
+function guardarProductos() {
+  try { localStorage.setItem(PRODUCTOS_KEY, JSON.stringify(productos)); } catch (e) {}
 }
 
-document.getElementById("productos-admin").addEventListener("input", (e) => {
-  const id = e.target.getAttribute("data-id");
-  const field = e.target.getAttribute("data-field");
-  if (!id || !field) return;
-  const p = productos.find((x) => x.id === id);
-  if (p) p[field] = e.target.value;
-});
-document.getElementById("productos-admin").addEventListener("change", (e) => {
-  const id = e.target.getAttribute("data-id");
-  const field = e.target.getAttribute("data-field");
-  if (id && field === "metodo") {
-    const p = productos.find((x) => x.id === id);
-    if (p) p.metodo = e.target.value;
-  }
-});
-document.getElementById("productos-admin").addEventListener("click", (e) => {
-  const delId = e.target.getAttribute("data-del");
-  if (delId && productos.length > 1) {
-    productos = productos.filter((p) => p.id !== delId);
-    renderFormulario();
-  }
-});
-document.getElementById("add-producto-admin").addEventListener("click", () => {
-  productos.push(nuevoProductoAdmin());
-  renderFormulario();
-});
+function uidP() { return Math.random().toString(36).slice(2, 9); }
+function nuevoPresupuesto() {
+  return { id: uidP(), cliente: "", items: [{ id: uidP(), productoId: "", cantidad: "", precio: "" }] };
+}
+let presupuestos = [];
+try {
+  const savedP = JSON.parse(localStorage.getItem(PRESUPUESTOS_KEY) || "null");
+  presupuestos = Array.isArray(savedP) ? savedP : [];
+} catch (e) {
+  presupuestos = [];
+}
+function guardarPresupuestos() {
+  try { localStorage.setItem(PRESUPUESTOS_KEY, JSON.stringify(presupuestos)); } catch (e) {}
+}
 
-renderFormulario();
+(function initDolarBlue() {
+  const saved = localStorage.getItem(DOLAR_BLUE_KEY);
+  if (saved) document.getElementById("cfg-blue").value = saved;
+})();
 
 // ---------- Motor de cálculo ----------
+// Deriva el peso total (kg) del producto según el modo elegido: cargado
+// directamente por unidad (× cantidad) o como peso total de un lote ya
+// pesado en el depósito — igual criterio que la calculadora de referencia.
+function pesoTotalKgDe(p) {
+  const cantidad = pNumA(p.cantidad) || 1;
+  const factor = p.pesoUnidad === "g" ? 1 / 1000 : 1;
+  if (p.pesoModo === "unidad") {
+    return pNumA(p.peso) * factor * cantidad;
+  }
+  return pNumA(p.pesoTotalRef) * factor;
+}
+
 function calcularMetodos(p, origen) {
   const cantidad = pNumA(p.cantidad) || 1;
   const fobU = pNumA(p.fob);
-  const pesoTotal = pNumA(p.peso);
+  const pesoTotal = pesoTotalKgDe(p);
   const l = pNumA(p.largo), w = pNumA(p.ancho), h = pNumA(p.alto);
 
   const cbm = (l * w * h) / 1000000;
@@ -460,9 +462,13 @@ function calcularMetodos(p, origen) {
   const rateAir = FLETE_RATES.air[origen] || 0;
   const fleteAereoTotal = pesoCobrableAereo * rateAir;
 
-  const fleteCourierTotal = pesoTotal * RATE_COURIER_USD_KG;
+  // Courier: flete internacional y seguro se cargan a mano por compra (cada
+  // envío courier suele tener una cotización propia del forwarder), a
+  // diferencia de aéreo/marítimo que usan la tarifa general de Supabase.
+  const fleteCourierTotal = pNumA(p.fleteCourierManual);
+  const seguroCourierTotal = pNumA(p.seguroCourier);
   const fobTotal = fobU * cantidad;
-  const cifTotal = fobTotal + fleteCourierTotal;
+  const cifTotal = fobTotal + fleteCourierTotal + seguroCourierTotal;
   const impuestosCourierTotal = cifTotal * COURIER_REGIMEN.alicuota;
   const courierElegible = pesoTotal > 0 && pesoTotal <= COURIER_REGIMEN.limitePesoKg && cifTotal <= COURIER_REGIMEN.limiteCifUsd;
 
@@ -484,9 +490,11 @@ function calcularMetodos(p, origen) {
     courier: {
       label: "📦 Courier", medida: `CIF $${fmtA(cifTotal)}`,
       fleteU: fleteCourierTotal / cantidad, impuestosU: impuestosCourierTotal / cantidad,
-      costoU: fobU + fleteCourierTotal / cantidad + impuestosCourierTotal / cantidad,
-      total: fobTotal + fleteCourierTotal + impuestosCourierTotal,
-      disponible: RATE_COURIER_USD_KG > 0 && courierElegible,
+      costoU: fobU + (fleteCourierTotal + seguroCourierTotal + impuestosCourierTotal) / cantidad,
+      total: cifTotal + impuestosCourierTotal,
+      // Disponible en cuanto hay flete cargado — que se pase de los topes del
+      // régimen no lo saca de la comparación, solo dispara el aviso de riesgo.
+      disponible: fleteCourierTotal > 0,
     },
   };
 
@@ -505,9 +513,519 @@ function calcularMetodos(p, origen) {
     .sort((a, b) => a[1].costoU - b[1].costoU)[0];
 
   return {
-    cantidad, fobU, pesoTotal, cbm, toneladas, cifTotal, courierElegible,
+    cantidad, fobU, pesoTotal, cbm, toneladas, cifTotal, courierElegible, seguroCourierTotal,
     metodos, elegido, masBarataKey: masBarata ? masBarata[0] : null,
   };
+}
+
+// ---------- Comparativo en vivo por producto ----------
+function renderLiveResultado(p) {
+  if (!p.nombre || pNumA(p.cantidad) <= 0) {
+    return `<div style="font-size:11.5px; color:var(--muted);">Cargá nombre y cantidad para ver el comparativo en vivo (aéreo / marítimo / courier).</div>`;
+  }
+  const origen = document.getElementById("cfg-origen").value;
+  const margenGeneral = pNumA(document.getElementById("cfg-margen").value) || 0;
+  const blue = pNumA(document.getElementById("cfg-blue").value) || 0;
+  const r = calcularMetodos(p, origen);
+  const margen = pNumA(p.margen) || margenGeneral;
+  const seleccionado = r.metodos[r.elegido];
+  const ventaU = seleccionado.costoU * (1 + margen / 100);
+  const gananciaU = ventaU - seleccionado.costoU;
+
+  const filas = ["aereo", "maritimo", "courier"].map((key) => {
+    const met = r.metodos[key];
+    const isSel = key === r.elegido;
+    return `<tr class="${isSel ? "selected" : ""}">
+      <td>${met.label}${isSel ? " ✓" : ""}${!met.disponible ? " (sin datos)" : ""}</td>
+      <td class="num">${met.medida}</td>
+      <td class="num">$${fmtA(met.fleteU)}</td>
+      <td class="num">${met.impuestosU > 0 ? "$" + fmtA(met.impuestosU) : "—"}</td>
+      <td class="num">$${fmtA(met.costoU)}</td>
+    </tr>`;
+  }).join("");
+
+  return `
+    <table class="metodos-mini">
+      <thead><tr><th>Vía</th><th>Medida</th><th>Flete u.</th><th>Imp. u.</th><th>Costo u.</th></tr></thead>
+      <tbody>${filas}</tbody>
+    </table>
+    <div class="riesgo-badge ${r.courierElegible ? "ok" : "no"}">
+      ${r.courierElegible ? "🟢" : "🔴"} Courier: peso ${fmtA(r.pesoTotal)}/${COURIER_REGIMEN.limitePesoKg}kg · CIF $${fmtA(r.cifTotal)}/$${fmtInt(COURIER_REGIMEN.limiteCifUsd)}
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); font-size:12.5px;">
+      <span>Costo u. <b>$${fmtA(seleccionado.costoU)}</b></span>
+      <span>Venta u. (margen ${margen.toFixed(0)}%) <b style="color:var(--coral-deep);">$${fmtA(ventaU)}</b></span>
+      <span>Ganancia u. <b style="color:var(--green);">$${fmtA(gananciaU)}</b></span>
+    </div>
+    <div style="font-size:10.5px; color:var(--muted); margin-top:4px;">≈ $${fmtInt(ventaU * blue)} ARS venta u. al blue de hoy ($${fmtA(blue)})</div>
+  `;
+}
+
+// ---------- Render formulario ----------
+function renderFormulario() {
+  const cont = document.getElementById("productos-admin");
+  cont.innerHTML = "";
+  productos.forEach((p) => {
+    const div = document.createElement("div");
+    div.className = "producto-card";
+    div.innerHTML = `
+      ${productos.length > 1 ? `<button class="del" data-del="${p.id}">✕</button>` : ""}
+      <div style="display:flex; gap:12px; margin-bottom:12px; align-items:flex-start;">
+        <div>
+          <label style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); display:block; margin-bottom:4px;">Foto</label>
+          <div class="foto-drop" data-id="${p.id}" tabindex="0">
+            ${p.foto ? `<img src="${p.foto}" />` : `<div class="hint">📋 Click, pegar<br/>o arrastrar</div>`}
+            <input type="file" accept="image/*" data-field="foto-input" data-id="${p.id}" style="display:none;" />
+          </div>
+        </div>
+        <div style="flex:1;">
+          <div class="field" style="margin-bottom:8px;">
+            <label>Nombre del producto</label>
+            <input type="text" data-field="nombre" data-id="${p.id}" value="${p.nombre.replace(/"/g, "&quot;")}" placeholder="Ej: soporte magnético" />
+          </div>
+          <div class="field">
+            <label>Descripción (para el cliente)</label>
+            <textarea data-field="descripcion" data-id="${p.id}" placeholder="Ej: soporte magnético para auto, imán reforzado" style="width:100%; min-height:44px; resize:vertical; background:var(--paper); border:1px solid var(--line); border-radius:6px; color:var(--ink); font-size:12.5px; padding:7px 9px; font-family:inherit;">${p.descripcion || ""}</textarea>
+          </div>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Cantidad</label>
+          <input type="text" inputmode="decimal" data-field="cantidad" data-id="${p.id}" value="${p.cantidad}" placeholder="100" />
+        </div>
+        <div class="field">
+          <label>FOB por unidad (USD)</label>
+          <input type="text" inputmode="decimal" data-field="fob" data-id="${p.id}" value="${p.fob}" placeholder="0.00" />
+        </div>
+        <div class="field">
+          <label>Largo bulto (cm)</label>
+          <input type="text" inputmode="decimal" data-field="largo" data-id="${p.id}" value="${p.largo}" placeholder="0" />
+        </div>
+        <div class="field">
+          <label>Ancho bulto (cm)</label>
+          <input type="text" inputmode="decimal" data-field="ancho" data-id="${p.id}" value="${p.ancho}" placeholder="0" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Alto bulto (cm)</label>
+          <input type="text" inputmode="decimal" data-field="alto" data-id="${p.id}" value="${p.alto}" placeholder="0" />
+        </div>
+        <div class="field" style="grid-column: span 3;">
+          <label>Peso</label>
+          <div style="display:flex; gap:14px; margin-bottom:6px; font-size:11px; color:var(--ink);">
+            <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-weight:400; text-transform:none; letter-spacing:0;">
+              <input type="radio" name="pesoModo-${p.id}" data-field="pesoModo" data-id="${p.id}" value="unidad" ${p.pesoModo === "unidad" ? "checked" : ""} style="width:auto;" />
+              Por unidad
+            </label>
+            <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-weight:400; text-transform:none; letter-spacing:0;">
+              <input type="radio" name="pesoModo-${p.id}" data-field="pesoModo" data-id="${p.id}" value="total" ${p.pesoModo !== "unidad" ? "checked" : ""} style="width:auto;" />
+              Total del lote
+            </label>
+          </div>
+          <div style="display:flex; gap:6px;">
+            ${p.pesoModo === "unidad"
+              ? `<input type="text" inputmode="decimal" data-field="peso" data-id="${p.id}" value="${p.peso}" placeholder="0" style="flex:1;" />`
+              : `<input type="text" inputmode="decimal" data-field="pesoTotalRef" data-id="${p.id}" value="${p.pesoTotalRef}" placeholder="0" style="flex:1;" />`}
+            <select data-field="pesoUnidad" data-id="${p.id}" style="width:70px; flex:none;">
+              <option value="kg" ${p.pesoUnidad !== "g" ? "selected" : ""}>kg</option>
+              <option value="g" ${p.pesoUnidad === "g" ? "selected" : ""}>g</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Margen (%) — vacío usa el general</label>
+          <input type="text" inputmode="decimal" data-field="margen" data-id="${p.id}" value="${p.margen}" placeholder="40" />
+        </div>
+        <div class="field">
+          <label>Precio ref. Mercado Libre (USD, opcional)</label>
+          <input type="text" inputmode="decimal" data-field="precioML" data-id="${p.id}" value="${p.precioML}" placeholder="0.00" />
+        </div>
+        <div class="field" style="grid-column: span 2;">
+          <label>Vía a usar</label>
+          <select data-field="metodo" data-id="${p.id}">
+            <option value="auto" ${p.metodo === "auto" ? "selected" : ""}>Automático (la más barata)</option>
+            <option value="aereo" ${p.metodo === "aereo" ? "selected" : ""}>✈️ Aéreo</option>
+            <option value="maritimo" ${p.metodo === "maritimo" ? "selected" : ""}>🚢 Marítimo</option>
+            <option value="courier" ${p.metodo === "courier" ? "selected" : ""}>📦 Courier</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row" style="grid-template-columns: repeat(2,1fr);">
+        <div class="field">
+          <label>Courier — flete internacional total (USD)</label>
+          <input type="text" inputmode="decimal" data-field="fleteCourierManual" data-id="${p.id}" value="${p.fleteCourierManual}" placeholder="0" />
+        </div>
+        <div class="field">
+          <label>Courier — seguro internacional (USD)</label>
+          <input type="text" inputmode="decimal" data-field="seguroCourier" data-id="${p.id}" value="${p.seguroCourier}" placeholder="0" />
+        </div>
+      </div>
+      <div class="live-resultado">${renderLiveResultado(p)}</div>
+    `;
+    cont.appendChild(div);
+  });
+}
+
+function aplicarFotoProducto(productoId, file) {
+  if (!file || !file.type || !file.type.startsWith("image/")) return;
+  const p = productos.find((x) => x.id === productoId);
+  if (!p) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    p.foto = ev.target.result;
+    guardarProductos();
+    renderFormulario();
+  };
+  reader.readAsDataURL(file);
+}
+
+document.getElementById("productos-admin").addEventListener("input", (e) => {
+  const id = e.target.getAttribute("data-id");
+  const field = e.target.getAttribute("data-field");
+  if (!id || !field || field === "foto-input") return;
+  const p = productos.find((x) => x.id === id);
+  if (!p) return;
+  p[field] = e.target.value;
+  guardarProductos();
+  renderFormulario();
+  const sel = `[data-id="${id}"][data-field="${field}"]`;
+  const el = document.querySelector(sel);
+  const TIPOS_SIN_SELECTION = ["email", "number", "radio", "checkbox", "date", "color", "range", "file"];
+  if (el) { el.focus(); if (el.setSelectionRange && el.tagName === "INPUT" && !TIPOS_SIN_SELECTION.includes(el.type)) { const v = el.value; el.setSelectionRange(v.length, v.length); } }
+});
+
+document.getElementById("productos-admin").addEventListener("change", (e) => {
+  const id = e.target.getAttribute("data-id");
+  const field = e.target.getAttribute("data-field");
+  if (!id || !field) return;
+  const p = productos.find((x) => x.id === id);
+  if (!p) return;
+  if (field === "pesoModo") { p.pesoModo = e.target.value; guardarProductos(); renderFormulario(); }
+  else if (field === "pesoUnidad") { p.pesoUnidad = e.target.value; guardarProductos(); renderFormulario(); }
+  else if (field === "metodo") { p.metodo = e.target.value; guardarProductos(); renderFormulario(); }
+  else if (field === "foto-input") {
+    const file = e.target.files[0];
+    if (file) aplicarFotoProducto(id, file);
+  }
+});
+
+document.getElementById("productos-admin").addEventListener("click", (e) => {
+  const zona = e.target.closest(".foto-drop");
+  if (zona) {
+    const input = zona.querySelector('input[type="file"]');
+    if (input) input.click();
+    return;
+  }
+  const delId = e.target.getAttribute("data-del");
+  if (delId && productos.length > 1) {
+    productos = productos.filter((p) => p.id !== delId);
+    guardarProductos();
+    renderFormulario();
+    renderPresupuestos();
+  }
+});
+
+document.getElementById("productos-admin").addEventListener("paste", (e) => {
+  const zona = e.target.closest(".foto-drop");
+  if (!zona) return;
+  const items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type && item.type.startsWith("image/")) {
+      aplicarFotoProducto(zona.getAttribute("data-id"), item.getAsFile());
+      e.preventDefault();
+      break;
+    }
+  }
+});
+document.getElementById("productos-admin").addEventListener("dragover", (e) => {
+  const zona = e.target.closest(".foto-drop");
+  if (zona) { e.preventDefault(); zona.style.borderColor = "var(--coral)"; }
+});
+document.getElementById("productos-admin").addEventListener("dragleave", (e) => {
+  const zona = e.target.closest(".foto-drop");
+  if (zona) { zona.style.borderColor = "var(--line)"; }
+});
+document.getElementById("productos-admin").addEventListener("drop", (e) => {
+  const zona = e.target.closest(".foto-drop");
+  if (!zona) return;
+  e.preventDefault();
+  zona.style.borderColor = "var(--line)";
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) aplicarFotoProducto(zona.getAttribute("data-id"), file);
+});
+
+document.getElementById("add-producto-admin").addEventListener("click", () => {
+  productos.push(nuevoProductoAdmin());
+  guardarProductos();
+  renderFormulario();
+});
+
+document.getElementById("cfg-origen").addEventListener("change", renderFormulario);
+document.getElementById("cfg-margen").addEventListener("input", renderFormulario);
+
+renderFormulario();
+renderPresupuestos();
+
+// ---------- Dólar blue ----------
+document.getElementById("cfg-blue").addEventListener("input", () => {
+  localStorage.setItem(DOLAR_BLUE_KEY, document.getElementById("cfg-blue").value);
+  const usd = pNumA(document.getElementById("conv-usd").value);
+  if (usd) document.getElementById("conv-ars").value = fmtA(usd * pNumA(document.getElementById("cfg-blue").value));
+  renderFormulario();
+});
+document.getElementById("conv-usd").addEventListener("input", () => {
+  const usd = pNumA(document.getElementById("conv-usd").value);
+  const blue = pNumA(document.getElementById("cfg-blue").value);
+  document.getElementById("conv-ars").value = usd ? fmtA(usd * blue) : "";
+});
+document.getElementById("conv-ars").addEventListener("input", () => {
+  const ars = pNumA(document.getElementById("conv-ars").value);
+  const blue = pNumA(document.getElementById("cfg-blue").value);
+  document.getElementById("conv-usd").value = ars && blue ? fmtA(ars / blue) : "";
+});
+document.getElementById("blue-actualizar").addEventListener("click", async () => {
+  const btn = document.getElementById("blue-actualizar");
+  const estado = document.getElementById("blue-estado");
+  const original = btn.textContent;
+  btn.textContent = "…";
+  try {
+    const res = await fetch("https://dolarapi.com/v1/dolares/blue");
+    const data = await res.json();
+    if (data && data.venta) {
+      document.getElementById("cfg-blue").value = data.venta;
+      localStorage.setItem(DOLAR_BLUE_KEY, String(data.venta));
+      estado.textContent = `Actualizado — venta $${fmtA(data.venta)} (compra $${fmtA(data.compra)})`;
+      renderFormulario();
+    } else {
+      throw new Error("sin datos");
+    }
+  } catch (err) {
+    estado.textContent = "No se pudo actualizar (sin internet o API caída). Podés cargarlo a mano.";
+  }
+  btn.textContent = original;
+});
+
+// ---------- Presupuestos por cliente ----------
+function getAsignadoTotal(productoId) {
+  let total = 0;
+  presupuestos.forEach((pr) => pr.items.forEach((it) => {
+    if (it.productoId === productoId) total += pNumA(it.cantidad);
+  }));
+  return total;
+}
+
+function getStockInfo() {
+  const origen = document.getElementById("cfg-origen").value;
+  const margenGeneral = pNumA(document.getElementById("cfg-margen").value) || 0;
+  return productos.filter((p) => p.nombre && pNumA(p.cantidad) > 0).map((p) => {
+    const r = calcularMetodos(p, origen);
+    const margen = pNumA(p.margen) || margenGeneral;
+    const seleccionado = r.metodos[r.elegido];
+    const ventaUnit = seleccionado.costoU * (1 + margen / 100);
+    const cant = pNumA(p.cantidad);
+    const asignado = getAsignadoTotal(p.id);
+    return { id: p.id, nombre: p.nombre, foto: p.foto, descripcion: p.descripcion, cant, ventaUnit, asignado, disponible: cant - asignado };
+  });
+}
+
+function renderStockDisponible() {
+  const stock = getStockInfo();
+  const cont = document.getElementById("stock-disponible-container");
+  if (!stock.length) { cont.innerHTML = `<div style="font-size:12px; color:var(--muted);">Cargá productos arriba para poder armar presupuestos.</div>`; return; }
+  cont.innerHTML = `
+    <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px;">Stock disponible</div>
+    <div style="display:flex; flex-direction:column; gap:4px;">
+      ${stock.map((p) => `
+        <div style="display:flex; justify-content:space-between; font-size:12px; padding:3px 0;">
+          <span>${p.nombre}</span>
+          <span style="${p.disponible < 0 ? "color:var(--coral-deep); font-weight:700;" : "color:var(--muted);"}">${p.asignado}/${p.cant} asignadas · ${p.disponible} disp.</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderPresupuestos() {
+  const stock = getStockInfo();
+  const cont = document.getElementById("presupuestos-container");
+  cont.innerHTML = presupuestos.map((pr) => {
+    const itemsCalc = pr.items.map((it) => {
+      const prod = stock.find((p) => p.id === it.productoId);
+      const cant = pNumA(it.cantidad);
+      const precioLista = prod ? prod.ventaUnit : 0;
+      const precioUsado = it.precio !== "" ? pNumA(it.precio) : precioLista;
+      const subtotal = precioUsado * cant;
+      return { ...it, prod, cant, precioLista, precioUsado, subtotal };
+    });
+    const total = itemsCalc.reduce((a, i) => a + i.subtotal, 0);
+    return `
+    <div class="presupuesto-card">
+      <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <input type="text" placeholder="Nombre del cliente" data-pres-field="cliente" data-pres-id="${pr.id}" value="${pr.cliente.replace(/"/g, "&quot;")}" style="flex:1;" />
+        <button class="del-btn" data-pres-del="${pr.id}">✕</button>
+      </div>
+      ${itemsCalc.map((it) => `
+        <div class="presupuesto-item-row">
+          <select data-item-field="productoId" data-pres-id="${pr.id}" data-item-id="${it.id}">
+            <option value="">Elegir producto…</option>
+            ${stock.map((p) => `<option value="${p.id}" ${it.productoId === p.id ? "selected" : ""}>${p.nombre} (disp. ${p.disponible + (it.productoId === p.id ? it.cant : 0)})</option>`).join("")}
+          </select>
+          <input type="text" inputmode="decimal" placeholder="Cant." data-item-field="cantidad" data-pres-id="${pr.id}" data-item-id="${it.id}" value="${it.cantidad}" style="width:64px;" />
+          <input type="text" inputmode="decimal" placeholder="$${fmtA(it.precioLista)}" data-item-field="precio" data-pres-id="${pr.id}" data-item-id="${it.id}" value="${it.precio}" style="width:80px; color:var(--coral-deep);" />
+          <span style="font-size:12px; min-width:64px; text-align:right;">$${fmtA(it.subtotal)}</span>
+          <button class="del-btn" data-item-del="${pr.id}::${it.id}">✕</button>
+        </div>
+      `).join("")}
+      <button data-pres-additem="${pr.id}" style="background:transparent; border:1px dashed var(--line); border-radius:6px; color:var(--muted); font-size:11px; padding:5px 10px; cursor:pointer; font-family:inherit; margin:4px 0 10px;">+ agregar producto</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px dashed var(--line); padding-top:10px;">
+        <span style="font-size:13px; font-weight:800;">Total: <span style="color:var(--coral-deep);">$${fmtA(total)}</span></span>
+        <div style="display:flex; gap:6px;">
+          <button data-pres-whatsapp="${pr.id}" style="padding:7px 12px; background:#25d366; border:none; border-radius:6px; color:#0b1f19; font-size:11px; font-weight:700; cursor:pointer;">WhatsApp</button>
+          <button data-pres-descargar="${pr.id}" style="padding:7px 12px; background:var(--paper-2); border:1px solid var(--line); border-radius:6px; color:var(--ink); font-size:11px; cursor:pointer;">PDF</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+  renderStockDisponible();
+}
+
+document.getElementById("add-presupuesto-btn").addEventListener("click", () => {
+  presupuestos.push(nuevoPresupuesto());
+  guardarPresupuestos();
+  renderPresupuestos();
+});
+
+document.getElementById("presupuestos-container").addEventListener("input", (e) => {
+  const presField = e.target.getAttribute("data-pres-field");
+  const itemField = e.target.getAttribute("data-item-field");
+  if (presField) {
+    const pr = presupuestos.find((p) => p.id === e.target.getAttribute("data-pres-id"));
+    if (pr) { pr[presField] = e.target.value; guardarPresupuestos(); renderStockDisponible(); }
+  }
+  if (itemField) {
+    const pr = presupuestos.find((p) => p.id === e.target.getAttribute("data-pres-id"));
+    const it = pr && pr.items.find((i) => i.id === e.target.getAttribute("data-item-id"));
+    if (it) {
+      it[itemField] = e.target.value;
+      guardarPresupuestos();
+      renderPresupuestos();
+      const sel = `[data-pres-id="${pr.id}"][data-item-id="${it.id}"][data-item-field="${itemField}"]`;
+      const el = document.querySelector(sel);
+      if (el && (itemField === "cantidad" || itemField === "precio")) { el.focus(); const v = el.value; if (el.setSelectionRange) el.setSelectionRange(v.length, v.length); }
+    }
+  }
+});
+
+document.getElementById("presupuestos-container").addEventListener("change", (e) => {
+  const itemField = e.target.getAttribute("data-item-field");
+  if (itemField === "productoId") {
+    const pr = presupuestos.find((p) => p.id === e.target.getAttribute("data-pres-id"));
+    const it = pr && pr.items.find((i) => i.id === e.target.getAttribute("data-item-id"));
+    if (it) { it.productoId = e.target.value; guardarPresupuestos(); renderPresupuestos(); }
+  }
+});
+
+document.getElementById("presupuestos-container").addEventListener("click", (e) => {
+  const presDel = e.target.getAttribute("data-pres-del");
+  if (presDel) { presupuestos = presupuestos.filter((p) => p.id !== presDel); guardarPresupuestos(); renderPresupuestos(); return; }
+  const itemDel = e.target.getAttribute("data-item-del");
+  if (itemDel) {
+    const [presId, itemId] = itemDel.split("::");
+    const pr = presupuestos.find((p) => p.id === presId);
+    if (pr && pr.items.length > 1) { pr.items = pr.items.filter((i) => i.id !== itemId); guardarPresupuestos(); renderPresupuestos(); }
+    return;
+  }
+  const addItem = e.target.getAttribute("data-pres-additem");
+  if (addItem) {
+    const pr = presupuestos.find((p) => p.id === addItem);
+    if (pr) { pr.items.push({ id: uidP(), productoId: "", cantidad: "" }); guardarPresupuestos(); renderPresupuestos(); }
+    return;
+  }
+  const whatsappId = e.target.getAttribute("data-pres-whatsapp");
+  if (whatsappId) { enviarPresupuestoWhatsapp(whatsappId); return; }
+  const descargarId = e.target.getAttribute("data-pres-descargar");
+  if (descargarId) { descargarPresupuesto(descargarId); return; }
+});
+
+function datosPresupuesto(id) {
+  const pr = presupuestos.find((p) => p.id === id);
+  const stock = getStockInfo();
+  const items = pr.items.map((it) => {
+    const prod = stock.find((p) => p.id === it.productoId);
+    const cant = pNumA(it.cantidad);
+    const precioUnit = it.precio !== "" ? pNumA(it.precio) : (prod ? prod.ventaUnit : 0);
+    return {
+      nombre: prod ? prod.nombre : "(elegir producto)",
+      foto: prod ? prod.foto : "",
+      descripcion: prod ? prod.descripcion : "",
+      precioUnit, cant, subtotal: precioUnit * cant,
+    };
+  }).filter((it) => it.cant > 0 && it.nombre !== "(elegir producto)");
+  const total = items.reduce((a, i) => a + i.subtotal, 0);
+  return { cliente: pr.cliente || "Cliente", items, total };
+}
+
+function enviarPresupuestoWhatsapp(id) {
+  const d = datosPresupuesto(id);
+  if (!d.items.length) { alert("Agregá al menos un producto con cantidad antes de enviar."); return; }
+  const lineas = d.items.map((i) => `• ${i.nombre} — ${i.cant} u. x $${fmtA(i.precioUnit)} = $${fmtA(i.subtotal)}`).join("\n");
+  const texto = `Presupuesto — Jawa Logistic\nPara: ${d.cliente}\n\n${lineas}\n\nTOTAL: $${fmtA(d.total)}`;
+  const url = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+  window.open(url, "_blank");
+}
+
+function descargarPresupuesto(id) {
+  const d = datosPresupuesto(id);
+  if (!d.items.length) { alert("Agregá al menos un producto con cantidad antes de descargar."); return; }
+  const fecha = new Date().toLocaleDateString("es-AR");
+  const itemsHtml = d.items.map((i) => `
+    <div style="display:flex; gap:16px; padding:16px 0; border-bottom:1px solid #eee;">
+      ${i.foto ? `<img src="${i.foto}" style="width:90px; height:90px; object-fit:cover; border-radius:8px; flex:none;" />` : `<div style="width:90px; height:90px; border-radius:8px; background:#f2ede0; flex:none;"></div>`}
+      <div style="flex:1;">
+        <div style="font-weight:700; font-size:15px; color:#16223d;">${i.nombre}</div>
+        ${i.descripcion ? `<div style="font-size:12px; color:#8a7a5f; margin-top:3px; line-height:1.4;">${i.descripcion}</div>` : ""}
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:10px;">
+          <span style="font-size:13px; color:#4a3b2a;">${i.cant} u. × $${fmtA(i.precioUnit)}</span>
+          <span style="font-size:16px; font-weight:700; color:#c9502e;">$${fmtA(i.subtotal)}</span>
+        </div>
+      </div>
+    </div>`).join("");
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Presupuesto — ${d.cliente}</title>
+    <style>
+      body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; color:#171b22; padding: 32px; max-width:720px; margin:0 auto; background:#fff; }
+      @media print { button { display: none; } body { padding:0; } }
+      .membrete { display:flex; align-items:center; gap:12px; padding-bottom:18px; border-bottom:2px solid #c9502e; margin-bottom:22px; }
+      .membrete-title { font-size:20px; font-weight:800; letter-spacing:1px; }
+      .membrete-sub { font-size:11px; color:#5b6472; letter-spacing:2px; text-transform:uppercase; }
+    </style></head>
+    <body>
+      <button onclick="window.print()" style="margin-bottom:20px;padding:10px 18px;font-size:13px;cursor:pointer;background:#c9502e;color:#fff;border:none;border-radius:6px;">Imprimir / Guardar como PDF</button>
+      <div class="membrete">
+        <svg width="46" height="46" viewBox="0 0 236 236"><circle cx="118" cy="118" r="106" fill="#ffffff" stroke="#16223d" stroke-width="10"/><rect x="88" y="88" width="60" height="60" fill="#c9502e" transform="rotate(45 118 118)"/></svg>
+        <div><div class="membrete-title">JAWA LOGISTIC</div><div class="membrete-sub">China · Miami · Argentina</div></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;">
+        <h1 style="font-size:19px; margin:0;">Presupuesto</h1>
+        <span style="font-size:12px; color:#5b6472;">${fecha}</span>
+      </div>
+      <div style="font-size:14px; color:#4a3b2a; margin-bottom:20px;">Para: <b>${d.cliente}</b></div>
+      ${itemsHtml}
+      <div style="margin-top:20px; display:flex; justify-content:flex-end;">
+        <div style="font-size:20px; font-weight:700;">Total: <span style="color:#c9502e;">$${fmtA(d.total)}</span></div>
+      </div>
+      <div style="margin-top:32px; font-size:10.5px; color:#a89a80; border-top:1px solid #eee; padding-top:12px;">Presupuesto sujeto a confirmación de stock — Jawa Logistic.</div>
+    </body></html>`;
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `presupuesto-${d.cliente.toLowerCase().replace(/\s+/g, "-")}.html`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 // ---------- Charts (canvas) ----------
@@ -576,6 +1094,7 @@ try {
     document.getElementById("tarifa-air-china").value = FLETE_RATES.air.china || "";
     document.getElementById("tarifa-air-miami").value = FLETE_RATES.air.miami || "";
     document.getElementById("tarifa-courier").value = RATE_COURIER_USD_KG || "";
+    renderFormulario();
   });
 
   document.getElementById("guardar-tarifas").addEventListener("click", async () => {
@@ -631,7 +1150,7 @@ document.getElementById("generar-informe").addEventListener("click", () => {
     acc.peso += x.r.pesoTotal;
     acc.volumen += x.r.cbm;
     acc.fob += x.r.fobU * x.r.cantidad;
-    acc.flete += x.seleccionado.fleteU * x.r.cantidad + x.seleccionado.impuestosU * x.r.cantidad;
+    acc.flete += x.seleccionado.fleteU * x.r.cantidad + x.seleccionado.impuestosU * x.r.cantidad + (x.r.elegido === "courier" ? x.r.seguroCourierTotal : 0);
     acc.costo += x.seleccionado.costoU * x.r.cantidad;
     acc.ganancia += x.gananciaTotal;
     return acc;
@@ -714,9 +1233,13 @@ document.getElementById("generar-informe").addEventListener("click", () => {
     return `
       <div class="prod-detail">
         <div class="prod-detail-head">
-          <div>
-            <h3>${x.p.nombre}</h3>
-            <div class="meta">Cantidad: ${fmtInt(x.r.cantidad)} u. — FOB: $${fmtA(x.r.fobU)}/u.</div>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            ${x.p.foto ? `<img src="${x.p.foto}" style="width:52px; height:52px; object-fit:cover; border-radius:8px; flex:none;" />` : ""}
+            <div>
+              <h3>${x.p.nombre}</h3>
+              <div class="meta">Cantidad: ${fmtInt(x.r.cantidad)} u. — FOB: $${fmtA(x.r.fobU)}/u.</div>
+              ${x.p.descripcion ? `<div class="meta" style="margin-top:2px;">${x.p.descripcion}</div>` : ""}
+            </div>
           </div>
           <div class="elegibilidad ${x.r.courierElegible ? "ok" : "no"}">
             ${x.r.courierElegible ? "🟢" : "🔴"} Courier: peso ${fmtA(x.r.pesoTotal)}/${COURIER_REGIMEN.limitePesoKg}kg · CIF $${fmtA(x.r.cifTotal)}/$${fmtInt(COURIER_REGIMEN.limiteCifUsd)}
