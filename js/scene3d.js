@@ -1,30 +1,35 @@
-// ---------- Fondo 3D: buque portacontenedores + avión de carga ----------
-// Escena Three.js estilizada (no fotorrealista) fija detrás de toda la página,
-// reactiva al scroll: el buque avanza y el avión gana altura a medida que el
-// usuario recorre el sitio. Todo geometría procedural (cajas/cilindros/planos),
-// sin modelos 3D externos que descargar.
+// ---------- Fondo 3D: buque portacontenedores + avión de carga (modelos reales) ----------
+// Antes esto dibujaba el barco y el avión con geometría hecha a mano (cajas,
+// cápsulas, conos) — el cliente los vio y pidió modelos que se reconozcan como
+// un barco y un avión de verdad, no formas abstractas. Así que ahora carga dos
+// modelos 3D reales (.glb), con licencia libre para uso comercial con atribución:
 //
-// IMPORTANTE — por qué se ve grande y con contraste, no como una marca de agua:
-// una primera versión de esto usaba cámara lejana, niebla agresiva y colores
-// casi idénticos al fondo (navy sobre navy) — el resultado era casi invisible.
-// Ahora la cámara está cerca, la niebla empieza mucho más lejos de los objetos,
-// y el casco/contenedores usan tonos claros y dorados que contrastan fuerte
-// contra el fondo oscuro — igual que un modelo 3D bien iluminado debe verse.
+//   - Buque: "Container Ship" por Alex Safayan (Poly Pizza) — CC-BY 3.0
+//     https://poly.pizza/m/3AmDGcCu6Ll
+//   - Avión: "Airplane" por Poly by Google (Poly Pizza) — CC-BY
+//     https://poly.pizza/m/8ciDd9k8wha
+//   (atribución real en footer.html / créditos del sitio — ver index.html)
 //
-// Igual que el resto del sitio: envuelto en try/catch y con salida silenciosa
-// si WebGL no está disponible — nunca debe romper el resto de la página.
+// El modelo del barco trae dos materiales rojos de fábrica (mat14, mat8) —
+// se recolorean a la paleta de marca (nunca rojo, regla explícita del cliente)
+// sin tocar la geometría real. El avión ya viene blanco/azul, sin rojo.
+//
+// Esto es un módulo ES (import real de Three.js + su loader de GLTF) en vez de
+// scripts clásicos — los ejemplos de Three.js (loaders, etc.) solo se
+// distribuyen como módulos en versiones modernas. Si el import de arriba
+// falla (sin conexión, CDN caído), el módulo completo no corre — eso no
+// afecta al resto del sitio porque main.js/rates.js son scripts aparte.
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+
 try {
   (function () {
-    if (typeof THREE === "undefined") {
-      console.error("Three.js no cargó — se omite el fondo 3D.");
-      return;
-    }
     const canvas = document.getElementById("scene3d-bg");
     if (!canvas) return;
 
     let gl;
     try {
-      gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+      gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
     } catch (e) {
       gl = null;
     }
@@ -35,18 +40,13 @@ try {
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    // ---------- Paleta de marca (sin rojo) — tonos CLAROS para contraste ----------
-    const COL_HULL = 0x4a6088;   // navy claro: contrasta contra el fondo oscuro, a diferencia del navy oscuro original
-    const COL_DECK = 0x2c436f;
+    // ---------- Paleta de marca (sin rojo) ----------
     const COL_GOLD = 0xe8c896;
-    const COL_GOLD_DEEP = 0xc9a468;
-    const COL_PAPER = 0xf3f5fa;
+    const COL_NAVY = 0x2c436f;
     const COL_BG = 0x0d1730;
 
     // ---------- Escena, cámara, renderer ----------
     const scene = new THREE.Scene();
-    // Niebla lejos de los objetos a propósito: en la primera versión el barco
-    // estaba casi a la distancia donde empezaba la niebla y se desvanecía.
     scene.fog = new THREE.Fog(COL_BG, 34, 70);
 
     const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 200);
@@ -70,8 +70,8 @@ try {
       resizeTimer = setTimeout(resize, 150);
     });
 
-    // ---------- Luces: fuerte y cálida, como el "glow" dorado de referencia ----------
-    scene.add(new THREE.AmbientLight(0xb7c4de, 0.75));
+    // ---------- Luces: fuerte y cálida ----------
+    scene.add(new THREE.AmbientLight(0xb7c4de, 0.8));
     const sun = new THREE.DirectionalLight(COL_GOLD, 2.1);
     sun.position.set(10, 16, 12);
     scene.add(sun);
@@ -89,91 +89,81 @@ try {
     });
     const sea = new THREE.Mesh(seaGeo, seaMat);
     sea.rotation.x = -Math.PI / 2;
-    sea.position.y = -1.1;
+    sea.position.y = -1.4;
     scene.add(sea);
     const seaBasePositions = seaGeo.attributes.position.array.slice();
 
-    // ---------- Buque portacontenedores (grupo procedural) ----------
-    const ship = new THREE.Group();
-
-    const hullMat = new THREE.MeshStandardMaterial({ color: COL_HULL, flatShading: true, roughness: 0.5, metalness: 0.25 });
-    const hullShape = new THREE.Shape();
-    hullShape.moveTo(-6.5, 0);
-    hullShape.lineTo(6, 0);
-    hullShape.lineTo(7.2, 0.9);
-    hullShape.lineTo(6, 1.7);
-    hullShape.lineTo(-6.5, 1.7);
-    hullShape.lineTo(-7.4, 0.85);
-    hullShape.closePath();
-    const hullGeo = new THREE.ExtrudeGeometry(hullShape, { depth: 3.2, bevelEnabled: false });
-    hullGeo.center();
-    // Sin rotación: el largo del casco (eje X) ya coincide con el eje sobre el
-    // que se reparten los contenedores más abajo — rotarlo los desalinearía.
-    const hull = new THREE.Mesh(hullGeo, hullMat);
-    ship.add(hull);
-
-    const deckMat = new THREE.MeshStandardMaterial({ color: COL_DECK, flatShading: true, roughness: 0.5 });
-    const deckhouse = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.4, 2.6), deckMat);
-    deckhouse.position.set(-5.6, 2.1, 0);
-    ship.add(deckhouse);
-    const bridge = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.7, 2), new THREE.MeshStandardMaterial({ color: COL_PAPER, flatShading: true }));
-    bridge.position.set(-5.6, 3.6, 0);
-    ship.add(bridge);
-
-    const containerColors = [COL_GOLD, COL_PAPER, COL_GOLD_DEEP, COL_DECK];
-    const containerGeo = new THREE.BoxGeometry(1.15, 1, 2.1);
-    let ci = 0;
-    for (let row = 0; row < 3; row++) {
-      for (let col = -4; col <= 3; col++) {
-        const mat = new THREE.MeshStandardMaterial({
-          color: containerColors[ci % containerColors.length],
-          flatShading: true,
-          roughness: 0.6,
-        });
-        ci++;
-        const box = new THREE.Mesh(containerGeo, mat);
-        box.position.set(col * 1.25, 1.35 + row * 1.05, 0);
-        ship.add(box);
-      }
+    // ---------- Carga de modelos reales ----------
+    // Normaliza cualquier modelo (venga en la escala/unidades que venga) a un
+    // tamaño de mundo conocido, y lo centra en su propio pivote — así el resto
+    // del código puede animar posición/rotación sin importar cómo vino el .glb.
+    function normalizeAndCenter(object3d, targetSize) {
+      const box = new THREE.Box3().setFromObject(object3d);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+      const maxDim = Math.max(size.x, size.y, size.z) || 1;
+      const scale = targetSize / maxDim;
+      object3d.position.sub(center);
+      const wrapper = new THREE.Group();
+      wrapper.add(object3d);
+      wrapper.scale.setScalar(scale);
+      return wrapper;
     }
 
-    ship.scale.setScalar(1.05);
-    scene.add(ship);
+    // Recolorea los materiales rojos de fábrica del modelo del barco (regla de
+    // marca: nunca rojo) sin tocar la geometría. Por nombre (los conocidos de
+    // este modelo puntual) + un chequeo genérico de "es rojizo" por si Poly
+    // Pizza actualiza el asset y cambian los nombres.
+    const RED_MATERIAL_NAMES = { mat14: COL_GOLD, mat8: COL_NAVY };
+    function debrandRed(object3d) {
+      object3d.traverse((node) => {
+        if (!node.isMesh || !node.material) return;
+        const mats = Array.isArray(node.material) ? node.material : [node.material];
+        mats.forEach((mat) => {
+          if (!mat.color) return;
+          if (RED_MATERIAL_NAMES[mat.name] != null) {
+            mat.color.set(RED_MATERIAL_NAMES[mat.name]);
+            return;
+          }
+          const c = mat.color;
+          const isRedish = c.r > 0.5 && c.g < 0.35 && c.b < 0.35;
+          if (isRedish) mat.color.set(COL_GOLD);
+        });
+      });
+    }
 
-    // ---------- Avión de carga (grupo procedural) ----------
-    const plane = new THREE.Group();
-    const planeMat = new THREE.MeshStandardMaterial({ color: COL_PAPER, flatShading: true, roughness: 0.4, metalness: 0.1 });
-    const planeAccentMat = new THREE.MeshStandardMaterial({ color: COL_GOLD, flatShading: true, roughness: 0.45 });
+    const loader = new GLTFLoader();
+    let shipRig = null;
+    let planeRig = null;
 
-    const fuselage = new THREE.Mesh(new THREE.CapsuleGeometry(0.55, 4.2, 4, 8), planeMat);
-    fuselage.rotation.z = Math.PI / 2;
-    plane.add(fuselage);
+    loader.load(
+      "models/ship.glb",
+      (gltf) => {
+        debrandRed(gltf.scene);
+        shipRig = normalizeAndCenter(gltf.scene, 13);
+        scene.add(shipRig);
+      },
+      undefined,
+      (err) => console.error("No se pudo cargar el modelo 3D del buque:", err)
+    );
 
-    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.1, 8), planeMat);
-    nose.rotation.z = -Math.PI / 2;
-    nose.position.x = 2.9;
-    plane.add(nose);
-
-    const wing = new THREE.Mesh(new THREE.BoxGeometry(0.18, 5.6, 1.5), planeAccentMat);
-    wing.position.set(-0.2, 0, 0);
-    plane.add(wing);
-
-    const tailFin = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.2, 0.9), planeAccentMat);
-    tailFin.position.set(-2, 0.7, 0);
-    plane.add(tailFin);
-    const tailWing = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.8, 0.6), planeAccentMat);
-    tailWing.position.set(-2, 0.15, 0);
-    plane.add(tailWing);
-
-    plane.scale.setScalar(1.15);
-    scene.add(plane);
+    loader.load(
+      "models/plane.glb",
+      (gltf) => {
+        planeRig = normalizeAndCenter(gltf.scene, 9);
+        scene.add(planeRig);
+      },
+      undefined,
+      (err) => console.error("No se pudo cargar el modelo 3D del avión:", err)
+    );
 
     // ---------- Reacción al scroll ----------
-    // scrollFrac: 0 al tope de la página, 1 al fondo. IMPORTANTE: los rangos de
-    // movimiento son cortos a propósito y centrados en cámara — en la primera
-    // versión el buque arrancaba fuera de pantalla (x=-16) y solo se veía
-    // después de scrollear bastante. Ahora siempre está en cuadro, y el scroll
-    // lo hace derivar de un lado al otro en vez de aparecer/desaparecer.
+    // scrollFrac: 0 al tope de la página, 1 al fondo. Rangos de movimiento
+    // cortos y centrados en cámara a propósito — para que el buque y el avión
+    // estén SIEMPRE en cuadro, y el scroll los haga derivar en vez de
+    // aparecer/desaparecer.
     let scrollFrac = 0;
     function readScroll() {
       const doc = document.documentElement;
@@ -196,7 +186,6 @@ try {
     function frame() {
       const t = clock.getElapsedTime();
 
-      // Oleaje: desplaza cada vértice del mar con una onda dependiente de su posición.
       const pos = seaGeo.attributes.position;
       for (let i = 0; i < pos.count; i++) {
         const x = seaBasePositions[i * 3];
@@ -205,24 +194,22 @@ try {
       }
       pos.needsUpdate = true;
 
-      // Buque: siempre visible, cerca del centro, con leve deriva por scroll y
-      // balanceo constante como si estuviera sobre el agua.
-      ship.position.x = -1.5 + scrollFrac * 3 + Math.sin(t * 0.3) * 0.5;
-      ship.position.z = 1 + Math.sin(t * 0.22) * 0.3;
-      // Un giro leve (no 90°) para ver de 3/4 y que se note el volumen del
-      // casco y los contenedores, sin perder el perfil largo del buque.
-      ship.rotation.y = 0.28 + Math.sin(t * 0.15) * 0.06;
-      ship.rotation.z = Math.sin(t * 0.7) * 0.02;
-      ship.rotation.x = Math.sin(t * 0.5) * 0.015;
-      ship.position.y = -0.3 + Math.sin(t * 0.9) * 0.1;
+      if (shipRig) {
+        shipRig.position.x = -1.5 + scrollFrac * 3 + Math.sin(t * 0.3) * 0.5;
+        shipRig.position.z = 1 + Math.sin(t * 0.22) * 0.3;
+        shipRig.rotation.y = 0.5 + Math.sin(t * 0.15) * 0.06;
+        shipRig.rotation.z = Math.sin(t * 0.7) * 0.02;
+        shipRig.rotation.x = Math.sin(t * 0.5) * 0.015;
+        shipRig.position.y = -0.6 + Math.sin(t * 0.9) * 0.1;
+      }
 
-      // Avión: siempre en cuadro arriba a la derecha, gana altura y deriva
-      // según el scroll, con leve balanceo.
-      plane.position.x = 4.5 - scrollFrac * 3 + Math.sin(t * 0.25) * 0.4;
-      plane.position.y = 4.6 + scrollFrac * 1.2 + Math.sin(t * 0.6) * 0.2;
-      plane.position.z = -3;
-      plane.rotation.y = -0.5;
-      plane.rotation.z = Math.sin(t * 0.4) * 0.05;
+      if (planeRig) {
+        planeRig.position.x = 4.5 - scrollFrac * 3 + Math.sin(t * 0.25) * 0.4;
+        planeRig.position.y = 4.6 + scrollFrac * 1.2 + Math.sin(t * 0.6) * 0.2;
+        planeRig.position.z = -3;
+        planeRig.rotation.y = 2.4;
+        planeRig.rotation.z = Math.sin(t * 0.4) * 0.05;
+      }
 
       renderer.render(scene, camera);
       if (!reduce) requestAnimationFrame(frame);
