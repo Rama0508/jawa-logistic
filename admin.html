@@ -154,6 +154,37 @@
   <p class="sub">Cargá los productos que estás evaluando importar. Calcula automáticamente flete aéreo, marítimo y courier, elegibilidad al régimen simplificado, y tu margen real contra Mercado Libre.</p>
 
   <div class="card">
+    <div class="card-title">Tarifas del sitio (se aplican en todo el sitio al instante)</div>
+    <p class="sub" style="margin-bottom:14px;">Estos valores son los que usa la calculadora pública y este mismo informe. Cambiarlos acá actualiza el sitio entero, sin tocar código.</p>
+    <div class="field-row" style="grid-template-columns: repeat(5, 1fr);">
+      <div class="field">
+        <label>Marítimo China (USD/CBM)</label>
+        <input type="text" inputmode="decimal" id="tarifa-sea-china" />
+      </div>
+      <div class="field">
+        <label>Marítimo Miami (USD/CBM)</label>
+        <input type="text" inputmode="decimal" id="tarifa-sea-miami" />
+      </div>
+      <div class="field">
+        <label>Aéreo China (USD/kg)</label>
+        <input type="text" inputmode="decimal" id="tarifa-air-china" />
+      </div>
+      <div class="field">
+        <label>Aéreo Miami (USD/kg)</label>
+        <input type="text" inputmode="decimal" id="tarifa-air-miami" />
+      </div>
+      <div class="field">
+        <label>Courier (USD/kg)</label>
+        <input type="text" inputmode="decimal" id="tarifa-courier" />
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px; margin-top:6px; flex-wrap:wrap;">
+      <button class="btn-ghost" id="guardar-tarifas">Guardar tarifas</button>
+      <span id="tarifas-status" style="font-size:12px; color:var(--muted);"></span>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="card-title">Configuración general</div>
     <div class="field-row" style="grid-template-columns: repeat(3, 1fr);">
       <div class="field">
@@ -509,6 +540,43 @@ function drawBars(canvasId, rows) {
     y += groupGap - gap;
   });
 }
+
+// ---------- Editar tarifas ----------
+try {
+  SUPABASE_READY.then(() => {
+    document.getElementById("tarifa-sea-china").value = FLETE_RATES.sea.china || "";
+    document.getElementById("tarifa-sea-miami").value = FLETE_RATES.sea.miami || "";
+    document.getElementById("tarifa-air-china").value = FLETE_RATES.air.china || "";
+    document.getElementById("tarifa-air-miami").value = FLETE_RATES.air.miami || "";
+    document.getElementById("tarifa-courier").value = RATE_COURIER_USD_KG || "";
+  });
+
+  document.getElementById("guardar-tarifas").addEventListener("click", async () => {
+    const status = document.getElementById("tarifas-status");
+    status.textContent = "Guardando…";
+    const filas = [
+      { id: "sea_china", valor: pNumA(document.getElementById("tarifa-sea-china").value) },
+      { id: "sea_miami", valor: pNumA(document.getElementById("tarifa-sea-miami").value) },
+      { id: "air_china", valor: pNumA(document.getElementById("tarifa-air-china").value) },
+      { id: "air_miami", valor: pNumA(document.getElementById("tarifa-air-miami").value) },
+      { id: "courier", valor: pNumA(document.getElementById("tarifa-courier").value) },
+    ];
+    try {
+      for (const fila of filas) {
+        const { error } = await supabaseClient.from("tarifas").update({ valor: fila.valor, actualizado_en: new Date().toISOString() }).eq("id", fila.id);
+        if (error) throw error;
+      }
+      FLETE_RATES.sea.china = filas[0].valor;
+      FLETE_RATES.sea.miami = filas[1].valor;
+      FLETE_RATES.air.china = filas[2].valor;
+      FLETE_RATES.air.miami = filas[3].valor;
+      RATE_COURIER_USD_KG = filas[4].valor;
+      status.textContent = "✓ Guardado — ya se está usando en todo el sitio.";
+    } catch (err) {
+      status.textContent = "⚠️ No se pudo guardar: " + (err.message || "revisá tu conexión.");
+    }
+  });
+} catch (e) { console.error("editar tarifas:", e); }
 
 // ---------- Generar informe ----------
 esperarTarifasPara(document.getElementById("generar-informe"), "Cargando tarifas…");

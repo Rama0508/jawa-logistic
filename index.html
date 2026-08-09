@@ -105,7 +105,14 @@
   .hero-inner { max-width:840px; margin:0 auto; padding: 54px 20px 0; text-align:center; position:relative; z-index:2; }
   .hero-kicker { font-size: clamp(14px, 1.8vw, 18px); font-weight:300; letter-spacing:.08em; text-transform:uppercase; margin: 14px 0 4px; color: var(--gold-bright); }
   .hero h1 { font-size: clamp(32px, 5.4vw, 56px); line-height:1.06; font-weight:800; letter-spacing:-.01em; text-transform:uppercase; margin: 0 0 20px; text-wrap: balance; }
-  .hero h1 em { font-style:normal; color: var(--gold-bright); }
+  .hero h1 em {
+    font-style:normal;
+    background: linear-gradient(100deg, var(--gold-bright) 30%, #fff 50%, var(--gold-bright) 70%);
+    background-size: 250% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shine-text 5s ease-in-out infinite;
+  }
+  @keyframes shine-text { 0%,100% { background-position: 200% 0; } 50% { background-position: 0% 0; } }
   .hero p { font-size: 15px; line-height:1.65; color: rgba(255,255,255,0.85); max-width: 480px; margin: 0 auto 28px; }
   .hero-actions { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-bottom: 8px; }
   .btn-primary { display:inline-flex; align-items:center; gap:8px; background: var(--coral); color: var(--white); font-weight:800; font-size:14px; padding:14px 22px; border-radius:7px; text-decoration:none; border:none; cursor:pointer; font-family:inherit; transition: background .2s ease, transform .2s ease; }
@@ -269,7 +276,8 @@
 
   /* Photo banner */
   .photo-banner { position:relative; height:340px; overflow:hidden; }
-  .photo-banner img { width:100%; height:100%; object-fit:cover; object-position:15% 25%; display:block; }
+  .photo-banner img { width:100%; height:100%; object-fit:cover; object-position:15% 25%; display:block; transition: transform 6s ease; }
+  .photo-banner:hover img { transform: scale(1.06); }
   .photo-banner-overlay { position:absolute; inset:0; background: linear-gradient(90deg, rgba(22,34,61,0.88) 0%, rgba(22,34,61,0.55) 45%, rgba(22,34,61,0.15) 75%); display:flex; align-items:center; }
   .photo-banner-copy { max-width:420px; padding: 0 20px 0 40px; color:var(--white); }
   @media (max-width:760px) { .photo-banner-copy { padding: 0 20px; max-width:100%; } .photo-banner-overlay { background: linear-gradient(180deg, rgba(22,34,61,0.55) 0%, rgba(22,34,61,0.88) 70%); align-items:flex-end; padding-bottom:24px; } }
@@ -281,7 +289,8 @@
   .about-grid { display:grid; grid-template-columns: 0.95fr 1.05fr; gap:44px; align-items:center; }
   @media (max-width:820px) { .about-grid { grid-template-columns:1fr; gap:28px; } }
   .about-photo { border-radius:16px; overflow:hidden; box-shadow: 0 24px 50px -26px rgba(22,34,61,0.5); }
-  .about-photo img { width:100%; height:100%; object-fit:cover; display:block; aspect-ratio: 4/5; }
+  .about-photo img { width:100%; height:100%; object-fit:cover; display:block; aspect-ratio: 4/5; transition: transform .5s ease; }
+  .about-photo:hover img { transform: scale(1.05); }
   .about-text p { font-size:14px; line-height:1.75; color: var(--ink); margin: 0 0 14px; }
   .about-text p:last-child { margin-bottom:0; }
   .about-checks { display:flex; flex-direction:column; gap:16px; background:var(--white); border:1px solid var(--line); border-radius:12px; padding:24px; margin-top:20px; }
@@ -293,7 +302,8 @@
   /* Comparativa */
   .compare-grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; max-width:760px; margin:0 auto; }
   @media (max-width:660px) { .compare-grid { grid-template-columns: 1fr; } }
-  .compare-card { border-radius:12px; padding:24px; }
+  .compare-card { border-radius:12px; padding:24px; transition: transform .25s ease, box-shadow .25s ease; }
+  .compare-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -22px rgba(22,34,61,0.4); }
   .compare-card.us { background: var(--navy); color: var(--white); border:1px solid var(--navy); }
   .compare-card.diy { background: var(--white); border:1px solid var(--line); }
   .compare-card .ct { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; margin-bottom:14px; }
@@ -308,7 +318,8 @@
   /* Glosario */
   .glossary { display:grid; grid-template-columns: repeat(2, 1fr); gap: 14px 32px; }
   @media (max-width: 700px) { .glossary { grid-template-columns: 1fr; } }
-  .gloss-item { padding: 14px 0; border-bottom: 1px dashed var(--line); }
+  .gloss-item { padding: 14px 10px; margin: 0 -10px; border-bottom: 1px dashed var(--line); border-radius:8px; transition: background .2s ease, transform .2s ease; }
+  .gloss-item:hover { background: var(--paper-2); transform: translateX(4px); }
   .gloss-term { font-size:13px; font-weight:800; color: var(--navy); font-family: ui-monospace, monospace; }
   .gloss-def { font-size:12.5px; color: var(--muted); line-height:1.6; margin-top:4px; }
 
@@ -377,7 +388,8 @@
   /* FAQ accordion */
   .faq { max-width: 700px; margin: 0 auto; }
   .faq-item { border-bottom: 1px solid var(--line); }
-  .faq-item summary { list-style:none; cursor:pointer; padding: 18px 4px; display:flex; align-items:center; justify-content:space-between; gap:16px; font-size:14px; font-weight:700; }
+  .faq-item summary { list-style:none; cursor:pointer; padding: 18px 4px; display:flex; align-items:center; justify-content:space-between; gap:16px; font-size:14px; font-weight:700; transition: color .2s ease, padding-left .2s ease; }
+  .faq-item summary:hover { color: var(--coral); padding-left:8px; }
   .faq-item summary::-webkit-details-marker { display:none; }
   .faq-item .chevron { flex:none; width:18px; height:18px; transition: transform .25s ease; color: var(--coral); }
   .faq-item[open] .chevron { transform: rotate(45deg); }
@@ -520,8 +532,8 @@
       </div>
 
       <div class="stats-row reveal">
-        <div class="stat-badge"><div class="num">3</div><div class="lbl">Años trabajando</div></div>
-        <div class="stat-badge"><div class="num">10K+</div><div class="lbl">Envíos gestionados</div></div>
+        <div class="stat-badge"><div class="num" data-count-to="3" data-suffix="">0</div><div class="lbl">Años trabajando</div></div>
+        <div class="stat-badge"><div class="num" data-count-to="10" data-suffix="K+">0</div><div class="lbl">Envíos gestionados</div></div>
         <div class="stat-badge"><div class="num">24/7</div><div class="lbl">Atención personalizada</div></div>
       </div>
 
@@ -900,6 +912,13 @@
         <div class="card" id="confirmacion-gate" style="margin-top:20px;">
           <div class="card-label">🔒 ¿Ya cerraste tu pedido con nosotros?</div>
           <div style="font-size:12px; color: var(--muted); margin-bottom:12px;">Una vez que confirmemos tu compra, te vamos a pasar un código. Cargalo acá para destrabar la dirección y los datos que necesitás para tu proveedor.</div>
+          <div class="field" style="margin-bottom:12px;">
+            <label>¿Tu pedido sale de China o de Miami?</label>
+            <div class="fc-origin-options" id="origen-pedido-options">
+              <button class="fc-origin-btn active" data-origen="china" type="button">🇨🇳 China</button>
+              <button class="fc-origin-btn" data-origen="miami" type="button">🇺🇸 Miami</button>
+            </div>
+          </div>
           <div class="field">
             <label>Código de confirmación</label>
             <input type="text" id="codigo-confirmacion" placeholder="Te lo pasamos por WhatsApp" />
@@ -1187,26 +1206,82 @@ try {
   })();
 } catch (e) { console.error("reveal on scroll:", e); }
 
+// ---------- Contadores animados ----------
+try {
+  (function () {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const nums = document.querySelectorAll("[data-count-to]");
+    if (!nums.length) return;
+
+    function animarContador(el) {
+      const destino = parseFloat(el.getAttribute("data-count-to"));
+      const sufijo = el.getAttribute("data-suffix") || "";
+      if (reduce || !("requestAnimationFrame" in window)) {
+        el.textContent = destino + sufijo;
+        return;
+      }
+      const duracion = 1400;
+      const inicio = performance.now();
+      function paso(ahora) {
+        const t = Math.min(1, (ahora - inicio) / duracion);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = Math.round(destino * eased) + sufijo;
+        if (t < 1) requestAnimationFrame(paso);
+      }
+      requestAnimationFrame(paso);
+    }
+
+    if (!("IntersectionObserver" in window)) {
+      nums.forEach(animarContador);
+      return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          animarContador(entry.target);
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.4 });
+    nums.forEach((el) => io.observe(el));
+  })();
+} catch (e) { console.error("contadores animados:", e); }
+
 // ---------- Config oculta ----------
 const FLETE_USD_KG = 80; // tarifa interna, no se muestra en ningún lado
 
 // ---------- Config editable por vos (Jawa Logistic) ----------
-// Cambiá estos datos según tu depósito consolidador real en China.
-const DEPOSITO_CONFIG = {
-  nombre: "Depósito Jawa Logistic",
-  // ⚠️ La dirección en chino se perdió al pegar el archivo original (quedó con caracteres
-  // corruptos). Reemplazá esta línea por la dirección real de tu depósito antes de publicar.
-  direccion: "⚠️ PEGÁ ACÁ LA DIRECCIÓN REAL DEL DEPÓSITO EN CHINO (la original se corrompió al copiar el archivo)",
-  codigoPostal: "510850",
-  contacto: "Sr. Hong",
-  telefonoNotificacion: "+54 9 381 331-2280", // único número visible para el cliente
-  prefijoCliente: "ROD145", // tu código de cuenta
-  codigoConfirmacion: "ROD145", // mismo código que usás para etiquetar cajas en Alibaba
+// Cambiá estos datos según tus depósitos consolidadores reales.
+const TELEFONO_NOTIFICACION = "+54 9 381 331-2280"; // único número visible para el cliente, compartido por los dos orígenes
+
+const DEPOSITOS = {
+  china: {
+    nombre: "Depósito Jawa Logistic — China",
+    // ⚠️ La dirección en chino se perdió al pegar el archivo original (quedó con caracteres
+    // corruptos). Reemplazá esta línea por la dirección real de tu depósito antes de publicar.
+    direccion: "⚠️ PEGÁ ACÁ LA DIRECCIÓN REAL DEL DEPÓSITO EN CHINO (la original se corrompió al copiar el archivo)",
+    codigoPostal: "510850",
+    contacto: "Sr. Hong",
+    prefijoCliente: "ROD145",
+    codigoConfirmacion: "ROD145", // mismo código que usás para etiquetar cajas en Alibaba
+  },
+  miami: {
+    nombre: "Depósito Jawa Logistic — Miami",
+    // ⚠️ Falta cargar la dirección real de tu depósito en Miami.
+    direccion: "⚠️ PEGÁ ACÁ LA DIRECCIÓN REAL DEL DEPÓSITO EN MIAMI",
+    codigoPostal: "⚠️ PENDIENTE",
+    contacto: "⚠️ PENDIENTE",
+    prefijoCliente: "ROD145-MIA",
+    codigoConfirmacion: "ROD145MIA", // ⚠️ cambiá esto por el código que vayas a usar en Miami
+  },
 };
+
+let origenPedido = "china";
+function depositoActual() { return DEPOSITOS[origenPedido]; }
 
 function generarCodigoCliente() {
   // Código único y fijo para todos los envíos — el mismo que usás con tu logística.
-  return DEPOSITO_CONFIG.prefijoCliente;
+  return depositoActual().prefijoCliente;
 }
 
 // ---------- Cotizador rápido (hero) ----------
@@ -1243,7 +1318,7 @@ FOB unitario: USD ${fmtQQ(fob)}
 Peso: ${pesoRaw || 0} ${unidad}
 Cantidad: ${cant}
 Estimado puesto en Argentina: $${fmtQQ(total)}`;
-      const numero = DEPOSITO_CONFIG.telefonoNotificacion.replace(/[^\d]/g, "");
+      const numero = TELEFONO_NOTIFICACION.replace(/[^\d]/g, "");
       document.getElementById("qq-wa-btn").href = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
     });
   })();
@@ -1602,13 +1677,32 @@ function setStep(n) {
   if (fill) fill.style.width = ((n - 1) / (dots.length - 1)) * 88 + "%";
 }
 
+// ---------- Selector de origen del pedido ----------
+try {
+  document.querySelectorAll("#origen-pedido-options .fc-origin-btn").forEach((b) => {
+    b.addEventListener("click", () => {
+      document.querySelectorAll("#origen-pedido-options .fc-origin-btn").forEach((x) => x.classList.remove("active"));
+      b.classList.add("active");
+      origenPedido = b.getAttribute("data-origen");
+      // Si ya estaba desbloqueado con el otro origen, hay que volver a confirmar con el código de este.
+      if (desbloqueado) {
+        desbloqueado = false;
+        document.getElementById("confirmacion-gate").style.display = "block";
+        document.getElementById("post-confirmacion").style.display = "none";
+        document.getElementById("codigo-confirmacion").value = "";
+        setStep(1);
+      }
+    });
+  });
+} catch (e) { console.error("selector de origen:", e); }
+
 // ---------- Gate de confirmación ----------
 let desbloqueado = false;
 
 function actualizarInfoConfirmada() {
   if (!desbloqueado) return;
-  document.getElementById("direccion-texto").textContent = DEPOSITO_CONFIG.direccion;
-  document.getElementById("cp-texto").textContent = DEPOSITO_CONFIG.codigoPostal;
+  document.getElementById("direccion-texto").textContent = depositoActual().direccion;
+  document.getElementById("cp-texto").textContent = depositoActual().codigoPostal;
   document.getElementById("id-cliente-texto").textContent = generarCodigoCliente();
 }
 
@@ -1616,7 +1710,7 @@ document.getElementById("desbloquear-btn").addEventListener("click", () => {
   const valor = document.getElementById("codigo-confirmacion").value.trim();
   const error = document.getElementById("confirmacion-error");
 
-  if (valor.toUpperCase() !== DEPOSITO_CONFIG.codigoConfirmacion.toUpperCase()) {
+  if (valor.toUpperCase() !== depositoActual().codigoConfirmacion.toUpperCase()) {
     error.style.display = "block";
     return;
   }
@@ -1637,7 +1731,7 @@ document.getElementById("desbloquear-btn").addEventListener("click", () => {
 Nombre: ${cliNombre || "-"} ${cliApellido || ""}
 Teléfono: ${cliTelefono || "-"}
 Ya tiene la dirección y su ID (${generarCodigoCliente()}) para comprarle a su proveedor.`;
-  const numero = DEPOSITO_CONFIG.telefonoNotificacion.replace(/[^\d]/g, "");
+  const numero = TELEFONO_NOTIFICACION.replace(/[^\d]/g, "");
   const urlAviso = `https://wa.me/${numero}?text=${encodeURIComponent(textoAviso)}`;
   window.open(urlAviso, "_blank");
 });
@@ -1672,7 +1766,7 @@ Peso del envío: ${d.peso} kg
 Tracking number: ${d.tracking}
 (adjunto foto del paquete acá mismo)`;
 
-  const numero = DEPOSITO_CONFIG.telefonoNotificacion.replace(/[^\d]/g, "");
+  const numero = TELEFONO_NOTIFICACION.replace(/[^\d]/g, "");
   const url = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
   window.open(url, "_blank");
   setStep(4);
@@ -1763,7 +1857,7 @@ ${lineas}
 Unidades totales: ${t.unidades}
 TOTAL DEL PEDIDO: $${fmt(t.total)}`;
 
-  const numero = DEPOSITO_CONFIG.telefonoNotificacion.replace(/[^\d]/g, "");
+  const numero = TELEFONO_NOTIFICACION.replace(/[^\d]/g, "");
   const url = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
   window.open(url, "_blank");
 });
@@ -1792,9 +1886,9 @@ document.getElementById("descargar-btn").addEventListener("click", () => {
     <div style="margin-bottom:18px;padding:12px;background:#fff4e0;border-radius:6px;font-size:13px;border:1px solid #e0a758;">
       <div style="font-weight:700;margin-bottom:6px;">Datos para el proveedor en China</div>
       <div><b>ID de cliente:</b> ${codigoCliente}</div>
-      <div><b>Depósito:</b> ${DEPOSITO_CONFIG.nombre}</div>
-      <div><b>Dirección:</b> ${DEPOSITO_CONFIG.direccion}</div>
-      <div><b>Código postal:</b> ${DEPOSITO_CONFIG.codigoPostal}</div>
+      <div><b>Depósito:</b> ${depositoActual().nombre}</div>
+      <div><b>Dirección:</b> ${depositoActual().direccion}</div>
+      <div><b>Código postal:</b> ${depositoActual().codigoPostal}</div>
         <div style="margin-top:4px;color:#a05a00;">Incluir el ID ${codigoCliente} en el envío.</div>
     </div>` : `
     <div style="margin-bottom:18px;padding:10px;background:#f0f0f0;border-radius:6px;font-size:12px;color:#666;">
