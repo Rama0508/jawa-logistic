@@ -1,27 +1,67 @@
-// ---------- Tarifas de Jawa Logistic — fuente única ----------
-// Este archivo lo cargan tanto la página pública (index.html, cotizador de clientes)
-// como el informe interno (admin.html), para que nunca queden desincronizados.
-// ⚠️ Reemplazá los valores marcados con ⚠️ por tus tarifas reales.
+// ---------- Jawa Logistic — Tarifas y configuración (Supabase) ----------
+// Esto carga la configuración EN VIVO desde Supabase. Cualquier cambio de
+// tarifa hecho desde el panel interno (admin.html) se refleja al instante en
+// todo el sitio, sin tocar código ni hacer un nuevo deploy.
+//
+// Requiere que antes de este archivo se cargue el cliente de Supabase:
+// <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-const FLETE_RATES = {
-  sea: { china: 1000, miami: 1000 }, // USD por CBM (metro cúbico) — confirmado
-  air: { china: 0, miami: 0 },       // ⚠️ USD por KG — falta confirmar
+const SUPABASE_URL = "https://hthyehsqfrfwdqkbqrwj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_Dlh15glcRPYtVKmvkytcbw_LGfPqN7F"; // key pública, segura para el navegador
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// URL de la función que lee links de productos (reemplaza el backend de EasyPanel)
+const EXTRACT_PRODUCT_URL = `${SUPABASE_URL}/functions/v1/extract-product`;
+
+// Valores por defecto mientras se cargan los reales (o si falla la conexión) —
+// a propósito en $0, para que la calculadora nunca muestre un precio inventado.
+let FLETE_RATES = {
+  sea: { china: 0, miami: 0 },
+  air: { china: 0, miami: 0 },
 };
+let CBM_MINIMO = 0.5;
+let DIVISOR_VOLUMETRICO_AEREO = 6000;
+let RATE_COURIER_USD_KG = 0;
+let COURIER_REGIMEN = { limitePesoKg: 50, limiteCifUsd: 3000, alicuota: 0.5 };
 
-const CBM_MINIMO = 0.5;                 // mínimo a consolidar por envío, en CBM
-const DIVISOR_VOLUMETRICO_AEREO = 6000; // estándar IATA: (L×A×H cm) ÷ 6000 = kg volumétrico
+// Se resuelve cuando las tarifas reales ya están cargadas. El resto del código
+// espera este evento antes de habilitar los botones de calcular.
+const SUPABASE_READY = (async function cargarConfiguracion() {
+  try {
+    const [{ data: tarifas, error: e1 }, { data: config, error: e2 }] = await Promise.all([
+      supabaseClient.from("tarifas").select("id, valor"),
+      supabaseClient.from("configuracion").select("clave, valor"),
+    ]);
+    if (e1) throw e1;
+    if (e2) throw e2;
 
-// ---------- Solo para el informe interno (admin.html) ----------
-const RATE_COURIER_USD_KG = 0; // ⚠️ USD por KG vía courier (régimen simplificado) — falta confirmar
+    const t = Object.fromEntries((tarifas || []).map((r) => [r.id, Number(r.valor)]));
+    FLETE_RATES = {
+      sea: { china: t.sea_china || 0, miami: t.sea_miami || 0 },
+      air: { china: t.air_china || 0, miami: t.air_miami || 0 },
+    };
+    RATE_COURIER_USD_KG = t.courier || 0;
 
-const COURIER_REGIMEN = {
-  limitePesoKg: 50,     // peso máximo del envío para calificar al régimen simplificado
-  limiteCifUsd: 3000,   // valor CIF máximo para calificar
-  alicuota: 0.50,       // % que se cobra sobre el CIF en concepto de impuestos
-};
+    const c = Object.fromEntries((config || []).map((r) => [r.clave, r.valor]));
+    if (c.cbm_minimo != null) CBM_MINIMO = Number(c.cbm_minimo);
+    if (c.divisor_volumetrico_aereo != null) DIVISOR_VOLUMETRICO_AEREO = Number(c.divisor_volumetrico_aereo);
+    if (c.courier_regimen) COURIER_REGIMEN = c.courier_regimen;
+  } catch (err) {
+    console.error("No se pudieron cargar las tarifas desde Supabase (¿ya corriste supabase/migrations/0001_init.sql?):", err);
+  }
+  document.dispatchEvent(new Event("tarifas-listas"));
+})();
 
-// ---------- API de extracción de productos (pegar un link) ----------
-// ⚠️ Reemplazá esto por la URL pública de tu servicio /api una vez que lo despliegues
-// en EasyPanel (ver api/README.md). Mientras diga "PENDIENTE", el botón de "pegar link"
-// avisa que todavía no está conectado, en vez de fallar en silencio.
-const API_BASE_URL = "PENDIENTE";
+// Deshabilita un botón hasta que las tarifas reales estén cargadas, mostrando
+// un texto de carga mientras tanto. Se usa en index.html y admin.html.
+function esperarTarifasPara(boton, textoCargando) {
+  if (!boton) return;
+  const textoOriginal = boton.textContent;
+  boton.disabled = true;
+  boton.textContent = textoCargando || "Cargando tarifas…";
+  SUPABASE_READY.then(() => {
+    boton.disabled = false;
+    boton.textContent = textoOriginal;
+  });
+}
