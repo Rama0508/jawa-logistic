@@ -128,7 +128,10 @@
 <header class="top">
   <div class="top-inner">
     <div class="brand">🧭 Jawa Logistic <span class="tag">Panel interno</span></div>
-    <button class="logout-btn" id="logout-btn" style="display:none;">Cerrar sesión</button>
+    <div style="display:flex; align-items:center; gap:14px;">
+      <a href="admin-tienda.html" style="color:var(--gold-bright); font-size:12.5px; font-weight:700; text-decoration:none;">Tienda y cursos →</a>
+      <button class="logout-btn" id="logout-btn" style="display:none;">Cerrar sesión</button>
+    </div>
   </div>
 </header>
 
@@ -269,11 +272,35 @@
   const loginBtn = document.getElementById("login-btn");
   const loginError = document.getElementById("login-error");
 
-  function mostrarSegunSesion(session) {
-    const logueado = !!session;
-    loginScreen.style.display = logueado ? "none" : "block";
-    toolContent.style.display = logueado ? "block" : "none";
-    logoutBtn.style.display = logueado ? "inline-block" : "none";
+  // Ahora que los CLIENTES también pueden loguearse (tienda/cursos), no
+  // alcanza con "hay sesión" para mostrar el panel interno — hay que
+  // confirmar que ese usuario es staff de verdad (tabla perfiles). Si un
+  // cliente entra acá, ningún dato le va a cargar igual (RLS lo bloquea),
+  // pero mostrarle la interfaz vacía es mala UX y expone de más.
+  async function mostrarSegunSesion(session) {
+    if (!session) {
+      loginScreen.style.display = "block";
+      toolContent.style.display = "none";
+      logoutBtn.style.display = "none";
+      return;
+    }
+    const { data: perfil } = await supabaseClient
+      .from("perfiles")
+      .select("rol")
+      .eq("id", session.user.id)
+      .maybeSingle();
+    const esStaff = perfil && perfil.rol === "staff";
+    if (!esStaff) {
+      loginScreen.style.display = "block";
+      toolContent.style.display = "none";
+      logoutBtn.style.display = "inline-block";
+      loginError.textContent = "Esta cuenta no tiene acceso al panel interno.";
+      loginError.classList.add("show");
+      return;
+    }
+    loginScreen.style.display = "none";
+    toolContent.style.display = "block";
+    logoutBtn.style.display = "inline-block";
   }
 
   supabaseClient.auth.getSession().then(({ data }) => mostrarSegunSesion(data.session));

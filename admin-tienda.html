@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Jawa Logistic — Tienda y cursos (panel interno)</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<style>
+  :root{
+    --navy:#16223d; --navy-2:#1f3157; --ink:#171b22;
+    --paper:#f6f7fa; --paper-2:#eceff4;
+    --coral:#c9502e; --coral-deep:#a23f22;
+    --gold:#a9865a; --gold-bright:#d7b686;
+    --line:#dde1e8; --muted:#5b6472; --white:#ffffff;
+    --green:#1f8a4c; --green-bg:#e9f7ef;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; }
+  .data { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-variant-numeric: tabular-nums; }
+  .wrap { max-width: 980px; margin:0 auto; padding: 0 20px 80px; }
+
+  header.top { background:var(--navy); color:var(--white); padding:18px 0; margin-bottom:28px; }
+  .top-inner { max-width:980px; margin:0 auto; padding:0 20px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .brand { font-weight:800; font-size:15px; display:flex; align-items:center; gap:10px; }
+  .brand .tag { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; background:var(--coral); padding:4px 9px; border-radius:5px; }
+
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { font-size:12.5px; color:var(--muted); margin:0 0 24px; }
+
+  .tabs { display:flex; gap:6px; margin-bottom:24px; border-bottom:1px solid var(--line); }
+  .tab-btn { background:none; border:none; padding:12px 18px; font-size:13px; font-weight:700; color:var(--muted); cursor:pointer; font-family:inherit; border-bottom:2px solid transparent; }
+  .tab-btn.active { color:var(--navy); border-bottom-color:var(--coral); }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+
+  .card { background:var(--white); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:18px; }
+  .card-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--navy); margin-bottom:14px; }
+
+  .field-row { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:10px; }
+  @media (max-width:700px) { .field-row { grid-template-columns: repeat(2, 1fr); } }
+  .field { display:flex; flex-direction:column; gap:4px; }
+  .field.span2 { grid-column: span 2; }
+  .field.span4 { grid-column: 1 / -1; }
+  .field label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  .field input, .field select, .field textarea { background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:9px 10px; font-size:13.5px; font-family:inherit; color:var(--ink); width:100%; }
+  .field textarea { resize:vertical; min-height:70px; }
+
+  .item-card { border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:14px; }
+  .item-card-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
+  .item-card-head .nombre { font-weight:800; font-size:14px; }
+  .item-card-head .meta { font-size:11.5px; color:var(--muted); }
+  .item-actions { display:flex; gap:8px; }
+  .btn-primary { background:var(--coral); color:#fff; border:none; border-radius:8px; padding:11px 18px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .btn-primary:hover { background:var(--coral-deep); }
+  .btn-ghost { background:transparent; border:1px solid var(--line); border-radius:8px; padding:10px 14px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; color:var(--ink); }
+  .btn-danger { background:none; border:none; color:var(--coral-deep); font-size:12px; cursor:pointer; font-family:inherit; }
+  .add-btn { width:100%; padding:12px; background:transparent; border:1.5px dashed var(--gold); border-radius:8px; color:var(--gold); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; margin-bottom:18px; }
+  .add-btn:hover { background:var(--paper-2); }
+  .thumbs { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; }
+  .thumbs img { width:56px; height:56px; object-fit:cover; border-radius:6px; border:1px solid var(--line); }
+  .estado-pill { font-size:11px; font-weight:700; text-transform:uppercase; padding:3px 8px; border-radius:5px; }
+  .estado-pendiente { background:#fff4de; color:#a05a00; }
+  .estado-pagado { background:var(--green-bg); color:var(--green); }
+  .estado-enviado, .estado-entregado { background:#e8f0fc; color:#1a4d8f; }
+  .estado-cancelado { background:#f1f1f1; color:#666; }
+  .msg { font-size:12px; padding:9px 11px; border-radius:7px; margin-top:10px; display:none; }
+  .msg.show { display:block; }
+  .msg.error { background:#fdeceb; color:var(--coral-deep); }
+  .msg.ok { background:var(--green-bg); color:var(--green); }
+
+  .login-screen { max-width: 360px; margin: 80px auto; }
+  .login-screen .card-title { margin-bottom:4px; }
+  .login-screen p { font-size:12px; color:var(--muted); margin: 0 0 18px; }
+  .logout-btn { background:none; border:1px solid rgba(255,255,255,0.3); color:var(--white); border-radius:6px; padding:6px 12px; font-size:11.5px; cursor:pointer; font-family:inherit; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">🧭 Jawa Logistic <span class="tag">Tienda y cursos</span></div>
+    <div style="display:flex; align-items:center; gap:14px;">
+      <a href="admin.html" style="color:var(--gold-bright); font-size:12.5px; font-weight:700; text-decoration:none;">← Panel de tarifas/informes</a>
+      <button class="logout-btn" id="logout-btn" style="display:none;">Cerrar sesión</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap login-screen" id="login-screen">
+  <div class="card">
+    <div class="card-title">Ingresar</div>
+    <p>Acceso solo para el equipo de Jawa Logistic.</p>
+    <div class="field" style="margin-bottom:10px;">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="vos@jawalogistic.com" />
+    </div>
+    <div class="field" style="margin-bottom:14px;">
+      <label>Contraseña</label>
+      <input type="password" id="login-password" placeholder="••••••••" />
+    </div>
+    <button class="btn-primary" id="login-btn" style="width:100%;">Ingresar</button>
+    <div class="msg error" id="login-error"></div>
+  </div>
+</div>
+
+<div class="wrap" id="tool-content" style="display:none;">
+  <h1>Tienda y cursos</h1>
+  <p class="sub">Productos de marca propia, cursos, pedidos y tarifas de envío.</p>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="productos">Productos</button>
+    <button class="tab-btn" data-tab="cursos">Cursos</button>
+    <button class="tab-btn" data-tab="pedidos">Pedidos</button>
+    <button class="tab-btn" data-tab="envio">Envío</button>
+  </div>
+
+  <!-- ---------- Productos ---------- -->
+  <div class="tab-panel active" id="tab-productos">
+    <button class="add-btn" id="producto-nuevo-btn" type="button">+ Nuevo producto</button>
+    <div id="producto-form-card" class="card" style="display:none;">
+      <div class="card-title" id="producto-form-titulo">Nuevo producto</div>
+      <input type="hidden" id="producto-id" />
+      <div class="field-row">
+        <div class="field span2"><label>Nombre</label><input type="text" id="producto-nombre" /></div>
+        <div class="field"><label>Precio (ARS)</label><input type="text" inputmode="decimal" id="producto-precio" placeholder="0.00" /></div>
+        <div class="field"><label>Stock</label><input type="number" id="producto-stock" min="0" /></div>
+        <div class="field"><label>Peso (gramos)</label><input type="number" id="producto-peso" min="0" /></div>
+        <div class="field"><label>Activo</label><select id="producto-activo"><option value="true">Sí</option><option value="false">No</option></select></div>
+        <div class="field span4"><label>Descripción</label><textarea id="producto-descripcion"></textarea></div>
+        <div class="field span4">
+          <label>Fotos</label>
+          <input type="file" id="producto-fotos-input" accept="image/*" multiple />
+          <div class="thumbs" id="producto-fotos-thumbs"></div>
+        </div>
+      </div>
+      <button class="btn-primary" id="producto-guardar-btn" type="button">Guardar producto</button>
+      <button class="btn-ghost" id="producto-cancelar-btn" type="button">Cancelar</button>
+      <div class="msg" id="producto-form-msg"></div>
+    </div>
+    <div id="productos-lista"></div>
+  </div>
+
+  <!-- ---------- Cursos ---------- -->
+  <div class="tab-panel" id="tab-cursos">
+    <button class="add-btn" id="curso-nuevo-btn" type="button">+ Nuevo curso</button>
+    <div id="curso-form-card" class="card" style="display:none;">
+      <div class="card-title" id="curso-form-titulo">Nuevo curso</div>
+      <input type="hidden" id="curso-id" />
+      <div class="field-row">
+        <div class="field span2"><label>Nombre</label><input type="text" id="curso-nombre" /></div>
+        <div class="field"><label>Precio (ARS)</label><input type="text" inputmode="decimal" id="curso-precio" placeholder="0.00" /></div>
+        <div class="field"><label>Activo</label><select id="curso-activo"><option value="true">Sí</option><option value="false">No</option></select></div>
+        <div class="field span4"><label>Descripción</label><textarea id="curso-descripcion"></textarea></div>
+        <div class="field span4">
+          <label>Portada</label>
+          <input type="file" id="curso-fotos-input" accept="image/*" multiple />
+          <div class="thumbs" id="curso-fotos-thumbs"></div>
+        </div>
+      </div>
+      <button class="btn-primary" id="curso-guardar-btn" type="button">Guardar curso</button>
+      <button class="btn-ghost" id="curso-cancelar-btn" type="button">Cancelar</button>
+      <div class="msg" id="curso-form-msg"></div>
+    </div>
+    <div id="cursos-lista"></div>
+  </div>
+
+  <!-- ---------- Pedidos ---------- -->
+  <div class="tab-panel" id="tab-pedidos">
+    <div id="pedidos-lista-admin"></div>
+  </div>
+
+  <!-- ---------- Envío ---------- -->
+  <div class="tab-panel" id="tab-envio">
+    <div class="card">
+      <div class="card-title">Costo de envío estándar</div>
+      <div class="field-row">
+        <div class="field"><label>Costo (ARS)</label><input type="text" inputmode="decimal" id="envio-costo" /></div>
+      </div>
+      <button class="btn-primary" id="envio-guardar-btn" type="button">Guardar</button>
+      <div class="msg" id="envio-msg"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/rates.js"></script>
+<script>
+// ---------- Login (mismo criterio que admin.html: valida rol staff) ----------
+(function () {
+  const loginScreen = document.getElementById("login-screen");
+  const toolContent = document.getElementById("tool-content");
+  const logoutBtn = document.getElementById("logout-btn");
+  const loginBtn = document.getElementById("login-btn");
+  const loginError = document.getElementById("login-error");
+
+  async function mostrarSegunSesion(session) {
+    if (!session) {
+      loginScreen.style.display = "block";
+      toolContent.style.display = "none";
+      logoutBtn.style.display = "none";
+      return;
+    }
+    const { data: perfil } = await supabaseClient.from("perfiles").select("rol").eq("id", session.user.id).maybeSingle();
+    const esStaff = perfil && perfil.rol === "staff";
+    if (!esStaff) {
+      loginScreen.style.display = "block";
+      toolContent.style.display = "none";
+      logoutBtn.style.display = "inline-block";
+      loginError.textContent = "Esta cuenta no tiene acceso al panel interno.";
+      loginError.classList.add("show");
+      return;
+    }
+    loginScreen.style.display = "none";
+    toolContent.style.display = "block";
+    logoutBtn.style.display = "inline-block";
+    window.dispatchEvent(new Event("staff-listo"));
+  }
+
+  supabaseClient.auth.getSession().then(({ data }) => mostrarSegunSesion(data.session));
+  supabaseClient.auth.onAuthStateChange((_event, session) => mostrarSegunSesion(session));
+
+  loginBtn.addEventListener("click", async () => {
+    loginError.classList.remove("show");
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value;
+    if (!email || !password) return;
+    loginBtn.disabled = true;
+    loginBtn.textContent = "Ingresando…";
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    loginBtn.disabled = false;
+    loginBtn.textContent = "Ingresar";
+    if (error) {
+      loginError.textContent = "No pudimos ingresar: " + error.message;
+      loginError.classList.add("show");
+    }
+  });
+
+  logoutBtn.addEventListener("click", () => supabaseClient.auth.signOut());
+})();
+
+// ---------- Tabs ----------
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+  });
+});
+
+const fmt = (centavos) => ((centavos || 0) / 100).toLocaleString("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 2 });
+const pesosACentavos = (str) => Math.round(parseFloat(String(str || "0").replace(",", ".")) * 100) || 0;
+function slugify(str) {
+  return (str || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+async function subirFotos(files, bucket, carpeta) {
+  const urls = [];
+  for (const file of files) {
+    const path = `${carpeta}/${Date.now()}-${file.name}`.replace(/\s+/g, "_");
+    const { error } = await supabaseClient.storage.from(bucket).upload(path, file, { upsert: true });
+    if (error) { console.error("error subiendo foto:", error); continue; }
+    const { data } = supabaseClient.storage.from(bucket).getPublicUrl(path);
+    urls.push(data.publicUrl);
+  }
+  return urls;
+}
+
+// ---------- Productos ----------
+try {
+  (function () {
+    let editando = null;
+    let fotosNuevas = [];
+
+    function resetForm() {
+      editando = null;
+      fotosNuevas = [];
+      document.getElementById("producto-id").value = "";
+      document.getElementById("producto-nombre").value = "";
+      document.getElementById("producto-precio").value = "";
+      document.getElementById("producto-stock").value = "";
+      document.getElementById("producto-peso").value = "";
+      document.getElementById("producto-activo").value = "true";
+      document.getElementById("producto-descripcion").value = "";
+      document.getElementById("producto-fotos-thumbs").innerHTML = "";
+      document.getElementById("producto-form-msg").classList.remove("show");
+      document.getElementById("producto-form-titulo").textContent = "Nuevo producto";
+    }
+
+    document.getElementById("producto-nuevo-btn").addEventListener("click", () => {
+      resetForm();
+      document.getElementById("producto-form-card").style.display = "block";
+    });
+    document.getElementById("producto-cancelar-btn").addEventListener("click", () => {
+      document.getElementById("producto-form-card").style.display = "none";
+    });
+    document.getElementById("producto-fotos-input").addEventListener("change", (e) => {
+      fotosNuevas = Array.from(e.target.files || []);
+      document.getElementById("producto-fotos-thumbs").innerHTML = fotosNuevas
+        .map((f) => `<img src="${URL.createObjectURL(f)}" />`).join("");
+    });
+
+    async function cargarLista() {
+      const { data, error } = await supabaseClient.from("productos").select("*").eq("tipo", "fisico").order("creado_en", { ascending: false });
+      if (error) { console.error(error); return; }
+      document.getElementById("productos-lista").innerHTML = (data || []).map((p) => `
+        <div class="item-card">
+          <div class="item-card-head">
+            <div>
+              <div class="nombre">${p.nombre} ${p.activo ? "" : '<span class="estado-pill estado-cancelado">inactivo</span>'}</div>
+              <div class="meta">${fmt(p.precio_centavos)} · stock ${p.stock ?? "—"} · ${p.peso_gramos ?? "—"}g</div>
+            </div>
+            <div class="item-actions">
+              <button class="btn-ghost" data-editar="${p.id}">Editar</button>
+              <button class="btn-danger" data-borrar="${p.id}">Eliminar</button>
+            </div>
+          </div>
+        </div>
+      `).join("") || `<p class="sub">Todavía no hay productos.</p>`;
+
+      document.querySelectorAll("[data-editar]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const p = data.find((x) => x.id === btn.dataset.editar);
+          if (!p) return;
+          editando = p;
+          fotosNuevas = [];
+          document.getElementById("producto-id").value = p.id;
+          document.getElementById("producto-nombre").value = p.nombre;
+          document.getElementById("producto-precio").value = (p.precio_centavos / 100).toFixed(2);
+          document.getElementById("producto-stock").value = p.stock ?? "";
+          document.getElementById("producto-peso").value = p.peso_gramos ?? "";
+          document.getElementById("producto-activo").value = String(p.activo);
+          document.getElementById("producto-descripcion").value = p.descripcion || "";
+          document.getElementById("producto-fotos-thumbs").innerHTML = (p.imagenes || []).map((u) => `<img src="${u}" />`).join("");
+          document.getElementById("producto-form-titulo").textContent = "Editar producto";
+          document.getElementById("producto-form-card").style.display = "block";
+        });
+      });
+      document.querySelectorAll("[data-borrar]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("¿Eliminar este producto?")) return;
+          await supabaseClient.from("productos").delete().eq("id", btn.dataset.borrar);
+          cargarLista();
+        });
+      });
+    }
+
+    document.getElementById("producto-guardar-btn").addEventListener("click", async () => {
+      const msg = document.getElementById("producto-form-msg");
+      msg.className = "msg";
+      const nombre = document.getElementById("producto-nombre").value.trim();
+      if (!nombre) { msg.textContent = "Falta el nombre."; msg.classList.add("show", "error"); return; }
+
+      let imagenes = editando ? (editando.imagenes || []) : [];
+      if (fotosNuevas.length) {
+        const nuevas = await subirFotos(fotosNuevas, "productos", slugify(nombre));
+        imagenes = imagenes.concat(nuevas);
+      }
+
+      const payload = {
+        tipo: "fisico",
+        nombre,
+        slug: editando ? editando.slug : slugify(nombre) + "-" + Date.now().toString(36),
+        descripcion: document.getElementById("producto-descripcion").value.trim(),
+        precio_centavos: pesosACentavos(document.getElementById("producto-precio").value),
+        stock: document.getElementById("producto-stock").value === "" ? null : parseInt(document.getElementById("producto-stock").value, 10),
+        peso_gramos: document.getElementById("producto-peso").value === "" ? null : parseInt(document.getElementById("producto-peso").value, 10),
+        activo: document.getElementById("producto-activo").value === "true",
+        imagenes,
+      };
+
+      const { error } = editando
+        ? await supabaseClient.from("productos").update(payload).eq("id", editando.id)
+        : await supabaseClient.from("productos").insert(payload);
+
+      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("show", "error"); return; }
+      msg.textContent = "Guardado ✓"; msg.classList.add("show", "ok");
+      document.getElementById("producto-form-card").style.display = "none";
+      cargarLista();
+    });
+
+    window.addEventListener("staff-listo", cargarLista, { once: false });
+  })();
+} catch (e) { console.error("admin productos:", e); }
+
+// ---------- Cursos ----------
+try {
+  (function () {
+    let editando = null;
+    let fotosNuevas = [];
+
+    function resetForm() {
+      editando = null;
+      fotosNuevas = [];
+      document.getElementById("curso-id").value = "";
+      document.getElementById("curso-nombre").value = "";
+      document.getElementById("curso-precio").value = "";
+      document.getElementById("curso-activo").value = "true";
+      document.getElementById("curso-descripcion").value = "";
+      document.getElementById("curso-fotos-thumbs").innerHTML = "";
+      document.getElementById("curso-form-msg").classList.remove("show");
+      document.getElementById("curso-form-titulo").textContent = "Nuevo curso";
+    }
+
+    document.getElementById("curso-nuevo-btn").addEventListener("click", () => {
+      resetForm();
+      document.getElementById("curso-form-card").style.display = "block";
+    });
+    document.getElementById("curso-cancelar-btn").addEventListener("click", () => {
+      document.getElementById("curso-form-card").style.display = "none";
+    });
+    document.getElementById("curso-fotos-input").addEventListener("change", (e) => {
+      fotosNuevas = Array.from(e.target.files || []);
+      document.getElementById("curso-fotos-thumbs").innerHTML = fotosNuevas
+        .map((f) => `<img src="${URL.createObjectURL(f)}" />`).join("");
+    });
+
+    async function cargarLista() {
+      const { data, error } = await supabaseClient.from("productos").select("*").eq("tipo", "curso").order("creado_en", { ascending: false });
+      if (error) { console.error(error); return; }
+      document.getElementById("cursos-lista").innerHTML = (data || []).map((c) => `
+        <div class="item-card">
+          <div class="item-card-head">
+            <div>
+              <div class="nombre">${c.nombre} ${c.activo ? "" : '<span class="estado-pill estado-cancelado">inactivo</span>'}</div>
+              <div class="meta">${fmt(c.precio_centavos)}</div>
+            </div>
+            <div class="item-actions">
+              <button class="btn-ghost" data-lecciones="${c.id}">Lecciones</button>
+              <button class="btn-ghost" data-editar="${c.id}">Editar</button>
+              <button class="btn-danger" data-borrar="${c.id}">Eliminar</button>
+            </div>
+          </div>
+          <div class="lecciones-box" id="lecciones-${c.id}" style="display:none;"></div>
+        </div>
+      `).join("") || `<p class="sub">Todavía no hay cursos.</p>`;
+
+      document.querySelectorAll("[data-editar]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const c = data.find((x) => x.id === btn.dataset.editar);
+          if (!c) return;
+          editando = c;
+          fotosNuevas = [];
+          document.getElementById("curso-id").value = c.id;
+          document.getElementById("curso-nombre").value = c.nombre;
+          document.getElementById("curso-precio").value = (c.precio_centavos / 100).toFixed(2);
+          document.getElementById("curso-activo").value = String(c.activo);
+          document.getElementById("curso-descripcion").value = c.descripcion || "";
+          document.getElementById("curso-fotos-thumbs").innerHTML = (c.imagenes || []).map((u) => `<img src="${u}" />`).join("");
+          document.getElementById("curso-form-titulo").textContent = "Editar curso";
+          document.getElementById("curso-form-card").style.display = "block";
+        });
+      });
+      document.querySelectorAll("[data-borrar]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("¿Eliminar este curso? También se borra su contenido.")) return;
+          await supabaseClient.from("productos").delete().eq("id", btn.dataset.borrar);
+          cargarLista();
+        });
+      });
+      document.querySelectorAll("[data-lecciones]").forEach((btn) => {
+        btn.addEventListener("click", () => abrirLecciones(btn.dataset.lecciones));
+      });
+    }
+
+    async function abrirLecciones(cursoId) {
+      const box = document.getElementById("lecciones-" + cursoId);
+      const abierto = box.style.display === "block";
+      document.querySelectorAll(".lecciones-box").forEach((b) => (b.style.display = "none"));
+      if (abierto) return;
+      box.style.display = "block";
+      box.innerHTML = `<p class="sub">Cargando…</p>`;
+
+      const { data: lecciones } = await supabaseClient
+        .from("curso_contenido").select("*").eq("producto_id", cursoId).order("orden", { ascending: true });
+
+      function render(lecciones) {
+        box.innerHTML = `
+          <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);">
+            ${(lecciones || []).map((l) => `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--line); font-size:12.5px;">
+                <span>${l.orden}. ${l.titulo} <span class="meta">(${l.tipo})</span></span>
+                <button class="btn-danger" data-borrar-leccion="${l.id}">Eliminar</button>
+              </div>
+            `).join("")}
+            <div class="field-row" style="margin-top:12px;">
+              <div class="field"><label>Título</label><input type="text" id="leccion-titulo-${cursoId}" /></div>
+              <div class="field"><label>Tipo</label><select id="leccion-tipo-${cursoId}"><option value="video">Video</option><option value="pdf">PDF</option><option value="link">Link</option></select></div>
+              <div class="field"><label>Archivo o link</label><input type="file" id="leccion-archivo-${cursoId}" /></div>
+              <div class="field"><label>Orden</label><input type="number" id="leccion-orden-${cursoId}" value="${(lecciones || []).length + 1}" /></div>
+            </div>
+            <button class="btn-primary" data-agregar-leccion="${cursoId}">+ Agregar lección</button>
+          </div>
+        `;
+        box.querySelectorAll("[data-borrar-leccion]").forEach((b) => {
+          b.addEventListener("click", async () => {
+            await supabaseClient.from("curso_contenido").delete().eq("id", b.dataset.borrarLeccion);
+            const { data } = await supabaseClient.from("curso_contenido").select("*").eq("producto_id", cursoId).order("orden", { ascending: true });
+            render(data);
+          });
+        });
+        box.querySelector("[data-agregar-leccion]").addEventListener("click", async () => {
+          const titulo = document.getElementById(`leccion-titulo-${cursoId}`).value.trim();
+          const tipo = document.getElementById(`leccion-tipo-${cursoId}`).value;
+          const orden = parseInt(document.getElementById(`leccion-orden-${cursoId}`).value, 10) || 1;
+          const archivoInput = document.getElementById(`leccion-archivo-${cursoId}`);
+          if (!titulo || !archivoInput.files[0]) return;
+          const file = archivoInput.files[0];
+          const path = `${cursoId}/${Date.now()}-${file.name}`.replace(/\s+/g, "_");
+          const { error: upErr } = await supabaseClient.storage.from("curso-contenido").upload(path, file, { upsert: true });
+          if (upErr) { alert("Error subiendo el archivo: " + upErr.message); return; }
+          await supabaseClient.from("curso_contenido").insert({ producto_id: cursoId, titulo, tipo, url: path, orden });
+          const { data } = await supabaseClient.from("curso_contenido").select("*").eq("producto_id", cursoId).order("orden", { ascending: true });
+          render(data);
+        });
+      }
+      render(lecciones);
+    }
+
+    document.getElementById("curso-guardar-btn").addEventListener("click", async () => {
+      const msg = document.getElementById("curso-form-msg");
+      msg.className = "msg";
+      const nombre = document.getElementById("curso-nombre").value.trim();
+      if (!nombre) { msg.textContent = "Falta el nombre."; msg.classList.add("show", "error"); return; }
+
+      let imagenes = editando ? (editando.imagenes || []) : [];
+      if (fotosNuevas.length) {
+        const nuevas = await subirFotos(fotosNuevas, "productos", "cursos/" + slugify(nombre));
+        imagenes = imagenes.concat(nuevas);
+      }
+
+      const payload = {
+        tipo: "curso",
+        nombre,
+        slug: editando ? editando.slug : slugify(nombre) + "-" + Date.now().toString(36),
+        descripcion: document.getElementById("curso-descripcion").value.trim(),
+        precio_centavos: pesosACentavos(document.getElementById("curso-precio").value),
+        stock: null,
+        peso_gramos: null,
+        activo: document.getElementById("curso-activo").value === "true",
+        imagenes,
+      };
+
+      const { error } = editando
+        ? await supabaseClient.from("productos").update(payload).eq("id", editando.id)
+        : await supabaseClient.from("productos").insert(payload);
+
+      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("show", "error"); return; }
+      msg.textContent = "Guardado ✓"; msg.classList.add("show", "ok");
+      document.getElementById("curso-form-card").style.display = "none";
+      cargarLista();
+    });
+
+    window.addEventListener("staff-listo", cargarLista, { once: false });
+  })();
+} catch (e) { console.error("admin cursos:", e); }
+
+// ---------- Pedidos ----------
+try {
+  (function () {
+    async function cargarLista() {
+      const { data: pedidos, error } = await supabaseClient
+        .from("pedidos").select("*, pedido_items(cantidad, precio_unitario_centavos, productos(nombre))")
+        .order("creado_en", { ascending: false });
+      if (error) { console.error(error); return; }
+
+      document.getElementById("pedidos-lista-admin").innerHTML = (pedidos || []).map((p) => `
+        <div class="item-card">
+          <div class="item-card-head">
+            <div>
+              <div class="nombre data">#${p.id.slice(0, 8)} <span class="estado-pill estado-${p.estado}">${p.estado}</span></div>
+              <div class="meta">${new Date(p.creado_en).toLocaleString("es-AR")} · ${fmt(p.total_centavos)}</div>
+              <div class="meta">${(p.pedido_items || []).map((it) => `${it.cantidad}× ${it.productos ? it.productos.nombre : "producto"}`).join(", ")}</div>
+              ${p.direccion_envio ? `<div class="meta">📦 ${p.direccion_envio.calle}, ${p.direccion_envio.ciudad}, ${p.direccion_envio.provincia} (${p.direccion_envio.cp}) — ${p.direccion_envio.telefono}</div>` : ""}
+            </div>
+            <div class="item-actions">
+              <select data-estado="${p.id}">
+                ${["pendiente", "pagado", "enviado", "entregado", "cancelado"].map((e) => `<option value="${e}" ${e === p.estado ? "selected" : ""}>${e}</option>`).join("")}
+              </select>
+              <button class="btn-ghost" data-guardar-estado="${p.id}">Guardar</button>
+            </div>
+          </div>
+        </div>
+      `).join("") || `<p class="sub">Todavía no hay pedidos.</p>`;
+
+      document.querySelectorAll("[data-guardar-estado]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const select = document.querySelector(`[data-estado="${btn.dataset.guardarEstado}"]`);
+          await supabaseClient.from("pedidos").update({ estado: select.value }).eq("id", btn.dataset.guardarEstado);
+          cargarLista();
+        });
+      });
+    }
+    window.addEventListener("staff-listo", cargarLista, { once: false });
+  })();
+} catch (e) { console.error("admin pedidos:", e); }
+
+// ---------- Envío ----------
+try {
+  (function () {
+    async function cargar() {
+      const { data } = await supabaseClient.from("envio_tarifas").select("*").eq("id", "estandar").maybeSingle();
+      if (data) document.getElementById("envio-costo").value = (data.costo_centavos / 100).toFixed(2);
+    }
+    document.getElementById("envio-guardar-btn").addEventListener("click", async () => {
+      const msg = document.getElementById("envio-msg");
+      msg.className = "msg";
+      const { error } = await supabaseClient.from("envio_tarifas")
+        .update({ costo_centavos: pesosACentavos(document.getElementById("envio-costo").value) })
+        .eq("id", "estandar");
+      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("show", "error"); return; }
+      msg.textContent = "Guardado ✓"; msg.classList.add("show", "ok");
+    });
+    window.addEventListener("staff-listo", cargar, { once: false });
+  })();
+} catch (e) { console.error("admin envío:", e); }
+</script>
+</body>
+</html>

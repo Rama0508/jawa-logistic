@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Tu pedido — Jawa Logistic</title>
+<meta name="theme-color" content="#16223d" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<div id="page-bg" aria-hidden="true"></div>
+
+<div class="navbar">
+  <div class="navbar-inner">
+    <a class="brand" href="index.html">
+      <div class="logo-box">
+        <svg class="compass-mark" viewBox="0 0 200 200" width="34" height="34">
+          <circle class="ring" cx="100" cy="100" r="92"/>
+          <polygon class="facet-coral-l" points="100,100 100,15 121,79"/>
+          <polygon class="facet-coral-d" points="100,100 100,15 79,79"/>
+          <polygon class="facet-navy-l" points="100,100 121,79 185,100"/>
+          <polygon class="facet-navy-d" points="100,100 185,100 121,121"/>
+          <polygon class="facet-navy-l" points="100,100 121,121 100,185"/>
+          <polygon class="facet-navy-d" points="100,100 100,185 79,121"/>
+          <polygon class="facet-navy-l" points="100,100 79,121 15,100"/>
+          <polygon class="facet-navy-d" points="100,100 15,100 79,79"/>
+          <circle class="core" cx="100" cy="100" r="7"/>
+        </svg>
+      </div>
+      <div class="brand-name">Jawa Logistic</div>
+    </a>
+    <div class="nav-links" id="nav-links">
+      <a href="tienda.html">Tienda</a>
+      <a href="cursos.html">Cursos</a>
+      <a href="mi-cuenta.html">Mi cuenta</a>
+    </div>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="nav-links">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+  </div>
+</div>
+
+<main>
+  <section class="section">
+    <div class="wrap" style="max-width:520px; text-align:center;">
+      <div id="pedido-cargando" style="padding:60px 0; color:var(--muted);">Confirmando tu pedido…</div>
+
+      <div id="pedido-resultado" style="display:none;">
+        <div id="pedido-icono" style="font-size:48px; margin-bottom:14px;"></div>
+        <h2 id="pedido-titulo"></h2>
+        <p id="pedido-texto" style="color:var(--muted); margin-bottom:24px;"></p>
+        <div id="pedido-detalle" class="carrito-resumen" style="max-width:none; text-align:left;"></div>
+        <a class="btn-primary" href="mi-cuenta.html" style="margin-top:24px;">Ver mis pedidos</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-bottom">© <span id="anio-actual"></span> Jawa Logistic. Todos los derechos reservados.</div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/rates.js"></script>
+<script src="js/tienda.js"></script>
+<script>
+document.getElementById("anio-actual").textContent = new Date().getFullYear();
+document.getElementById("nav-toggle").addEventListener("click", () => {
+  const links = document.getElementById("nav-links");
+  const open = links.classList.toggle("open");
+  document.getElementById("nav-toggle").setAttribute("aria-expanded", open ? "true" : "false");
+});
+
+// Mercado Pago tarda un ratito en pegarle a nuestro webhook después de que
+// el usuario paga y vuelve a esta página — reintenta unas veces antes de
+// mostrar el estado como definitivo.
+async function consultarPedidoConReintentos(id, intentos) {
+  for (let i = 0; i < intentos; i++) {
+    const { data } = await supabaseClient.from("pedidos").select("*").eq("id", id).maybeSingle();
+    if (data && data.estado !== "pendiente") return data;
+    if (i < intentos - 1) await new Promise((r) => setTimeout(r, 2000));
+  }
+  const { data } = await supabaseClient.from("pedidos").select("*").eq("id", id).maybeSingle();
+  return data;
+}
+
+try {
+  (async function () {
+    await SUPABASE_READY;
+    const params = new URLSearchParams(location.search);
+    const id = params.get("id") || params.get("external_reference");
+
+    document.getElementById("pedido-cargando").style.display = "none";
+    document.getElementById("pedido-resultado").style.display = "block";
+
+    if (!id) {
+      document.getElementById("pedido-icono").textContent = "❓";
+      document.getElementById("pedido-titulo").textContent = "No encontramos tu pedido";
+      document.getElementById("pedido-texto").textContent = "Si ya pagaste, revisá tus pedidos en Mi cuenta.";
+      return;
+    }
+
+    const pedido = await consultarPedidoConReintentos(id, 5);
+    if (!pedido) {
+      document.getElementById("pedido-icono").textContent = "❓";
+      document.getElementById("pedido-titulo").textContent = "No encontramos tu pedido";
+      return;
+    }
+
+    const estados = {
+      pagado: { icono: "✅", titulo: "¡Pago confirmado!", texto: "Ya tenemos tu pedido — te avisamos por WhatsApp con los próximos pasos." },
+      pendiente: { icono: "⏳", titulo: "Estamos confirmando tu pago", texto: "Puede tardar unos minutos. Te vamos a avisar apenas se confirme." },
+      cancelado: { icono: "✕", titulo: "El pago no se completó", texto: "Podés intentar de nuevo desde tu carrito." },
+    };
+    const e = estados[pedido.estado] || estados.pendiente;
+    document.getElementById("pedido-icono").textContent = e.icono;
+    document.getElementById("pedido-titulo").textContent = e.titulo;
+    document.getElementById("pedido-texto").textContent = e.texto;
+    document.getElementById("pedido-detalle").innerHTML = `
+      <div class="carrito-resumen-row"><span>Pedido</span><span class="data">#${pedido.id.slice(0, 8)}</span></div>
+      <div class="carrito-resumen-row total"><span>Total</span><span class="data">${fmtCentavos(pedido.total_centavos)}</span></div>
+    `;
+  })();
+} catch (e) { console.error("pedido:", e); }
+</script>
+</body>
+</html>

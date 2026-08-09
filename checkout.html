@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Checkout — Jawa Logistic</title>
+<meta name="theme-color" content="#16223d" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<div id="page-bg" aria-hidden="true"></div>
+
+<div class="navbar">
+  <div class="navbar-inner">
+    <a class="brand" href="index.html">
+      <div class="logo-box">
+        <svg class="compass-mark" viewBox="0 0 200 200" width="34" height="34">
+          <circle class="ring" cx="100" cy="100" r="92"/>
+          <polygon class="facet-coral-l" points="100,100 100,15 121,79"/>
+          <polygon class="facet-coral-d" points="100,100 100,15 79,79"/>
+          <polygon class="facet-navy-l" points="100,100 121,79 185,100"/>
+          <polygon class="facet-navy-d" points="100,100 185,100 121,121"/>
+          <polygon class="facet-navy-l" points="100,100 121,121 100,185"/>
+          <polygon class="facet-navy-d" points="100,100 100,185 79,121"/>
+          <polygon class="facet-navy-l" points="100,100 79,121 15,100"/>
+          <polygon class="facet-navy-d" points="100,100 15,100 79,79"/>
+          <circle class="core" cx="100" cy="100" r="7"/>
+        </svg>
+      </div>
+      <div class="brand-name">Jawa Logistic</div>
+    </a>
+    <div class="nav-links" id="nav-links">
+      <a href="tienda.html">Tienda</a>
+      <a href="cursos.html">Cursos</a>
+      <a href="mi-cuenta.html">Mi cuenta</a>
+    </div>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="nav-links">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+  </div>
+</div>
+
+<main>
+  <section class="section">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="eyebrow">Último paso</div>
+        <h2>Checkout</h2>
+      </div>
+
+      <div id="checkout-vacio" style="display:none; text-align:center; padding:40px 0;">
+        <p style="color:var(--muted); margin-bottom:16px;">Tu carrito está vacío.</p>
+        <a class="btn-primary" href="tienda.html">Ir a la tienda</a>
+      </div>
+
+      <div id="checkout-contenido" class="checkout-grid" style="display:none;">
+        <div>
+          <div id="checkout-direccion-box" style="display:none;">
+            <h3>Dirección de envío</h3>
+            <div class="cuenta-form" style="padding:20px;">
+              <label>Calle y número</label>
+              <input type="text" id="dir-calle" placeholder="Av. Siempre Viva 742" />
+              <label>Ciudad</label>
+              <input type="text" id="dir-ciudad" placeholder="Ciudad" />
+              <label>Provincia</label>
+              <input type="text" id="dir-provincia" placeholder="Provincia" />
+              <label>Código postal</label>
+              <input type="text" id="dir-cp" placeholder="0000" />
+              <label>Teléfono de contacto</label>
+              <input type="text" id="dir-telefono" placeholder="11 1234-5678" />
+            </div>
+          </div>
+          <div id="checkout-error" class="link-box-error" style="margin-top:16px;"></div>
+          <button class="btn-primary" id="checkout-pagar-btn" type="button" style="margin-top:20px; width:100%; justify-content:center;">Pagar con Mercado Pago</button>
+        </div>
+        <div class="carrito-resumen" style="max-width:none;">
+          <div id="checkout-items"></div>
+          <div class="carrito-resumen-row"><span>Subtotal</span><span id="checkout-subtotal" class="data"></span></div>
+          <div class="carrito-resumen-row" id="checkout-envio-row" style="display:none;"><span>Envío</span><span id="checkout-envio" class="data"></span></div>
+          <div class="carrito-resumen-row total"><span>Total</span><span id="checkout-total" class="data"></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-bottom">© <span id="anio-actual"></span> Jawa Logistic. Todos los derechos reservados.</div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/rates.js"></script>
+<script src="js/tienda.js"></script>
+<script src="js/cuenta.js"></script>
+<script>
+document.getElementById("anio-actual").textContent = new Date().getFullYear();
+document.getElementById("nav-toggle").addEventListener("click", () => {
+  const links = document.getElementById("nav-links");
+  const open = links.classList.toggle("open");
+  document.getElementById("nav-toggle").setAttribute("aria-expanded", open ? "true" : "false");
+});
+
+try {
+  (async function () {
+    await SUPABASE_READY;
+    const session = await requerirSesion();
+    if (!session) return; // requerirSesion ya redirigió a mi-cuenta.html
+
+    const items = await obtenerCarritoConDatos();
+    if (!items.length) {
+      document.getElementById("checkout-vacio").style.display = "block";
+      return;
+    }
+    document.getElementById("checkout-contenido").style.display = "grid";
+
+    const hayFisicos = items.some((it) => it.tipo === "fisico");
+    document.getElementById("checkout-direccion-box").style.display = hayFisicos ? "block" : "none";
+
+    document.getElementById("checkout-items").innerHTML = items.map((it) => `
+      <div class="carrito-resumen-row"><span>${it.cantidad} × ${it.nombre}</span><span class="data">${fmtCentavos(it.precio_centavos * it.cantidad)}</span></div>
+    `).join("");
+
+    const subtotal = items.reduce((acc, it) => acc + it.precio_centavos * it.cantidad, 0);
+    document.getElementById("checkout-subtotal").textContent = fmtCentavos(subtotal);
+
+    let costoEnvio = 0;
+    if (hayFisicos && supabaseClient) {
+      const { data } = await supabaseClient.from("envio_tarifas").select("costo_centavos").eq("id", "estandar").maybeSingle();
+      costoEnvio = (data && data.costo_centavos) || 0;
+      document.getElementById("checkout-envio-row").style.display = "flex";
+      document.getElementById("checkout-envio").textContent = fmtCentavos(costoEnvio);
+    }
+    document.getElementById("checkout-total").textContent = fmtCentavos(subtotal + costoEnvio);
+
+    document.getElementById("checkout-pagar-btn").addEventListener("click", async () => {
+      const errEl = document.getElementById("checkout-error");
+      errEl.classList.remove("show");
+
+      let direccion_envio = null;
+      if (hayFisicos) {
+        const calle = document.getElementById("dir-calle").value.trim();
+        const ciudad = document.getElementById("dir-ciudad").value.trim();
+        const provincia = document.getElementById("dir-provincia").value.trim();
+        const cp = document.getElementById("dir-cp").value.trim();
+        const telefono = document.getElementById("dir-telefono").value.trim();
+        if (!calle || !ciudad || !provincia || !cp || !telefono) {
+          errEl.textContent = "Completá todos los campos de la dirección de envío.";
+          errEl.classList.add("show");
+          return;
+        }
+        direccion_envio = { calle, ciudad, provincia, cp, telefono };
+      }
+
+      const btn = document.getElementById("checkout-pagar-btn");
+      btn.disabled = true;
+      btn.textContent = "Redirigiendo a Mercado Pago…";
+
+      try {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/crear-preferencia`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+            "apikey": SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
+            items: items.map((it) => ({ producto_id: it.id, cantidad: it.cantidad })),
+            direccion_envio,
+          }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.init_point) {
+          throw new Error(data.error || "No se pudo iniciar el pago.");
+        }
+        vaciarCarrito();
+        location.href = data.init_point;
+      } catch (err) {
+        errEl.textContent = "No pudimos iniciar el pago: " + err.message;
+        errEl.classList.add("show");
+        btn.disabled = false;
+        btn.textContent = "Pagar con Mercado Pago";
+      }
+    });
+  })();
+} catch (e) { console.error("checkout:", e); }
+</script>
+</body>
+</html>
