@@ -1291,13 +1291,32 @@ try {
           if (seaFob) seaFob.value = data.precio;
           if (airFob) airFob.value = data.precio;
         }
+        if (data.pesoEncontrado && data.pesoKg) {
+          const seaW = document.getElementById("sea-weight");
+          const airW = document.getElementById("air-weight");
+          if (seaW) seaW.value = data.pesoKg.toFixed(2);
+          if (airW) airW.value = data.pesoKg.toFixed(2);
+        }
+        if (data.medidasEncontradas) {
+          ["sea", "air"].forEach((pref) => {
+            const l = document.getElementById(pref + "-l");
+            const w = document.getElementById(pref + "-w");
+            const h = document.getElementById(pref + "-h");
+            if (l) l.value = data.largoCm.toFixed(1);
+            if (w) w.value = data.anchoCm.toFixed(1);
+            if (h) h.value = data.altoCm.toFixed(1);
+          });
+        }
 
         document.getElementById("link-result-img").src = data.imagen || "";
         document.getElementById("link-result-img").style.display = data.imagen ? "block" : "none";
         document.getElementById("link-result-title").textContent = data.titulo || "Producto encontrado";
-        document.getElementById("link-result-price").textContent = data.precio
-          ? `Precio detectado: ${data.moneda || "USD"} ${data.precio} — ya lo cargamos en FOB. Completá peso y medidas para calcular.`
-          : "No encontramos el precio automáticamente — completá FOB, peso y medidas a mano.";
+
+        const partes = [];
+        partes.push(data.precio ? `Precio: ${data.moneda || "USD"} ${data.precio}` : "Precio: no detectado");
+        partes.push(data.pesoEncontrado ? `Peso: ~${data.pesoKg.toFixed(2)}kg (revisar)` : "Peso: no detectado");
+        partes.push(data.medidasEncontradas ? `Medidas: ~${data.largoCm.toFixed(0)}×${data.anchoCm.toFixed(0)}×${data.altoCm.toFixed(0)}cm (revisar)` : "Medidas: no detectadas");
+        document.getElementById("link-result-price").textContent = partes.join(" · ") + ". Los datos auto-detectados pueden tener errores — revisalos antes de calcular. Solo falta que cargues la cantidad.";
         resultBox.classList.add("show");
       } catch (e) {
         errorBox.textContent = "⚠️ No se pudo conectar con el servicio de lectura de links. Cargá los datos a mano.";

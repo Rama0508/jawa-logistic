@@ -1,12 +1,15 @@
 // Jawa Logistic — Edge Function: lee el link de un producto (Alibaba, 1688,
-// AliExpress, Amazon, Mercado Libre) y devuelve nombre, imagen y precio si la
-// página los expone en metadatos.
+// AliExpress, Amazon, Mercado Libre) y devuelve nombre, imagen, precio, y un
+// intento de "mejor esfuerzo" de peso y medidas.
 //
-// LIMITACIÓN REAL: el peso y las medidas casi nunca están en la página de un
-// producto, así que esta función NUNCA los devuelve — eso lo sigue cargando
-// el cliente a mano. Sitios que arman el contenido con JavaScript (varios
-// listados de Alibaba/1688) pueden devolver poco o nada, porque esto lee el
-// HTML inicial, no ejecuta JavaScript como un navegador.
+// LIMITACIÓN REAL sobre peso/medidas: no hay un estándar en la web para esto,
+// así que se buscan por patrones de texto ("Item weight: 2.5kg", "10 x 5 x 3
+// cm", etc.). Cuando el patrón aparece, se devuelve — pero puede equivocarse
+// (por ejemplo, tomar el peso de un accesorio incluido en vez del producto
+// principal), por eso el frontend siempre lo muestra como "revisar antes de
+// calcular", nunca como un dato 100% confiable. Sitios que arman el contenido
+// con JavaScript (varios listados de Alibaba/1688) pueden devolver poco o
+// nada, porque esto lee el HTML inicial, no ejecuta JavaScript como un navegador.
 
 import * as cheerio from "npm:cheerio@1.0.0";
 
@@ -48,6 +51,39 @@ function extraerJsonLd($: cheerio.CheerioAPI): any {
     }
   });
   return datos;
+}
+
+// Busca peso y medidas en el texto visible de la página por patrones comunes.
+// Es heurístico "mejor esfuerzo": puede no encontrar nada, o encontrar un dato
+// que no corresponde al producto principal — nunca se trata como 100% confiable.
+function extraerPesoYMedidas(texto: string): {
+  pesoKg: number | null; largoCm: number | null; anchoCm: number | null; altoCm: number | null;
+} {
+  let pesoKg: number | null = null;
+  let largoCm: number | null = null, anchoCm: number | null = null, altoCm: number | null = null;
+
+  const pesoRegex = /(?:item\s*weight|net\s*weight|gross\s*weight|package\s*weight|product\s*weight|peso\s*neto|peso\s*del\s*producto|peso)\s*[:\-]?\s*([\d]+(?:[.,]\d+)?)\s*(kilograms?|kilogramos?|kgs?|grams?|gramos?|grs?|g\b|lbs?|libras?|pounds?|oz|onzas?)/i;
+  const pesoMatch = texto.match(pesoRegex);
+  if (pesoMatch) {
+    const valor = parseFloat(pesoMatch[1].replace(",", "."));
+    const unidad = pesoMatch[2].toLowerCase();
+    if (/^ki?lo/.test(unidad) || /^kg/.test(unidad)) pesoKg = valor;
+    else if (/^(g|gr|gram)/.test(unidad)) pesoKg = valor / 1000;
+    else if (/^(lb|libra|pound)/.test(unidad)) pesoKg = valor * 0.453592;
+    else if (/^(oz|onza)/.test(unidad)) pesoKg = valor * 0.0283495;
+  }
+
+  const medidasRegex = /(\d+(?:[.,]\d+)?)\s*(cm|mm|in|inch|")?\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(cm|mm|in|inch|")?\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(cm|mm|in|inch|")?/i;
+  const medidasMatch = texto.match(medidasRegex);
+  if (medidasMatch) {
+    const unidadTexto = (medidasMatch[2] || medidasMatch[4] || medidasMatch[6] || "cm").toLowerCase();
+    const factor = unidadTexto.startsWith("mm") ? 0.1 : (unidadTexto.startsWith("in") || unidadTexto === '"') ? 2.54 : 1;
+    largoCm = parseFloat(medidasMatch[1].replace(",", ".")) * factor;
+    anchoCm = parseFloat(medidasMatch[3].replace(",", ".")) * factor;
+    altoCm = parseFloat(medidasMatch[5].replace(",", ".")) * factor;
+  }
+
+  return { pesoKg, largoCm, anchoCm, altoCm };
 }
 
 const corsHeaders = {
@@ -142,13 +178,25 @@ Deno.serve(async (req: Request) => {
       moneda = moneda || textoMeta($, ['meta[property="product:price:currency"]', 'meta[property="og:price:currency"]']);
     }
 
+    // Peso/medidas: primero se busca en JSON-LD (si el sitio lo declara ahí),
+    // si no aparece se busca por patrones en el texto visible de la página.
+    let pesoKg: number | null = jsonLd?.weight?.value ? Number(jsonLd.weight.value) : null;
+    const textoVisible = $("body").text().replace(/\s+/g, " ");
+    const heuristica = extraerPesoYMedidas(textoVisible);
+    if (pesoKg == null) pesoKg = heuristica.pesoKg;
+    const { largoCm, anchoCm, altoCm } = heuristica;
+    const medidasEncontradas = largoCm != null && anchoCm != null && altoCm != null;
+
     const encontroAlgo = titulo || imagen || precio;
     return jsonResponse({
       success: !!encontroAlgo,
       titulo, imagen,
       precio: precio ? parseFloat(String(precio).replace(",", ".")) : null,
       moneda: moneda || null,
-      advertencia: "Peso y medidas no se pueden leer de la página del producto — cargalos a mano.",
+      pesoKg, largoCm, anchoCm, altoCm,
+      pesoEncontrado: pesoKg != null,
+      medidasEncontradas,
+      advertencia: "Peso y medidas detectados automáticamente (si aparecen) son un intento de mejor esfuerzo — revisalos siempre antes de calcular.",
       fuente: parsedUrl.hostname,
     });
   } catch (err) {
