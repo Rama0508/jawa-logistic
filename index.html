@@ -765,6 +765,18 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/rates.js"></script>
+<!-- GLTFLoader.js hace "import ... from 'three'" (especificador "desnudo") —
+     eso solo funciona con un bundler o si el navegador sabe a qué URL real
+     apunta "three". Este import map le dice exactamente eso; sin él, todo
+     scene3d.js falla de entrada con "Failed to resolve module specifier
+     'three'" y el fondo 3D nunca llega a dibujar nada. -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
 <script type="module" src="js/scene3d.js"></script>
 <script src="js/main.js"></script>
 </body>
