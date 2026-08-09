@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Jawa Logistic — Costos China</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='112' fill='%237a1f22' stroke='%23e0942f' stroke-width='6'/%3E%3C/svg%3E" />
+<style>
+  :root{
+    --bg:#1C2B33; --panel:#243943; --panel-2:#2C4650; --line:#34505C;
+    --text:#EAF3F6; --muted:#8FA9B3; --accent:#E29257; --accent-dim:#B5622E; --warn:#D9A441;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; background:var(--bg); color:var(--text);
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    padding: 18px 12px 60px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  .header { display:flex; align-items:center; gap:12px; margin-bottom:18px; flex-wrap:wrap; justify-content:space-between; }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .logo-box { width:44px; height:44px; border-radius:10px; background:var(--panel-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .title { font-size:17px; font-weight:700; }
+  .subtitle { font-size:11.5px; color:var(--muted); }
+  .flete-box { display:flex; align-items:center; gap:6px; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:7px 10px; font-size:12px; }
+  .flete-box input { width:54px; background:transparent; border:none; border-bottom:1px solid var(--accent-dim); color:var(--accent); font-weight:700; font-size:13px; text-align:right; outline:none; font-family:inherit; }
+
+  .tabs { display:flex; gap:6px; margin-bottom:14px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:2px; }
+  .tab-btn { flex:none; padding:8px 12px; border-radius:8px; border:1px solid var(--line); background:transparent; color:var(--muted); font-size:12px; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .tab-btn.active { background:var(--panel-2); color:var(--accent); font-weight:700; }
+
+  .panel { display:none; }
+  .panel.active { display:block; }
+
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding: 14px; }
+
+  .prod-card { border-bottom:1px dashed var(--line); padding: 12px 0; }
+  .prod-card:last-child { border-bottom:none; }
+  .prod-row1 { display:flex; gap:8px; margin-bottom:8px; }
+  .prod-row1 input[type=text] { flex:1; }
+  .field-grid { display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; margin-bottom:8px; }
+  .field { display:flex; flex-direction:column; gap:3px; }
+  .field label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+  input, select { background:var(--panel-2); border:1px solid var(--line); border-radius:6px; color:var(--text); font-size:14px; padding:7px 8px; font-family:inherit; outline:none; width:100%; }
+  input[type="radio"], input[type="checkbox"] { width:auto; flex:none; padding:0; }
+  .peso-row { display:flex; gap:6px; }
+  .peso-row input { flex:1; }
+  .peso-row select { width:64px; flex:none; }
+  input[data-field="margen"] { color: var(--warn); }
+
+  .results { display:grid; grid-template-columns: repeat(2, 1fr); gap:6px 14px; font-size:12.5px; color:var(--muted); margin-top:4px; }
+  .results b { color: var(--text); }
+  .results .accent b { color: var(--accent); }
+  .results .warn b { color: var(--warn); }
+
+  .del-btn { background:transparent; border:none; color:var(--muted); font-size:18px; cursor:pointer; padding:2px 6px; }
+
+  .add-btn { width:100%; padding:12px; background:transparent; border:1px dashed var(--accent-dim); border-radius:8px; color:var(--accent); font-size:13px; cursor:pointer; margin-top:10px; font-family:inherit; }
+
+  .totales { margin-top:16px; display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; }
+  .stat { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+  .stat-label { font-size:9.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
+  .stat-value { font-size:16px; font-weight:700; }
+  .stat-value.accent { color: var(--accent); }
+
+  .note { margin-top:14px; font-size:10.5px; color:var(--muted); line-height:1.5; }
+
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  th { text-align:right; padding:6px 6px; border-bottom:1px solid var(--line); color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.4px; }
+  th:first-child, td:first-child { text-align:left; }
+  td { text-align:right; padding:8px 6px; border-bottom:1px solid var(--line); }
+  .brand-mini { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .brand-mini span { font-size:11px; font-weight:700; letter-spacing:.5px; color:var(--muted); }
+  .imprimir-btn { margin-bottom:12px; padding:9px 16px; border-radius:8px; border:1px solid var(--accent-dim); background:var(--panel-2); color:var(--accent); font-weight:700; font-size:12.5px; cursor:pointer; font-family:inherit; }
+  .report-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px; }
+  .report-title { font-size:16px; font-weight:700; }
+  .report-date { font-size:11px; color:var(--muted); }
+  .report-sub { font-size:11px; color:var(--muted); margin-bottom:14px; }
+  .report-foot { margin-top:14px; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:14px; font-size:12.5px; color:var(--muted); }
+  .report-foot b { color:var(--text); }
+  .report-foot .accent b { color:var(--accent); }
+  .empty-msg { padding:14px 6px; color:var(--muted); font-size:12px; }
+
+  @media (min-width: 640px) {
+    .field-grid { grid-template-columns: repeat(4, 1fr); }
+    .totales { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  /* ---------- Acceso (solo staff) ---------- */
+  .login-screen { max-width: 340px; margin: 90px auto; padding: 0 12px; }
+  .login-screen .card-title { font-size:15px; font-weight:700; margin-bottom:4px; }
+  .login-screen p { font-size:12px; color:var(--muted); margin: 0 0 16px; line-height:1.5; }
+  .login-screen .field { margin-bottom:10px; }
+  .login-screen label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; display:block; margin-bottom:3px; }
+  .login-btn { width:100%; padding:11px; background:var(--accent-dim); border:none; border-radius:8px; color:#fff; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:4px; }
+  .login-error { display:none; font-size:11.5px; color:var(--warn); background:rgba(217,164,65,0.12); border-radius:7px; padding:9px 11px; margin-top:10px; }
+  .login-error.show { display:block; }
+  .logout-fixed { position:fixed; top:10px; right:10px; z-index:50; background:var(--panel); border:1px solid var(--line); color:var(--muted); font-size:11px; padding:6px 10px; border-radius:7px; cursor:pointer; font-family:inherit; display:none; }
+</style>
+</head>
+<body>
+
+<button class="logout-fixed" id="logout-btn">Cerrar sesión</button>
+
+<div class="wrap login-screen" id="login-screen">
+  <div class="card">
+    <div class="card-title">🔒 Acceso interno</div>
+    <p>Esta calculadora tiene datos privados de costos y márgenes. Solo el equipo de Jawa Logistic puede entrar.</p>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="vos@jawalogistic.com" />
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" id="login-password" placeholder="••••••••" />
+    </div>
+    <button class="login-btn" id="login-btn">Ingresar</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<div id="tool-content" style="display:none;">
+<div class="wrap">
+
+  <div class="header">
+    <div class="brand">
+      <div class="logo-box">
+        <svg width="36" height="36" viewBox="0 0 236 236">
+          <defs>
+            <linearGradient id="jawaBadge" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#7a1f22"/><stop offset="100%" stop-color="#4a1013"/>
+            </linearGradient>
+            <linearGradient id="jawaSun" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffcf6b"/><stop offset="60%" stop-color="#f0913b"/><stop offset="100%" stop-color="#c93f2e"/>
+            </linearGradient>
+          </defs>
+          <g transform="translate(118,118)">
+            <circle r="112" fill="url(#jawaBadge)" stroke="#ffcf6b" stroke-width="3"/>
+            <path d="M -64,19 Q -40,-66 0,-44 Q 32,-25 64,-15" fill="none" stroke="url(#jawaSun)" stroke-width="6" stroke-linecap="round"/>
+            <circle cx="-64" cy="19" r="7" fill="#ffcf6b"/>
+            <circle cx="0" cy="-44" r="6" fill="#ffffff"/>
+            <circle cx="64" cy="-15" r="7" fill="#ffd98a"/>
+          </g>
+        </svg>
+      </div>
+      <div>
+        <div class="title">Jawa Logistic</div>
+        <div class="subtitle">Costos China · Aéreo + Marítimo + Courier AR</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <div class="flete-box">
+        <span>Aéreo USD/kg</span>
+        <input id="flete-input" type="text" inputmode="decimal" value="50" />
+      </div>
+      <div class="flete-box">
+        <span>Marítimo USD/m³</span>
+        <input id="flete-maritimo-input" type="text" inputmode="decimal" value="2500" />
+      </div>
+      <div class="flete-box">
+        <span>Courier % s/CIF</span>
+        <input id="courier-input" type="text" inputmode="decimal" value="50" />
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="editor">Calculadora</button>
+    <button class="tab-btn" data-tab="proveedor">Pedido a proveedor</button>
+    <button class="tab-btn" data-tab="flete">Flete</button>
+    <button class="tab-btn" data-tab="cliente">Lista cliente</button>
+  </div>
+
+  <!-- EDITOR -->
+  <div class="panel active" id="panel-editor">
+    <div class="card" id="dolar-blue-card" style="margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span style="font-size:12px; font-weight:700; color:var(--accent);">💵 Dólar Blue (referencia)</span>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:10px; color:var(--muted);">$</span>
+          <input id="dolar-blue-input" type="text" inputmode="decimal" style="width:70px; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; color:var(--accent); font-size:13px; font-weight:700; padding:4px 6px; text-align:right; font-family:inherit;" />
+          <button id="dolar-blue-actualizar" style="padding:5px 8px; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; color:var(--muted); font-size:10px; cursor:pointer; font-family:inherit;">↻ actualizar</button>
+        </div>
+      </div>
+      <div id="dolar-blue-estado" style="font-size:9.5px; color:var(--muted); margin-bottom:8px;"></div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <div class="field" style="flex:1;">
+          <label>USD</label>
+          <input id="conv-usd" type="text" inputmode="decimal" placeholder="0" />
+        </div>
+        <span style="color:var(--muted); margin-top:14px;">=</span>
+        <div class="field" style="flex:1;">
+          <label>ARS</label>
+          <input id="conv-ars" type="text" inputmode="decimal" placeholder="0" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="productos-container"></div>
+    <div style="display:flex; gap:8px;">
+      <button class="add-btn" id="add-btn" style="flex:1;">+ Agregar producto</button>
+      <button id="limpiar-todo-btn" style="flex:none; padding:0 16px; background:transparent; border:1px solid var(--line); border-radius:8px; color:var(--muted); font-size:13px; cursor:pointer; font-family:inherit;">Limpiar todo</button>
+    </div>
+
+    <div class="totales" id="totales-container"></div>
+
+    <button id="informe-completo-btn" class="imprimir-btn" style="width:100%; margin-top:12px;">📊 Informe completo (para socios / inversores)</button>
+
+    <div class="note">
+      <b>Aéreo:</b> costo unitario = FOB + (peso en kg × flete USD/kg).<br/>
+      <b>Marítimo:</b> volumen de la caja = Largo × Ancho × Alto (cm) ÷ 1.000.000 = m³. Costo del flete = m³ total × tarifa USD/m³, repartido entre las unidades por caja.<br/>
+      Venta unitario = costo × (1 + margen). Los datos se guardan automáticamente en este teléfono.
+    </div>
+  </div>
+
+  <!-- PROVEEDOR -->
+  <div class="panel" id="panel-proveedor">
+    <button class="imprimir-btn" id="btn-imprimir-proveedor">Descargar para imprimir</button>
+    <div class="card">
+      <div class="brand-mini">
+        <svg width="24" height="24" viewBox="0 0 236 236"><circle cx="118" cy="118" r="112" fill="#7a1f22" stroke="#ffcf6b" stroke-width="4"/><path d="M -64,19 Q -40,-66 0,-44 Q 32,-25 64,-15" transform="translate(118,118)" fill="none" stroke="#f0913b" stroke-width="6" stroke-linecap="round"/></svg>
+        <span>JAWA LOGISTIC</span>
+      </div>
+      <div class="report-header">
+        <div class="report-title">Pedido a proveedor</div>
+        <div class="report-date" id="fecha-proveedor"></div>
+      </div>
+      <div class="report-sub">Precios FOB — sin flete ni margen</div>
+      <div style="overflow-x:auto;">
+        <table id="tabla-proveedor"></table>
+      </div>
+      <div class="report-foot" id="foot-proveedor"></div>
+    </div>
+  </div>
+
+  <!-- FLETE -->
+  <div class="panel" id="panel-flete">
+    <button class="imprimir-btn" id="btn-imprimir-flete">Descargar para imprimir</button>
+    <div class="card">
+      <div class="brand-mini">
+        <svg width="24" height="24" viewBox="0 0 236 236"><circle cx="118" cy="118" r="112" fill="#7a1f22" stroke="#ffcf6b" stroke-width="4"/><path d="M -64,19 Q -40,-66 0,-44 Q 32,-25 64,-15" transform="translate(118,118)" fill="none" stroke="#f0913b" stroke-width="6" stroke-linecap="round"/></svg>
+        <span>JAWA LOGISTIC</span>
+      </div>
+      <div class="report-header">
+        <div class="report-title">Flete (Aéreo / Marítimo)</div>
+        <div class="report-date" id="fecha-flete"></div>
+      </div>
+      <div class="report-sub" id="tarifa-flete"></div>
+      <div style="overflow-x:auto;">
+        <table id="tabla-flete"></table>
+      </div>
+      <div class="report-foot" id="foot-flete"></div>
+    </div>
+  </div>
+
+  <!-- CLIENTE -->
+  <div class="panel" id="panel-cliente">
+    <button class="imprimir-btn" id="btn-imprimir-cliente">Descargar para imprimir</button>
+    <div class="card">
+      <div class="brand-mini">
+        <svg width="24" height="24" viewBox="0 0 236 236"><circle cx="118" cy="118" r="112" fill="#7a1f22" stroke="#ffcf6b" stroke-width="4"/><path d="M -64,19 Q -40,-66 0,-44 Q 32,-25 64,-15" transform="translate(118,118)" fill="none" stroke="#f0913b" stroke-width="6" stroke-linecap="round"/></svg>
+        <span>JAWA LOGISTIC</span>
+      </div>
+      <div class="report-header">
+        <div class="report-title">Lista de precios</div>
+        <div class="report-date" id="fecha-cliente"></div>
+      </div>
+      <div class="report-sub">Precios finales — para enviar al cliente</div>
+      <div id="catalogo-cliente" style="display:flex; flex-direction:column; gap:10px;"></div>
+      <div class="report-foot" id="foot-cliente"></div>
+    </div>
+
+    <div class="card no-print" style="margin-top:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <div style="font-size:14px; font-weight:700;">📋 Presupuestos por cliente</div>
+      </div>
+      <div style="font-size:11px; color:var(--muted); margin-bottom:10px;">Repartí tu stock cargado entre distintos clientes y armá presupuestos individuales — se descuenta del disponible automáticamente.</div>
+      <div id="stock-disponible-container" style="margin-bottom:12px;"></div>
+      <div id="presupuestos-container"></div>
+      <button class="add-btn" id="add-presupuesto-btn">+ Nuevo presupuesto</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/rates.js"></script>
+<script>
+// ---------- Login (solo staff) ----------
+(function () {
+  const loginScreen = document.getElementById("login-screen");
+  const toolContent = document.getElementById("tool-content");
+  const logoutBtn = document.getElementById("logout-btn");
+  const loginBtn = document.getElementById("login-btn");
+  const loginError = document.getElementById("login-error");
+
+  async function mostrarSegunSesion(session) {
+    if (!session) {
+      loginScreen.style.display = "block";
+      toolContent.style.display = "none";
+      logoutBtn.style.display = "none";
+      return;
+    }
+    const { data: perfil } = await supabaseClient
+      .from("perfiles")
+      .select("rol")
+      .eq("id", session.user.id)
+      .maybeSingle();
+    const esStaff = perfil && perfil.rol === "staff";
+    if (!esStaff) {
+      loginScreen.style.display = "block";
+      toolContent.style.display = "none";
+      logoutBtn.style.display = "block";
+      loginError.textContent = "Esta cuenta no tiene acceso a esta calculadora.";
+      loginError.classList.add("show");
+      return;
+    }
+    loginScreen.style.display = "none";
+    toolContent.style.display = "block";
+    logoutBtn.style.display = "block";
+  }
+
+  supabaseClient.auth.getSession().then(({ data }) => mostrarSegunSesion(data.session));
+  supabaseClient.auth.onAuthStateChange((_event, session) => mostrarSegunSesion(session));
+
+  loginBtn.addEventListener("click", async () => {
+    loginError.classList.remove("show");
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value;
+    if (!email || !password) return;
+    loginBtn.disabled = true;
+    loginBtn.textContent = "Ingresando…";
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    loginBtn.disabled = false;
+    loginBtn.textContent = "Ingresar";
+    if (error) {
+      loginError.textContent = "No pudimos ingresar: " + error.message;
+      loginError.classList.add("show");
+    }
+  });
+
+  logoutBtn.addEventListener("click", () => supabaseClient.auth.signOut());
+})();
+</script>
+<script>
+// ---------- Estado ----------
+const STORAGE_KEY = "jawa_calculadora_productos_v1";
+const FLETE_KEY = "jawa_calculadora_flete_v1";
+const FLETE_MARITIMO_KEY = "jawa_calculadora_flete_maritimo_v1";
+
+function uid() { return Math.random().toString(36).slice(2, 9); }
+
+function nuevoProducto() {
+  return {
+    id: uid(), nombre: "", fob: "", cantidad: "", margen: "40", descripcion: "", foto: "",
+    modoFlete: "aereo",
+    // aéreo
+    peso: "", pesoUnidad: "g",
+    pesoModo: "unidad", pesoTotalRef: "",
+    precioReferenciaAR: "",
+    fleteCourierManual: "", seguroCourier: "",
+    // marítimo
+    largo: "", ancho: "", alto: "", dimUnidad: "cm", unidadesPorCaja: "",
+  };
+}
+
+function parseNum(str) {
+  if (typeof str !== "string") return parseFloat(str) || 0;
+  const n = parseFloat(str.trim().replace(",", "."));
+  return isNaN(n) ? 0 : n;
+}
+
+function fmt(n) {
+  return (n || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+let productos = [];
+try {
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+  productos = Array.isArray(saved) && saved.length ? saved.map(p => ({ ...nuevoProducto(), ...p })) : [nuevoProducto()];
+} catch (e) {
+  productos = [nuevoProducto()];
+}
+
+let fleteRate = parseNum(localStorage.getItem(FLETE_KEY) || "50") || 50;
+let fleteMaritimoRate = parseNum(localStorage.getItem(FLETE_MARITIMO_KEY) || "2500") || 2500;
+
+const COURIER_KEY = "jawa_calculadora_courier_v1";
+let alicuotaCourier = parseNum(localStorage.getItem(COURIER_KEY) || "50") || 50; // % sobre CIF — régimen simplificado, valor general vigente
+
+const DOLAR_BLUE_KEY = "jawa_calculadora_dolar_blue_v1";
+let dolarBlue = parseNum(localStorage.getItem(DOLAR_BLUE_KEY) || "1530") || 1530; // referencia — actualizala vos o con el botón
+
+const PRESUPUESTOS_KEY = "jawa_calculadora_presupuestos_v1";
+function nuevoPresupuesto() {
+  return { id: uid(), cliente: "", items: [{ id: uid(), productoId: "", cantidad: "", precio: "" }] };
+}
+let presupuestos = [];
+try {
+  const savedP = JSON.parse(localStorage.getItem(PRESUPUESTOS_KEY) || "null");
+  presupuestos = Array.isArray(savedP) ? savedP : [];
+} catch (e) {
+  presupuestos = [];
+}
+
+function guardar() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(productos));
+  localStorage.setItem(FLETE_KEY, String(fleteRate));
+  localStorage.setItem(FLETE_MARITIMO_KEY, String(fleteMaritimoRate));
+  localStorage.setItem(COURIER_KEY, String(alicuotaCourier));
+  localStorage.setItem(PRESUPUESTOS_KEY, JSON.stringify(presupuestos));
+  localStorage.setItem(DOLAR_BLUE_KEY, String(dolarBlue));
+}
+
+// ---------- Cálculo ----------
+function calcular(p) {
+  const cant = parseNum(p.cantidad);
+  const margen = parseNum(p.margen);
+  const fob = parseNum(p.fob);
+
+  let pesoKg;
+  if (p.pesoModo === "total") {
+    const pesoTotalRaw = parseNum(p.pesoTotalRef);
+    const pesoTotalKgRef = p.pesoUnidad === "kg" ? pesoTotalRaw : pesoTotalRaw / 1000;
+    pesoKg = cant > 0 ? pesoTotalKgRef / cant : 0;
+  } else {
+    const pesoRaw = parseNum(p.peso);
+    pesoKg = p.pesoUnidad === "kg" ? pesoRaw : pesoRaw / 1000;
+  }
+
+  const largoRaw = parseNum(p.largo), anchoRaw = parseNum(p.ancho), altoRaw = parseNum(p.alto);
+  const factorDim = p.dimUnidad === "mm" ? 0.1 : 1; // convierte a cm
+  const largo = largoRaw * factorDim, ancho = anchoRaw * factorDim, alto = altoRaw * factorDim;
+  const unidadesPorCaja = parseNum(p.unidadesPorCaja);
+  const m3PorCaja = (largo * ancho * alto) / 1000000;
+  const cajas = unidadesPorCaja > 0 ? Math.ceil(cant / unidadesPorCaja) : (cant > 0 ? 1 : 0);
+  const m3Total = cajas * m3PorCaja;
+
+  // Costo por las dos vías, siempre calculadas en paralelo para poder comparar
+  const fleteUnitAereo = pesoKg * fleteRate;
+  const fleteTotalAereo = fleteUnitAereo * cant;
+  const fleteTotalMaritimo = m3Total * fleteMaritimoRate;
+  const fleteUnitMaritimo = cant > 0 ? fleteTotalMaritimo / cant : 0;
+
+  const hayDatosAereo = pesoKg > 0;
+  const hayDatosMaritimo = m3PorCaja > 0;
+  const convieneMaritimo = hayDatosAereo && hayDatosMaritimo && fleteTotalMaritimo < fleteTotalAereo;
+  const convieneAereo = hayDatosAereo && hayDatosMaritimo && fleteTotalAereo <= fleteTotalMaritimo;
+  const costoUnitAereo = fob + fleteUnitAereo;
+  const costoUnitMaritimo = fob + fleteUnitMaritimo;
+
+  // ---- Régimen Courier (Simplificado, AR) ----
+  // CIF = FOB + Flete internacional (total, manual) + Seguro. Derechos = alícuota % flat sobre CIF (courier puerta a puerta, hasta USD 3.000).
+  const fleteCourierTotal = parseNum(p.fleteCourierManual);
+  const seguroCourierTotal = parseNum(p.seguroCourier);
+  const cifTotalCourier = (fob * cant) + fleteCourierTotal + seguroCourierTotal;
+  const derechosImportacionCourier = cifTotalCourier * (alicuotaCourier / 100);
+  const costoTotalCourier = cifTotalCourier + derechosImportacionCourier;
+  const costoUnitCourier = cant > 0 ? costoTotalCourier / cant : 0;
+  const hayDatosCourier = fleteCourierTotal > 0;
+  const pesoTotalCourierKg = pesoKg * cant; // usa el mismo peso físico cargado en "Datos para Aéreo"
+  const excedePesoCourier = pesoTotalCourierKg > 50;
+  const excedeValorCourier = cifTotalCourier > 3000;
+  const courierEnRiesgo = excedePesoCourier || excedeValorCourier;
+
+  // Detectar automáticamente la vía más barata (entre las que tienen datos cargados) y setear el selector solo.
+  // Marítimo queda afuera de esta selección por ahora (no se usa todavía), aunque se sigue mostrando en la tabla para comparar.
+  const opcionesDisponibles = [];
+  if (hayDatosAereo) opcionesDisponibles.push({ modo: "aereo", costo: costoUnitAereo });
+  if (hayDatosCourier) opcionesDisponibles.push({ modo: "courier", costo: costoUnitCourier });
+  let modoGanador = null;
+  if (opcionesDisponibles.length >= 2) {
+    modoGanador = opcionesDisponibles.reduce((a, b) => (b.costo < a.costo ? b : a)).modo;
+    if (p.modoFlete !== modoGanador) p.modoFlete = modoGanador; // auto-selección
+  } else if (opcionesDisponibles.length === 1 && p.modoFlete === "maritimo") {
+    // si el producto quedó en marítimo por algún motivo pero ya hay una opción válida (aéreo o courier), lo pasamos a esa
+    p.modoFlete = opcionesDisponibles[0].modo;
+  }
+
+  let fleteUnit, fleteTotal, medidaLabel;
+  if (p.modoFlete === "maritimo") {
+    fleteTotal = fleteTotalMaritimo;
+    fleteUnit = fleteUnitMaritimo;
+    medidaLabel = `${fmt(m3Total)} m³`;
+  } else if (p.modoFlete === "courier") {
+    fleteTotal = fleteCourierTotal;
+    fleteUnit = cant > 0 ? fleteCourierTotal / cant : 0;
+    medidaLabel = `CIF $${fmt(cifTotalCourier)}`;
+  } else {
+    fleteUnit = fleteUnitAereo;
+    fleteTotal = fleteTotalAereo;
+    medidaLabel = `${fmt(pesoKg * cant)} kg`;
+  }
+
+  const costoUnit = p.modoFlete === "courier" ? costoUnitCourier : (fob + fleteUnit);
+  const ventaUnit = costoUnit * (1 + margen / 100);
+  const gananciaUnit = ventaUnit - costoUnit;
+
+  // Venta y ganancia aplicando el mismo margen a los tres modos, para comparar sin cambiar el selector
+  const ventaUnitAereo = costoUnitAereo * (1 + margen / 100);
+  const gananciaUnitAereo = ventaUnitAereo - costoUnitAereo;
+  const ventaUnitMaritimo = costoUnitMaritimo * (1 + margen / 100);
+  const gananciaUnitMaritimo = ventaUnitMaritimo - costoUnitMaritimo;
+  const ventaUnitCourier = costoUnitCourier * (1 + margen / 100);
+  const gananciaUnitCourier = ventaUnitCourier - costoUnitCourier;
+
+  // Comparación "a precio fijo": si vendés siempre al precio de avión (referencia de mercado),
+  // cuánto ganás extra usando el costo más bajo del barco (esto sí refleja el ahorro real).
+  const ahorroUnitPorModo = costoUnitAereo - costoUnitMaritimo;
+  const gananciaMaritimoAPrecioAereo = ventaUnitAereo - costoUnitMaritimo;
+  const extraGananciaMaritimo = gananciaMaritimoAPrecioAereo - gananciaUnitAereo;
+
+  const precioReferenciaAR = parseNum(p.precioReferenciaAR); // en pesos (ej. precio de Mercado Libre)
+  const hayReferencia = precioReferenciaAR > 0 && dolarBlue > 0;
+  const precioReferenciaUSD = hayReferencia ? precioReferenciaAR / dolarBlue : 0;
+  const gananciaPotencial = precioReferenciaUSD - costoUnit;
+  const margenSobrePrecio = precioReferenciaUSD > 0 ? (gananciaPotencial / precioReferenciaUSD) * 100 : 0;
+  const gananciaPotencialAereo = precioReferenciaUSD - costoUnitAereo;
+  const margenSobrePrecioAereo = precioReferenciaUSD > 0 ? (gananciaPotencialAereo / precioReferenciaUSD) * 100 : 0;
+  const gananciaPotencialMaritimo = precioReferenciaUSD - costoUnitMaritimo;
+  const margenSobrePrecioMaritimo = precioReferenciaUSD > 0 ? (gananciaPotencialMaritimo / precioReferenciaUSD) * 100 : 0;
+  const gananciaPotencialCourier = precioReferenciaUSD - costoUnitCourier;
+  const margenSobrePrecioCourier = precioReferenciaUSD > 0 ? (gananciaPotencialCourier / precioReferenciaUSD) * 100 : 0;
+
+  return {
+    ...p, fob, pesoKg, cant, margen, m3PorCaja, cajas, m3Total, medidaLabel,
+    fleteUnit, costoUnit, ventaUnit, gananciaUnit,
+    ventaUnitAereo, gananciaUnitAereo, ventaUnitMaritimo, gananciaUnitMaritimo,
+    ventaUnitCourier, gananciaUnitCourier,
+    ahorroUnitPorModo, gananciaMaritimoAPrecioAereo, extraGananciaMaritimo,
+    costoTotal: costoUnit * cant,
+    ventaTotal: ventaUnit * cant,
+    gananciaTotal: gananciaUnit * cant,
+    fleteTotal,
+    fobTotal: fob * cant,
+    // datos para el comparador
+    fleteTotalAereo, fleteUnitAereo, fleteTotalMaritimo, fleteUnitMaritimo,
+    hayDatosAereo, hayDatosMaritimo, convieneMaritimo, convieneAereo, modoGanador,
+    costoUnitAereo, costoUnitMaritimo,
+    // régimen courier (Simplificado AR)
+    fleteCourierTotal, seguroCourierTotal, cifTotalCourier, derechosImportacionCourier,
+    costoTotalCourier, costoUnitCourier, hayDatosCourier,
+    pesoTotalCourierKg, excedePesoCourier, excedeValorCourier, courierEnRiesgo,
+    // viabilidad vs precio de mercado (ej. MercadoLibre)
+    precioReferenciaAR, precioReferenciaUSD, hayReferencia, gananciaPotencial, margenSobrePrecio,
+    gananciaPotencialAereo, margenSobrePrecioAereo, gananciaPotencialMaritimo, margenSobrePrecioMaritimo,
+    gananciaPotencialCourier, margenSobrePrecioCourier,
+  };
+}
+
+function getCalculados() { return productos.map(calcular); }
+
+function getTotales() {
+  return getCalculados().reduce((acc, p) => ({
+    peso: acc.peso + p.pesoKg * p.cant,
+    m3: acc.m3 + p.m3Total,
+    fob: acc.fob + p.fobTotal,
+    flete: acc.flete + p.fleteTotal,
+    costo: acc.costo + p.costoTotal,
+    venta: acc.venta + p.ventaTotal,
+    ganancia: acc.ganancia + p.gananciaTotal,
+  }), { peso:0, m3:0, fob:0, flete:0, costo:0, venta:0, ganancia:0 });
+}
+
+// ---------- Render editor ----------
+function renderProductos() {
+  const cont = document.getElementById("productos-container");
+  cont.innerHTML = "";
+  const calc = getCalculados();
+
+  productos.forEach((p, i) => {
+    const c = calc[i];
+    const div = document.createElement("div");
+    div.className = "prod-card";
+    div.innerHTML = `
+      <div class="prod-row1">
+        <input type="text" placeholder="ej. luz LED tira" data-field="nombre" data-id="${p.id}" value="${p.nombre.replace(/"/g,'&quot;')}" />
+        <button class="del-btn" data-del="${p.id}">✕</button>
+      </div>
+      <div style="display:flex; gap:10px; margin-bottom:8px; align-items:flex-start;">
+        <div style="flex:none;">
+          <label style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; display:block; margin-bottom:3px;">Foto</label>
+          <div class="foto-drop" data-id="${p.id}" tabindex="0" style="width:96px; height:96px; border-radius:8px; border:1.5px dashed var(--line); background:var(--panel-2); cursor:pointer; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; outline:none;">
+            ${p.foto
+              ? `<img src="${p.foto}" style="width:100%; height:100%; object-fit:cover;" />`
+              : `<div style="text-align:center; font-size:9.5px; color:var(--muted); line-height:1.4; padding:4px;">📋 Click, pegar<br/>o arrastrar</div>`}
+            <input type="file" accept="image/*" data-field="foto-input" data-id="${p.id}" style="display:none;" />
+          </div>
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; display:block; margin-bottom:3px;">Descripción (para el cliente)</label>
+          <textarea data-field="descripcion" data-id="${p.id}" placeholder="Ej: auriculares bluetooth 5.3, batería 8hs, con estuche cargador" style="width:100%; min-height:48px; resize:vertical; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; color:var(--text); font-size:12.5px; padding:6px 8px; font-family:inherit;">${p.descripcion || ""}</textarea>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:8px;">
+        <label>Modo de flete (el que se usa para el costo final)</label>
+        <select data-field="modoFlete" data-id="${p.id}">
+          <option value="aereo" ${p.modoFlete!=="maritimo"&&p.modoFlete!=="courier"?"selected":""}>✈️ Aéreo (por kg)</option>
+          <option value="maritimo" ${p.modoFlete==="maritimo"?"selected":""}>🚢 Marítimo (por m³)</option>
+          <option value="courier" ${p.modoFlete==="courier"?"selected":""}>📦 Courier (régimen simplificado AR)</option>
+        </select>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label>FOB unitario</label>
+          <input type="text" inputmode="decimal" placeholder="0.00" data-field="fob" data-id="${p.id}" value="${p.fob}" />
+        </div>
+        <div class="field">
+          <label>Cantidad</label>
+          <input type="text" inputmode="decimal" placeholder="0" data-field="cantidad" data-id="${p.id}" value="${p.cantidad}" />
+        </div>
+      </div>
+      <div style="margin-top:10px; padding:10px; background:var(--panel-2); border-radius:8px; border:1px solid ${p.modoFlete!=="maritimo"?"var(--accent-dim)":"var(--line)"};">
+        <div style="font-size:11px; font-weight:700; color:${p.modoFlete!=="maritimo"?"var(--accent)":"var(--muted)"}; margin-bottom:6px;">✈️ Datos para Aéreo</div>
+        <div style="display:flex; gap:16px; margin-bottom:8px; font-size:11px; flex-wrap:wrap;">
+          <label style="display:flex; align-items:center; gap:5px; cursor:pointer; white-space:nowrap;">
+            <input type="radio" name="pesoModo-${p.id}" data-field="pesoModo" data-id="${p.id}" value="unidad" ${p.pesoModo!=="total"?"checked":""} />
+            Peso por unidad
+          </label>
+          <label style="display:flex; align-items:center; gap:5px; cursor:pointer; white-space:nowrap;">
+            <input type="radio" name="pesoModo-${p.id}" data-field="pesoModo" data-id="${p.id}" value="total" ${p.pesoModo==="total"?"checked":""} />
+            Peso total de un lote
+          </label>
+        </div>
+        ${p.pesoModo === "total" ? `
+        <div class="field">
+          <label>Peso total del lote (para las ${c.cant || "?"} unidades de arriba)</label>
+          <div class="peso-row">
+            <input type="text" inputmode="decimal" placeholder="0" data-field="pesoTotalRef" data-id="${p.id}" value="${p.pesoTotalRef}" />
+            <select data-field="pesoUnidad" data-id="${p.id}">
+              <option value="g" ${p.pesoUnidad==="g"?"selected":""}>g</option>
+              <option value="kg" ${p.pesoUnidad==="kg"?"selected":""}>kg</option>
+            </select>
+          </div>
+        </div>
+        <div style="font-size:10.5px; color:var(--muted); margin-top:4px;">Peso por unidad calculado: <b style="color:var(--text);">${fmt(c.pesoKg*1000)} g</b> (${fmt(c.pesoKg)} kg) — dividido entre la Cantidad cargada arriba.</div>
+        ` : `
+        <div class="field">
+          <label>Peso por unidad</label>
+          <div class="peso-row">
+            <input type="text" inputmode="decimal" placeholder="0" data-field="peso" data-id="${p.id}" value="${p.peso}" />
+            <select data-field="pesoUnidad" data-id="${p.id}">
+              <option value="g" ${p.pesoUnidad==="g"?"selected":""}>g</option>
+              <option value="kg" ${p.pesoUnidad==="kg"?"selected":""}>kg</option>
+            </select>
+          </div>
+        </div>
+        `}
+      </div>
+
+      <div style="margin-top:8px; padding:10px; background:var(--panel-2); border-radius:8px; border:1px solid ${p.modoFlete==="maritimo"?"var(--accent-dim)":"var(--line)"};">
+        <div style="font-size:11px; font-weight:700; color:${p.modoFlete==="maritimo"?"var(--accent)":"var(--muted)"}; margin-bottom:6px;">🚢 Datos para Marítimo</div>
+        <div class="field-grid" style="grid-template-columns: repeat(2,1fr);">
+          <div class="field">
+            <label>Unidad de medida</label>
+            <select data-field="dimUnidad" data-id="${p.id}">
+              <option value="cm" ${p.dimUnidad!=="mm"?"selected":""}>cm</option>
+              <option value="mm" ${p.dimUnidad==="mm"?"selected":""}>mm</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Unidades por caja</label>
+            <input type="text" inputmode="decimal" placeholder="0" data-field="unidadesPorCaja" data-id="${p.id}" value="${p.unidadesPorCaja}" />
+          </div>
+          <div class="field">
+            <label>Largo caja (${p.dimUnidad === "mm" ? "mm" : "cm"})</label>
+            <input type="text" inputmode="decimal" placeholder="0" data-field="largo" data-id="${p.id}" value="${p.largo}" />
+          </div>
+          <div class="field">
+            <label>Ancho caja (${p.dimUnidad === "mm" ? "mm" : "cm"})</label>
+            <input type="text" inputmode="decimal" placeholder="0" data-field="ancho" data-id="${p.id}" value="${p.ancho}" />
+          </div>
+          <div class="field">
+            <label>Alto caja (${p.dimUnidad === "mm" ? "mm" : "cm"})</label>
+            <input type="text" inputmode="decimal" placeholder="0" data-field="alto" data-id="${p.id}" value="${p.alto}" />
+          </div>
+        </div>
+        ${c.cajas > 0 ? `
+        <div style="font-size:11px; color:var(--muted); margin-top:6px;">
+          ${c.cajas} caja(s) × ${fmt(c.m3PorCaja)} m³ c/u = <b style="color:var(--text)">${fmt(c.m3Total)} m³</b> totales
+        </div>` : ""}
+      </div>
+
+      <div style="margin-top:8px; padding:10px; background:var(--panel-2); border-radius:8px; border:1px solid ${p.modoFlete==="courier"?"var(--accent-dim)":"var(--line)"};">
+        <div style="font-size:11px; font-weight:700; color:${p.modoFlete==="courier"?"var(--accent)":"var(--muted)"}; margin-bottom:6px;">📦 Datos para Courier (régimen simplificado AR, hasta USD 3.000)</div>
+        <div style="font-size:10px; color:var(--muted); margin-bottom:8px;">Derechos de importación = ${fmt(alicuotaCourier)}% sobre el valor CIF (FOB + flete + seguro) — es todo lo que se paga, puerta a puerta, sin despachante.</div>
+        <div class="field-grid" style="grid-template-columns: repeat(2,1fr);">
+          <div class="field">
+            <label>Flete internacional total (USD)</label>
+            <input type="text" inputmode="decimal" placeholder="0" data-field="fleteCourierManual" data-id="${p.id}" value="${p.fleteCourierManual}" />
+          </div>
+          <div class="field">
+            <label>Seguro internacional (USD)</label>
+            <input type="text" inputmode="decimal" placeholder="0" data-field="seguroCourier" data-id="${p.id}" value="${p.seguroCourier}" />
+          </div>
+        </div>
+        ${c.hayDatosCourier ? `
+        <div style="font-size:11px; color:var(--muted); margin-top:6px; line-height:1.6;">
+          CIF: <b style="color:var(--text);">$${fmt(c.cifTotalCourier)}</b> ·
+          Derechos (${fmt(alicuotaCourier)}%): <b style="color:var(--warn);">$${fmt(c.derechosImportacionCourier)}</b> ·
+          Total courier: <b style="color:var(--text);">$${fmt(c.costoTotalCourier)}</b>
+        </div>
+        <div style="margin-top:8px; padding:8px 10px; border-radius:6px; font-size:11px; ${c.courierEnRiesgo ? "background:rgba(224,80,80,0.15); border:1px solid #e05050;" : "background:rgba(95,216,143,0.12); border:1px solid var(--accent-dim);"}">
+          ${c.courierEnRiesgo
+            ? `🔴 <b>Fuera del régimen simplificado:</b> ${c.excedePesoCourier ? `el peso total (${fmt(c.pesoTotalCourierKg)} kg) supera el límite de 50 kg. ` : ""}${c.excedeValorCourier ? `el CIF ($${fmt(c.cifTotalCourier)}) supera el límite de USD 3.000.` : ""}`
+            : `🟢 Dentro de los límites del régimen simplificado (peso: ${fmt(c.pesoTotalCourierKg)}/50 kg · CIF: $${fmt(c.cifTotalCourier)}/$3.000).`}
+        </div>` : ""}
+      </div>
+
+      <div style="margin-top:10px; overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:11.5px;">
+          <thead>
+            <tr>
+              <th style="text-align:left; padding:5px 6px; border-bottom:1px solid var(--line); color:var(--muted); font-size:10px; text-transform:uppercase;"></th>
+              <th style="text-align:right; padding:5px 6px; border-bottom:1px solid var(--line); color:var(--muted); font-size:10px; text-transform:uppercase;">FOB u.</th>
+              <th style="text-align:right; padding:5px 6px; border-bottom:1px solid var(--line); color:var(--muted); font-size:10px; text-transform:uppercase;">Flete u.</th>
+              <th style="text-align:right; padding:5px 6px; border-bottom:1px solid var(--line); color:var(--muted); font-size:10px; text-transform:uppercase;">Impuestos u.</th>
+              <th style="text-align:right; padding:5px 6px; border-bottom:1px solid var(--line); color:var(--muted); font-size:10px; text-transform:uppercase;">Total u.</th>
+              <th style="text-align:right; padding:5px 6px; border-bottom:1px solid var(--line); color:var(--muted); font-size:10px; text-transform:uppercase;">Total compra</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="${c.modoGanador==="aereo" ? "background:rgba(226,146,87,0.12);" : ""}">
+              <td style="padding:6px; font-weight:${c.modoGanador==="aereo"?"700":"400"}; color:${c.modoGanador==="aereo"?"var(--accent)":"var(--text)"};">✈️ Avión ${c.modoGanador==="aereo"?"👉 ganador":""}</td>
+              <td style="text-align:right; padding:6px;">$${fmt(c.fob)}</td>
+              <td style="text-align:right; padding:6px; color:var(--warn);">$${fmt(c.fleteUnitAereo)}</td>
+              <td style="text-align:right; padding:6px; color:var(--muted);">—</td>
+              <td style="text-align:right; padding:6px; font-weight:700;">$${fmt(c.costoUnitAereo)}</td>
+              <td style="text-align:right; padding:6px;">$${fmt(c.costoUnitAereo * c.cant)}</td>
+            </tr>
+            <tr style="${c.modoGanador==="maritimo" ? "background:rgba(226,146,87,0.12);" : ""}">
+              <td style="padding:6px; font-weight:${c.modoGanador==="maritimo"?"700":"400"}; color:${c.modoGanador==="maritimo"?"var(--accent)":"var(--text)"};">🚢 Barco ${c.modoGanador==="maritimo"?"👉 ganador":""}</td>
+              <td style="text-align:right; padding:6px;">$${fmt(c.fob)}</td>
+              <td style="text-align:right; padding:6px; color:var(--warn);">$${fmt(c.fleteUnitMaritimo)}</td>
+              <td style="text-align:right; padding:6px; color:var(--muted);">—</td>
+              <td style="text-align:right; padding:6px; font-weight:700;">$${fmt(c.costoUnitMaritimo)}</td>
+              <td style="text-align:right; padding:6px;">$${fmt(c.costoUnitMaritimo * c.cant)}</td>
+            </tr>
+            <tr style="${c.modoGanador==="courier" ? "background:rgba(226,146,87,0.12);" : ""}">
+              <td style="padding:6px; font-weight:${c.modoGanador==="courier"?"700":"400"}; color:${c.modoGanador==="courier"?"var(--accent)":"var(--text)"};">📦 Courier ${c.modoGanador==="courier"?"👉 ganador":""}</td>
+              <td style="text-align:right; padding:6px;">$${fmt(c.fob)}</td>
+              <td style="text-align:right; padding:6px; color:var(--warn);">$${fmt(c.cant > 0 ? c.fleteCourierTotal / c.cant : 0)}</td>
+              <td style="text-align:right; padding:6px; color:#c0392b; font-weight:600;">$${fmt(c.cant > 0 ? c.derechosImportacionCourier / c.cant : 0)}</td>
+              <td style="text-align:right; padding:6px; font-weight:700;">$${fmt(c.costoUnitCourier)}</td>
+              <td style="text-align:right; padding:6px;">$${fmt(c.costoTotalCourier)}</td>
+            </tr>
+          </tbody>
+        </table>
+        ${c.modoGanador ? `<div style="font-size:10px; color:var(--accent); margin-top:6px;">👉 El sistema seleccionó automáticamente la vía más barata entre Avión y Courier (Marítimo no se usa por ahora) — cambiala vos mismo arriba en "Modo de flete" si preferís otra.</div>` : ""}
+        <div style="font-size:9.5px; color:var(--muted); margin-top:4px;">"Impuestos u." = derechos de importación (${fmt(alicuotaCourier)}% sobre CIF) que solo aplican al régimen courier — aéreo y marítimo no los contemplan acá (esos costos aduaneros los manejás vos aparte con tu consolidador).</div>
+      </div>
+
+      <div style="margin-top:10px; padding:10px; background:var(--panel-2); border-radius:8px; border:1px solid var(--accent-dim);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:11px; font-weight:700; color:var(--accent);">💰 Resultado final (mismo margen, ambos modos)</span>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:10px; color:var(--muted);">Margen %</span>
+            <input type="text" inputmode="decimal" placeholder="40" data-field="margen" data-id="${p.id}" value="${p.margen}" style="width:52px; background:var(--panel); border:1px solid var(--line); border-radius:5px; color:var(--warn); font-size:12px; padding:3px 5px; text-align:right; font-family:inherit;" />
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px; padding:6px 0; ${p.modoFlete!=="maritimo" ? "font-weight:700;" : "opacity:0.7;"} border-bottom:1px dashed var(--line);">
+          <span style="font-size:12px;">✈️ Avión</span>
+          <span style="font-size:11px; color:var(--muted);">Costo $${fmt(c.costoUnitAereo)}</span>
+          <span style="font-size:11px; color:var(--muted);">Ganancia u. <b style="color:var(--accent)">$${fmt(c.gananciaUnitAereo)}</b></span>
+          <span style="font-size:12px; color:var(--accent); font-weight:700;">$${fmt(c.ventaUnitAereo)} venta</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px; padding:6px 0; ${p.modoFlete==="maritimo" ? "font-weight:700;" : "opacity:0.7;"} border-bottom:1px dashed var(--line);">
+          <span style="font-size:12px;">🚢 Barco</span>
+          <span style="font-size:11px; color:var(--muted);">Costo $${fmt(c.costoUnitMaritimo)}</span>
+          <span style="font-size:11px; color:var(--muted);">Ganancia u. <b style="color:var(--accent)">$${fmt(c.gananciaUnitMaritimo)}</b></span>
+          <span style="font-size:12px; color:var(--accent); font-weight:700;">$${fmt(c.ventaUnitMaritimo)} venta</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px; padding:6px 0; ${p.modoFlete==="courier" ? "font-weight:700;" : "opacity:0.7;"}">
+          <span style="font-size:12px;">📦 Courier</span>
+          <span style="font-size:11px; color:var(--muted);">Costo $${fmt(c.costoUnitCourier)}</span>
+          <span style="font-size:11px; color:var(--muted);">Ganancia u. <b style="color:var(--accent)">$${fmt(c.gananciaUnitCourier)}</b></span>
+          <span style="font-size:12px; color:var(--accent); font-weight:700;">$${fmt(c.ventaUnitCourier)} venta</span>
+        </div>
+
+        ${p.nombre && c.cant > 0 ? `
+        <div style="border-top:1px dashed var(--line); padding-top:8px; margin-top:8px; font-size:11px;">
+          <div>✈️ Totales x ${c.cant} u.: Costo <b>$${fmt(c.costoUnitAereo*c.cant)}</b> · Venta <b style="color:var(--accent)">$${fmt(c.ventaUnitAereo*c.cant)}</b> · Ganancia <b style="color:var(--accent)">$${fmt(c.gananciaUnitAereo*c.cant)}</b></div>
+          <div style="margin-top:2px;">🚢 Totales x ${c.cant} u.: Costo <b>$${fmt(c.costoUnitMaritimo*c.cant)}</b> · Venta <b style="color:var(--accent)">$${fmt(c.ventaUnitMaritimo*c.cant)}</b> · Ganancia <b style="color:var(--accent)">$${fmt(c.gananciaUnitMaritimo*c.cant)}</b></div>
+          <div style="margin-top:2px;">📦 Totales x ${c.cant} u.: Costo <b>$${fmt(c.costoTotalCourier)}</b> · Venta <b style="color:var(--accent)">$${fmt(c.ventaUnitCourier*c.cant)}</b> · Ganancia <b style="color:var(--accent)">$${fmt(c.gananciaUnitCourier*c.cant)}</b></div>
+        </div>
+        ${c.hayDatosAereo && c.hayDatosMaritimo && c.ahorroUnitPorModo !== 0 ? `
+        <div style="margin-top:8px; padding:8px; background:rgba(226,146,87,0.12); border-radius:6px; font-size:11px; line-height:1.5;">
+          💡 <b>Dato real:</b> el barco cuesta $${fmt(Math.abs(c.ahorroUnitPorModo))} ${c.ahorroUnitPorModo > 0 ? "menos" : "más"} por unidad que el avión.
+          Si vendieras al <b>mismo precio</b> que por avión ($${fmt(c.ventaUnitAereo)}), con barco ganarías
+          <b style="color:${c.extraGananciaMaritimo >= 0 ? "var(--accent)" : "var(--warn)"};">$${fmt(c.gananciaMaritimoAPrecioAereo)}</b> por unidad
+          (${c.extraGananciaMaritimo >= 0 ? "+" : ""}$${fmt(c.extraGananciaMaritimo)} extra frente al ${fmt(c.margen)}% plano) —
+          eso sí refleja el ahorro real, en vez de aplicar el mismo % sobre un costo más bajo.
+        </div>` : ""}
+        ` : ""}
+      </div>
+
+      <div style="margin-top:8px; padding:10px; background:var(--panel-2); border-radius:8px; border:1px solid ${c.hayReferencia ? (c.gananciaPotencial > 0 ? "var(--accent-dim)" : "var(--warn)") : "var(--line)"};">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:11px; font-weight:700; color:var(--text);">🎯 ¿Viable según precio de mercado?</span>
+        </div>
+        <div class="field" style="margin-bottom:${c.hayReferencia ? "8px" : "0"};">
+          <label>Precio de referencia en pesos (ej. Mercado Libre)</label>
+          <input type="text" inputmode="decimal" placeholder="Ej: 15000" data-field="precioReferenciaAR" data-id="${p.id}" value="${p.precioReferenciaAR}" />
+        </div>
+        ${c.hayReferencia ? `
+        <div style="font-size:10px; color:var(--muted); margin-bottom:8px;">≈ $${fmt(c.precioReferenciaUSD)} USD al blue de hoy ($${fmt(dolarBlue)})</div>
+        <div style="border-top:1px dashed var(--line); padding-top:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 6px; border-radius:5px; ${p.modoFlete!=="maritimo"&&p.modoFlete!=="courier" ? "font-weight:700; background:rgba(226,146,87,0.15);" : "opacity:0.6;"}">
+            <span style="font-size:12px;">✈️ Ganancia con avión (u.) ${p.modoFlete!=="maritimo"&&p.modoFlete!=="courier" ? "👈 elegido" : ""}</span>
+            <span style="font-size:14px; color:${c.gananciaPotencialAereo > 0 ? "var(--accent)" : "var(--warn)"};">$${fmt(c.gananciaPotencialAereo)}</span>
+          </div>
+          <div style="font-size:10px; color:var(--muted); text-align:right; margin-bottom:6px;">
+            ${c.gananciaPotencialAereo <= 0 ? "⚠️ No viable" : c.margenSobrePrecioAereo < 20 ? "⚠️ Ajustado" : "✅ Viable"} — margen ${fmt(c.margenSobrePrecioAereo)}%
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 6px; border-radius:5px; ${p.modoFlete==="maritimo" ? "font-weight:700; background:rgba(226,146,87,0.15);" : "opacity:0.6;"}">
+            <span style="font-size:12px;">🚢 Ganancia con barco (u.) ${p.modoFlete==="maritimo" ? "👈 elegido" : ""}</span>
+            <span style="font-size:14px; color:${c.gananciaPotencialMaritimo > 0 ? "var(--accent)" : "var(--warn)"};">$${fmt(c.gananciaPotencialMaritimo)}</span>
+          </div>
+          <div style="font-size:10px; color:var(--muted); text-align:right; margin-bottom:6px;">
+            ${c.gananciaPotencialMaritimo <= 0 ? "⚠️ No viable" : c.margenSobrePrecioMaritimo < 20 ? "⚠️ Ajustado" : "✅ Viable"} — margen ${fmt(c.margenSobrePrecioMaritimo)}%
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 6px; border-radius:5px; ${p.modoFlete==="courier" ? "font-weight:700; background:rgba(226,146,87,0.15);" : "opacity:0.6;"}">
+            <span style="font-size:12px;">📦 Ganancia con courier (u.) ${p.modoFlete==="courier" ? "👈 elegido" : ""}</span>
+            <span style="font-size:14px; color:${c.gananciaPotencialCourier > 0 ? "var(--accent)" : "var(--warn)"};">$${fmt(c.gananciaPotencialCourier)}</span>
+          </div>
+          <div style="font-size:10px; color:var(--muted); text-align:right;">
+            ${c.gananciaPotencialCourier <= 0 ? "⚠️ No viable" : c.margenSobrePrecioCourier < 20 ? "⚠️ Ajustado" : "✅ Viable"} — margen ${fmt(c.margenSobrePrecioCourier)}%
+          </div>
+        </div>
+        ` : ""}
+      </div>
+    `;
+    cont.appendChild(div);
+  });
+}
+
+function renderTotales() {
+  const t = getTotales();
+  const cont = document.getElementById("totales-container");
+  cont.innerHTML = `
+    <div class="stat"><div class="stat-label">Peso total</div><div class="stat-value">${fmt(t.peso)} kg</div></div>
+    <div class="stat"><div class="stat-label">Volumen total</div><div class="stat-value">${fmt(t.m3)} m³</div></div>
+    <div class="stat"><div class="stat-label">FOB total</div><div class="stat-value">$${fmt(t.fob)}</div></div>
+    <div class="stat"><div class="stat-label">Flete a pagar</div><div class="stat-value">$${fmt(t.flete)}</div></div>
+    <div class="stat"><div class="stat-label">Costo total</div><div class="stat-value">$${fmt(t.costo)}</div></div>
+    <div class="stat"><div class="stat-label">Venta total</div><div class="stat-value accent">$${fmt(t.venta)}</div></div>
+    <div class="stat"><div class="stat-label">Ganancia total</div><div class="stat-value accent">$${fmt(t.ganancia)}</div></div>
+  `;
+}
+
+function renderEditor() {
+  renderProductos();
+  renderTotales();
+}
+
+// ---------- Eventos editor ----------
+document.getElementById("productos-container").addEventListener("input", (e) => {
+  const id = e.target.getAttribute("data-id");
+  const field = e.target.getAttribute("data-field");
+  if (!id || !field || field === "foto-input") return;
+  const p = productos.find(x => x.id === id);
+  if (!p) return;
+  p[field] = e.target.value;
+  guardar();
+  // re-render sin perder foco: solo actualizar resultados de esa tarjeta y totales
+  renderProductos();
+  renderTotales();
+  // restaurar foco
+  const sel = `[data-id="${id}"][data-field="${field}"]`;
+  const el = document.querySelector(sel);
+  const TIPOS_SIN_SELECTION = ["email", "number", "radio", "checkbox", "date", "color", "range", "file"];
+  if (el) { el.focus(); if (el.setSelectionRange && el.tagName === "INPUT" && !TIPOS_SIN_SELECTION.includes(el.type)) { const v=el.value; el.setSelectionRange(v.length, v.length); } }
+});
+
+document.getElementById("productos-container").addEventListener("change", (e) => {
+  const field = e.target.getAttribute("data-field");
+  const id = e.target.getAttribute("data-id");
+  if (field === "pesoUnidad") {
+    const p = productos.find(x => x.id === id);
+    if (p) { p.pesoUnidad = e.target.value; guardar(); renderEditor(); }
+  }
+  if (field === "modoFlete") {
+    const p = productos.find(x => x.id === id);
+    if (p) { p.modoFlete = e.target.value; guardar(); renderEditor(); }
+  }
+  if (field === "dimUnidad") {
+    const p = productos.find(x => x.id === id);
+    if (p) { p.dimUnidad = e.target.value; guardar(); renderEditor(); }
+  }
+  if (field === "pesoModo") {
+    const p = productos.find(x => x.id === id);
+    if (p) { p.pesoModo = e.target.value; guardar(); renderEditor(); }
+  }
+  if (field === "foto-input") {
+    const file = e.target.files[0];
+    if (file) aplicarFotoProducto(id, file);
+  }
+});
+
+function aplicarFotoProducto(productoId, file) {
+  if (!file || !file.type || !file.type.startsWith("image/")) return;
+  const p = productos.find(x => x.id === productoId);
+  if (!p) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    p.foto = ev.target.result;
+    guardar();
+    renderProductos();
+  };
+  reader.readAsDataURL(file);
+}
+
+// Click en la zona de foto -> abre el selector de archivo oculto
+document.getElementById("productos-container").addEventListener("click", (e) => {
+  const zona = e.target.closest(".foto-drop");
+  if (zona) {
+    const input = zona.querySelector('input[type="file"]');
+    if (input) input.click();
+  }
+});
+
+// Pegar (Ctrl+V) una captura de pantalla estando enfocado en la zona de foto
+document.getElementById("productos-container").addEventListener("paste", (e) => {
+  const zona = e.target.closest(".foto-drop");
+  if (!zona) return;
+  const items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type && item.type.startsWith("image/")) {
+      const file = item.getAsFile();
+      aplicarFotoProducto(zona.getAttribute("data-id"), file);
+      e.preventDefault();
+      break;
+    }
+  }
+});
+
+// Arrastrar y soltar un archivo de imagen sobre la zona
+document.getElementById("productos-container").addEventListener("dragover", (e) => {
+  const zona = e.target.closest(".foto-drop");
+  if (zona) { e.preventDefault(); zona.style.borderColor = "var(--accent)"; }
+});
+document.getElementById("productos-container").addEventListener("dragleave", (e) => {
+  const zona = e.target.closest(".foto-drop");
+  if (zona) { zona.style.borderColor = "var(--line)"; }
+});
+document.getElementById("productos-container").addEventListener("drop", (e) => {
+  const zona = e.target.closest(".foto-drop");
+  if (!zona) return;
+  e.preventDefault();
+  zona.style.borderColor = "var(--line)";
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) aplicarFotoProducto(zona.getAttribute("data-id"), file);
+});
+
+document.getElementById("productos-container").addEventListener("click", (e) => {
+  const delId = e.target.getAttribute("data-del");
+  if (delId && productos.length > 1) {
+    productos = productos.filter(p => p.id !== delId);
+    guardar();
+    renderEditor();
+  }
+});
+
+document.getElementById("add-btn").addEventListener("click", () => {
+  productos.push(nuevoProducto());
+  guardar();
+  renderEditor();
+});
+
+let limpiarConfirmando = false;
+document.getElementById("limpiar-todo-btn").addEventListener("click", () => {
+  const btn = document.getElementById("limpiar-todo-btn");
+  if (!limpiarConfirmando) {
+    limpiarConfirmando = true;
+    btn.textContent = "¿Seguro? Tocá de nuevo";
+    btn.style.color = "var(--warn)";
+    btn.style.borderColor = "var(--warn)";
+    setTimeout(() => {
+      if (limpiarConfirmando) {
+        limpiarConfirmando = false;
+        btn.textContent = "Limpiar todo";
+        btn.style.color = "var(--muted)";
+        btn.style.borderColor = "var(--line)";
+      }
+    }, 3000);
+    return;
+  }
+  limpiarConfirmando = false;
+  productos = [nuevoProducto()];
+  presupuestos = [];
+  guardar();
+  renderEditor();
+  renderInformes();
+  renderPresupuestos();
+  btn.textContent = "Limpiar todo";
+  btn.style.color = "var(--muted)";
+  btn.style.borderColor = "var(--line)";
+});
+
+// ---------- Dólar Blue ----------
+const dolarBlueInput = document.getElementById("dolar-blue-input");
+const convUsd = document.getElementById("conv-usd");
+const convArs = document.getElementById("conv-ars");
+const dolarBlueEstado = document.getElementById("dolar-blue-estado");
+
+dolarBlueInput.value = dolarBlue;
+dolarBlueEstado.textContent = "Valor cargado manualmente — tocá \"actualizar\" si tenés internet.";
+
+dolarBlueInput.addEventListener("input", (e) => {
+  dolarBlue = parseNum(e.target.value) || 0;
+  guardar();
+  renderEditor(); // recalcula viabilidad de todos los productos con el nuevo valor
+  if (convUsd.value) convArs.value = fmt(parseNum(convUsd.value) * dolarBlue);
+});
+
+convUsd.addEventListener("input", () => {
+  const usd = parseNum(convUsd.value);
+  convArs.value = usd ? fmt(usd * dolarBlue) : "";
+});
+convArs.addEventListener("input", () => {
+  const ars = parseNum(convArs.value);
+  convUsd.value = ars && dolarBlue ? fmt(ars / dolarBlue) : "";
+});
+
+document.getElementById("dolar-blue-actualizar").addEventListener("click", async () => {
+  const btn = document.getElementById("dolar-blue-actualizar");
+  const original = btn.textContent;
+  btn.textContent = "...";
+  try {
+    const res = await fetch("https://dolarapi.com/v1/dolares/blue");
+    const data = await res.json();
+    if (data && data.venta) {
+      dolarBlue = data.venta;
+      dolarBlueInput.value = dolarBlue;
+      guardar();
+      renderEditor();
+      dolarBlueEstado.textContent = `Actualizado — venta $${fmt(data.venta)} (compra $${fmt(data.compra)})`;
+    } else {
+      throw new Error("sin datos");
+    }
+  } catch (err) {
+    dolarBlueEstado.textContent = "No se pudo actualizar (sin internet o API caída). Podés cargarlo a mano.";
+  }
+  btn.textContent = original;
+});
+
+document.getElementById("flete-input").addEventListener("input", (e) => {
+  fleteRate = parseNum(e.target.value) || 0;
+  guardar();
+  renderEditor();
+});
+document.getElementById("flete-input").value = fleteRate;
+
+document.getElementById("flete-maritimo-input").addEventListener("input", (e) => {
+  fleteMaritimoRate = parseNum(e.target.value) || 0;
+  guardar();
+  renderEditor();
+});
+document.getElementById("flete-maritimo-input").value = fleteMaritimoRate;
+
+document.getElementById("courier-input").addEventListener("input", (e) => {
+  alicuotaCourier = parseNum(e.target.value) || 0;
+  guardar();
+  renderEditor();
+});
+document.getElementById("courier-input").value = alicuotaCourier;
+
+// ---------- Tabs ----------
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("panel-" + btn.dataset.tab).classList.add("active");
+    renderInformes();
+    renderPresupuestos();
+  });
+});
+
+// ---------- Informes ----------
+const fechaHoy = new Date().toLocaleDateString("es-AR");
+
+// ---------- Presupuestos por cliente ----------
+function getAsignadoTotal(productoId) {
+  let total = 0;
+  presupuestos.forEach(pr => pr.items.forEach(it => {
+    if (it.productoId === productoId) total += parseNum(it.cantidad);
+  }));
+  return total;
+}
+
+function getStockInfo() {
+  const calc = getCalculados().filter(p => p.nombre && p.cant > 0);
+  return calc.map(p => {
+    const asignado = getAsignadoTotal(p.id);
+    return { ...p, asignado, disponible: p.cant - asignado };
+  });
+}
+
+function renderStockDisponible() {
+  const stock = getStockInfo();
+  const cont = document.getElementById("stock-disponible-container");
+  if (!stock.length) { cont.innerHTML = ""; return; }
+  cont.innerHTML = `
+    <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px;">Stock disponible</div>
+    <div style="display:flex; flex-direction:column; gap:4px;">
+      ${stock.map(p => `
+        <div style="display:flex; justify-content:space-between; font-size:12px; padding:3px 0;">
+          <span>${p.nombre}</span>
+          <span style="${p.disponible < 0 ? "color:var(--warn); font-weight:700;" : "color:var(--muted);"}">${p.asignado}/${p.cant} asignadas · ${p.disponible} disp.</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderPresupuestos() {
+  const stock = getStockInfo();
+  const cont = document.getElementById("presupuestos-container");
+  cont.innerHTML = presupuestos.map(pr => {
+    const itemsCalc = pr.items.map(it => {
+      const prod = stock.find(p => p.id === it.productoId);
+      const cant = parseNum(it.cantidad);
+      const precioLista = prod ? prod.ventaUnit : 0;
+      const precioUsado = it.precio !== "" ? parseNum(it.precio) : precioLista;
+      const subtotal = precioUsado * cant;
+      return { ...it, prod, cant, precioLista, precioUsado, subtotal };
+    });
+    const total = itemsCalc.reduce((a, i) => a + i.subtotal, 0);
+
+    return `
+    <div class="prod-card" style="margin-bottom:10px;">
+      <div class="prod-row1">
+        <input type="text" placeholder="Nombre del cliente" data-pres-field="cliente" data-pres-id="${pr.id}" value="${pr.cliente.replace(/"/g,'&quot;')}" />
+        <button class="del-btn" data-pres-del="${pr.id}">✕</button>
+      </div>
+      <div style="display:flex; gap:6px; font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; margin-bottom:4px; padding-left:2px;">
+        <span style="flex:1; min-width:140px;">Producto</span>
+        <span style="width:56px;">Cant.</span>
+        <span style="width:66px;">Precio</span>
+        <span style="min-width:58px; text-align:right;">Subtotal</span>
+        <span style="width:20px;"></span>
+      </div>
+      ${itemsCalc.map(it => `
+        <div style="display:flex; gap:6px; margin-bottom:4px; align-items:center; flex-wrap:wrap;">
+          <select data-item-field="productoId" data-pres-id="${pr.id}" data-item-id="${it.id}" style="flex:1; min-width:140px;">
+            <option value="">Elegir producto…</option>
+            ${stock.map(p => `<option value="${p.id}" ${it.productoId===p.id?"selected":""}>${p.nombre} (disp. ${p.disponible + (it.productoId===p.id?it.cant:0)})</option>`).join("")}
+          </select>
+          <input type="text" inputmode="decimal" placeholder="Cant." data-item-field="cantidad" data-pres-id="${pr.id}" data-item-id="${it.id}" value="${it.cantidad}" style="width:56px;" />
+          <input type="text" inputmode="decimal" placeholder="$${fmt(it.precioLista)}" data-item-field="precio" data-pres-id="${pr.id}" data-item-id="${it.id}" value="${it.precio}" style="width:66px; color:var(--accent);" />
+          <span style="font-size:12px; color:var(--text); min-width:58px; text-align:right;">$${fmt(it.subtotal)}</span>
+          <button class="del-btn" data-item-del="${pr.id}::${it.id}" style="padding:2px;">✕</button>
+        </div>
+        ${it.prod && it.precio !== "" && parseNum(it.precio) !== it.precioLista ? `
+        <div style="font-size:9.5px; color:var(--muted); margin:-2px 0 6px 4px;">Precio de lista: $${fmt(it.precioLista)}</div>` : ""}
+      `).join("")}
+      <button data-pres-additem="${pr.id}" style="background:transparent; border:1px dashed var(--line); border-radius:6px; color:var(--muted); font-size:11px; padding:5px 10px; cursor:pointer; font-family:inherit; margin-bottom:8px;">+ agregar producto</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px dashed var(--line); padding-top:8px;">
+        <span style="font-size:13px; font-weight:700;">Total: <span style="color:var(--accent);">$${fmt(total)}</span></span>
+        <div style="display:flex; gap:6px;">
+          <button data-pres-whatsapp="${pr.id}" style="padding:6px 10px; background:#25d366; border:none; border-radius:6px; color:#0b1f19; font-size:11px; font-weight:700; cursor:pointer;">WhatsApp</button>
+          <button data-pres-descargar="${pr.id}" style="padding:6px 10px; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; color:var(--text); font-size:11px; cursor:pointer;">PDF</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+  renderStockDisponible();
+}
+
+document.getElementById("add-presupuesto-btn").addEventListener("click", () => {
+  presupuestos.push(nuevoPresupuesto());
+  guardar();
+  renderPresupuestos();
+});
+
+document.getElementById("presupuestos-container").addEventListener("input", (e) => {
+  const presField = e.target.getAttribute("data-pres-field");
+  const itemField = e.target.getAttribute("data-item-field");
+  if (presField) {
+    const pr = presupuestos.find(p => p.id === e.target.getAttribute("data-pres-id"));
+    if (pr) { pr[presField] = e.target.value; guardar(); renderStockDisponible(); }
+  }
+  if (itemField) {
+    const pr = presupuestos.find(p => p.id === e.target.getAttribute("data-pres-id"));
+    const it = pr && pr.items.find(i => i.id === e.target.getAttribute("data-item-id"));
+    if (it) {
+      it[itemField] = e.target.value;
+      guardar();
+      renderPresupuestos();
+      const sel = `[data-pres-id="${pr.id}"][data-item-id="${it.id}"][data-item-field="${itemField}"]`;
+      const el = document.querySelector(sel);
+      if (el && (itemField === "cantidad" || itemField === "precio")) { el.focus(); const v = el.value; if (el.setSelectionRange) el.setSelectionRange(v.length, v.length); }
+    }
+  }
+});
+
+document.getElementById("presupuestos-container").addEventListener("change", (e) => {
+  const itemField = e.target.getAttribute("data-item-field");
+  if (itemField === "productoId") {
+    const pr = presupuestos.find(p => p.id === e.target.getAttribute("data-pres-id"));
+    const it = pr && pr.items.find(i => i.id === e.target.getAttribute("data-item-id"));
+    if (it) { it.productoId = e.target.value; guardar(); renderPresupuestos(); }
+  }
+});
+
+document.getElementById("presupuestos-container").addEventListener("click", (e) => {
+  const presDel = e.target.getAttribute("data-pres-del");
+  if (presDel) {
+    presupuestos = presupuestos.filter(p => p.id !== presDel);
+    guardar(); renderPresupuestos(); return;
+  }
+  const itemDel = e.target.getAttribute("data-item-del");
+  if (itemDel) {
+    const [presId, itemId] = itemDel.split("::");
+    const pr = presupuestos.find(p => p.id === presId);
+    if (pr && pr.items.length > 1) { pr.items = pr.items.filter(i => i.id !== itemId); guardar(); renderPresupuestos(); }
+    return;
+  }
+  const addItem = e.target.getAttribute("data-pres-additem");
+  if (addItem) {
+    const pr = presupuestos.find(p => p.id === addItem);
+    if (pr) { pr.items.push({ id: uid(), productoId: "", cantidad: "" }); guardar(); renderPresupuestos(); }
+    return;
+  }
+  const whatsappId = e.target.getAttribute("data-pres-whatsapp");
+  if (whatsappId) { enviarPresupuestoWhatsapp(whatsappId); return; }
+  const descargarId = e.target.getAttribute("data-pres-descargar");
+  if (descargarId) { descargarPresupuesto(descargarId); return; }
+});
+
+function datosPresupuesto(id) {
+  const pr = presupuestos.find(p => p.id === id);
+  const stock = getStockInfo();
+  const items = pr.items.map(it => {
+    const prod = stock.find(p => p.id === it.productoId);
+    const cant = parseNum(it.cantidad);
+    const precioUnit = it.precio !== "" ? parseNum(it.precio) : (prod ? prod.ventaUnit : 0);
+    return {
+      nombre: prod ? prod.nombre : "(elegir producto)",
+      foto: prod ? prod.foto : "",
+      descripcion: prod ? prod.descripcion : "",
+      precioUnit, cant, subtotal: precioUnit * cant
+    };
+  }).filter(it => it.cant > 0 && it.nombre !== "(elegir producto)");
+  const total = items.reduce((a, i) => a + i.subtotal, 0);
+  return { cliente: pr.cliente || "Cliente", items, total };
+}
+
+function enviarPresupuestoWhatsapp(id) {
+  const d = datosPresupuesto(id);
+  if (!d.items.length) { alert("Agregá al menos un producto con cantidad antes de enviar."); return; }
+  const lineas = d.items.map(i => `• ${i.nombre} — ${i.cant} u. x $${fmt(i.precioUnit)} = $${fmt(i.subtotal)}`).join("\n");
+  const texto = `Presupuesto — Jawa Logistic\nPara: ${d.cliente}\n\n${lineas}\n\nTOTAL: $${fmt(d.total)}`;
+  const url = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+  window.open(url, "_blank");
+}
+
+function descargarPresupuesto(id) {
+  const d = datosPresupuesto(id);
+  if (!d.items.length) { alert("Agregá al menos un producto con cantidad antes de descargar."); return; }
+  const fecha = new Date().toLocaleDateString("es-AR");
+
+  const itemsHtml = d.items.map(i => `
+    <div style="display:flex; gap:16px; padding:16px 0; border-bottom:1px solid #eee;">
+      ${i.foto ? `<img src="${i.foto}" style="width:90px; height:90px; object-fit:cover; border-radius:8px; flex:none;" />` : `<div style="width:90px; height:90px; border-radius:8px; background:#f2ede0; flex:none;"></div>`}
+      <div style="flex:1;">
+        <div style="font-weight:700; font-size:15px; color:#2C2416;">${i.nombre}</div>
+        ${i.descripcion ? `<div style="font-size:12px; color:#8a7a5f; margin-top:3px; line-height:1.4;">${i.descripcion}</div>` : ""}
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:10px;">
+          <span style="font-size:13px; color:#4a3b2a;">${i.cant} u. × $${fmt(i.precioUnit)}</span>
+          <span style="font-size:16px; font-weight:700; color:#B5622E;">$${fmt(i.subtotal)}</span>
+        </div>
+      </div>
+    </div>`).join("");
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Presupuesto — ${d.cliente}</title>
+    <style>
+      body { font-family: ui-monospace, Menlo, monospace; color:#2C2416; padding: 32px; max-width:720px; margin:0 auto; background:#fff; }
+      @media print { button { display: none; } body { padding:0; } }
+      .membrete { display:flex; align-items:center; gap:12px; padding-bottom:18px; border-bottom:2px solid #B5622E; margin-bottom:22px; }
+      .membrete-title { font-size:20px; font-weight:700; letter-spacing:1px; }
+      .membrete-sub { font-size:11px; color:#8a7a5f; letter-spacing:2px; text-transform:uppercase; }
+    </style></head>
+    <body>
+      <button onclick="window.print()" style="margin-bottom:20px;padding:10px 18px;font-size:13px;cursor:pointer;background:#B5622E;color:#fff;border:none;border-radius:6px;">Imprimir / Guardar como PDF</button>
+
+      <div class="membrete">
+        <svg width="52" height="52" viewBox="0 0 236 236">
+          <circle cx="118" cy="118" r="112" fill="#7a1f22" stroke="#e0942f" stroke-width="4"/>
+          <path d="M 54,137 Q 78,52 118,74 Q 150,93 182,103" fill="none" stroke="#f0913b" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="54" cy="137" r="8" fill="#e0942f"/><circle cx="118" cy="74" r="7" fill="#fff"/><circle cx="182" cy="103" r="8" fill="#ffd98a"/>
+        </svg>
+        <div>
+          <div class="membrete-title">JAWA LOGISTIC</div>
+          <div class="membrete-sub">China · Miami · Argentina</div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;">
+        <h1 style="font-size:19px; margin:0;">Presupuesto</h1>
+        <span style="font-size:12px; color:#8a7a5f;">${fecha}</span>
+      </div>
+      <div style="font-size:14px; color:#4a3b2a; margin-bottom:20px;">Para: <b>${d.cliente}</b></div>
+
+      ${itemsHtml}
+
+      <div style="margin-top:20px; display:flex; justify-content:flex-end;">
+        <div style="font-size:20px; font-weight:700;">Total: <span style="color:#B5622E;">$${fmt(d.total)}</span></div>
+      </div>
+
+      <div style="margin-top:32px; font-size:10.5px; color:#a89a80; border-top:1px solid #eee; padding-top:12px;">Presupuesto sujeto a confirmación de stock — Jawa Logistic.</div>
+    </body></html>`;
+
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `presupuesto-${d.cliente.toLowerCase().replace(/\s+/g,"-")}.html`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+
+function renderInformes() {
+  const calc = getCalculados().filter(p => p.nombre && p.cant > 0);
+  const t = getTotales();
+
+  // Proveedor
+  document.getElementById("fecha-proveedor").textContent = fechaHoy;
+  document.getElementById("tabla-proveedor").innerHTML = `
+    <thead><tr>
+      <th style="text-align:left; width:45%;">Producto</th>
+      <th style="white-space:nowrap;">Cant.</th>
+      <th style="white-space:nowrap;">FOB u.</th>
+      <th style="white-space:nowrap;">Total</th>
+    </tr></thead>
+    <tbody>${calc.length ? calc.map(p => `<tr>
+      <td style="word-break:break-word;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          ${p.foto ? `<img src="${p.foto}" style="width:36px; height:36px; object-fit:cover; border-radius:5px; flex:none;" />` : ""}
+          <span>${p.nombre}</span>
+        </div>
+      </td>
+      <td style="white-space:nowrap;">${p.cant}</td>
+      <td style="white-space:nowrap;">$${fmt(p.fob)}</td>
+      <td style="white-space:nowrap;">$${fmt(p.fobTotal)}</td>
+    </tr>`).join("") : `<tr><td colspan="4" class="empty-msg">Cargá productos en la solapa Calculadora para verlos acá.</td></tr>`}</tbody>
+  `;
+  document.getElementById("foot-proveedor").innerHTML = calc.length ? `
+    <div>Ítems: <b>${calc.length}</b></div>
+    <div>Unidades: <b>${calc.reduce((a,p)=>a+p.cant,0)}</b></div>
+    <div style="font-size:15px;font-weight:700;" class="accent">Total FOB: <b style="color:var(--accent)">$${fmt(t.fob)}</b></div>
+  ` : "";
+
+  // Flete
+  document.getElementById("fecha-flete").textContent = fechaHoy;
+  document.getElementById("tarifa-flete").textContent = `Aéreo: $${fmt(fleteRate)} USD/kg — Marítimo: $${fmt(fleteMaritimoRate)} USD/m³`;
+  document.getElementById("tabla-flete").innerHTML = `
+    <thead><tr><th style="text-align:left">Producto</th><th>Modo</th><th>Cant.</th><th>Medida total</th><th>Tarifa</th><th>Total a pagar</th></tr></thead>
+    <tbody>${calc.length ? calc.map(p => `<tr>
+      <td>${p.nombre}</td>
+      <td>${p.modoFlete === "maritimo" ? "🚢 Marítimo" : "✈️ Aéreo"}</td>
+      <td>${p.cant}</td>
+      <td>${p.medidaLabel}</td>
+      <td>$${fmt(p.modoFlete === "maritimo" ? fleteMaritimoRate : fleteRate)}/${p.modoFlete === "maritimo" ? "m³" : "kg"}</td>
+      <td>$${fmt(p.fleteTotal)}</td>
+    </tr>`).join("") : `<tr><td colspan="6" class="empty-msg">Cargá productos en la solapa Calculadora para verlos acá.</td></tr>`}</tbody>
+  `;
+  document.getElementById("foot-flete").innerHTML = calc.length ? `
+    <div>Peso aéreo: <b>${fmt(t.peso)} kg</b></div>
+    <div>Volumen marítimo: <b>${fmt(t.m3)} m³</b></div>
+    <div style="font-size:15px;font-weight:700;">Flete a pagar: <b style="color:var(--accent)">$${fmt(t.flete)}</b></div>
+  ` : "";
+
+  // Cliente
+  document.getElementById("fecha-cliente").textContent = fechaHoy;
+  document.getElementById("catalogo-cliente").innerHTML = calc.length ? calc.map(p => `
+    <div style="display:flex; gap:12px; padding:10px; background:var(--panel-2); border-radius:8px; border:1px solid var(--line);">
+      ${p.foto ? `<img src="${p.foto}" style="width:64px; height:64px; object-fit:cover; border-radius:6px; flex:none;" />` : `<div style="width:64px; height:64px; border-radius:6px; background:var(--panel); flex:none; display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--muted);">Sin foto</div>`}
+      <div style="flex:1; min-width:0;">
+        <div style="font-weight:700; font-size:13px;">${p.nombre}</div>
+        ${p.descripcion ? `<div style="font-size:11px; color:var(--muted); margin-top:2px;">${p.descripcion}</div>` : ""}
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+          <span style="font-size:11px; color:var(--muted);">Cant: ${p.cant} — $${fmt(p.ventaUnit)} c/u</span>
+          <span style="font-weight:700; color:var(--accent);">$${fmt(p.ventaTotal)}</span>
+        </div>
+      </div>
+    </div>
+  `).join("") : `<div class="empty-msg">Cargá productos en la solapa Calculadora para verlos acá.</div>`;
+  document.getElementById("foot-cliente").innerHTML = calc.length ? `
+    <div>Unidades: <b>${calc.reduce((a,p)=>a+p.cant,0)}</b></div>
+    <div style="font-size:15px;font-weight:700;">Total: <b style="color:var(--accent)">$${fmt(t.venta)}</b></div>
+  ` : "";
+}
+
+// ---------- Descargar para imprimir ----------
+// ---------- Informe completo para socios ----------
+function descargarInformeCompleto() {
+  const calc = getCalculados().filter(p => p.nombre && p.cant > 0);
+  const t = getTotales();
+  const fecha = new Date().toLocaleDateString("es-AR");
+
+  if (!calc.length) { alert("Cargá al menos un producto antes de generar el informe."); return; }
+
+  const productosHtml = calc.map(p => {
+    const modoTxt = p.modoFlete === "maritimo" ? "🚢 Marítimo" : p.modoFlete === "courier" ? "📦 Courier" : "✈️ Aéreo";
+    const modoIcono = p.modoFlete === "maritimo" ? "🚢" : p.modoFlete === "courier" ? "📦" : "✈️";
+    const modoNombre = p.modoFlete === "maritimo" ? "MARÍTIMO" : p.modoFlete === "courier" ? "COURIER (RÉGIMEN SIMPLIFICADO)" : "AÉREO";
+    const costoUnitElegido = p.modoFlete === "maritimo" ? p.costoUnitMaritimo : p.modoFlete === "courier" ? p.costoUnitCourier : p.costoUnitAereo;
+    const costoUnitElegidoARS = costoUnitElegido * dolarBlue;
+    const ventaUnitARS = p.ventaUnit * dolarBlue;
+    const convieneTxt = p.hayDatosAereo && p.hayDatosMaritimo
+      ? (p.convieneMaritimo ? "Marítimo conviene más" : "Aéreo conviene más")
+      : "Sin datos suficientes para comparar";
+
+    return `
+    <div style="page-break-inside:avoid; margin-bottom:28px; padding-bottom:24px; border-bottom:2px solid #eee;">
+      <div style="display:flex; gap:16px; margin-bottom:14px;">
+        ${p.foto ? `<img src="${p.foto}" style="width:84px; height:84px; object-fit:cover; border-radius:8px; flex:none;" />` : `<div style="width:84px; height:84px; border-radius:8px; background:#f2ede0; flex:none;"></div>`}
+        <div>
+          <div style="font-size:17px; font-weight:700; color:#2C2416;">${p.nombre}</div>
+          ${p.descripcion ? `<div style="font-size:12px; color:#8a7a5f; margin-top:3px;">${p.descripcion}</div>` : ""}
+          <div style="font-size:12px; color:#4a3b2a; margin-top:6px;">Cantidad: <b>${p.cant} u.</b> — FOB: <b>$${fmt(p.fob)}</b>/u.</div>
+        </div>
+      </div>
+
+      <div style="background:#2C2416; border-radius:8px; padding:14px 16px; margin-bottom:14px; color:#fff;">
+        <div style="font-size:9px; color:#c9bda3; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Método seleccionado</div>
+        <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;">
+          <div style="font-size:18px; font-weight:700;">${modoIcono} ${modoNombre}</div>
+          <div style="text-align:right;">
+            <div style="font-size:20px; font-weight:700; color:#E29257;">$${fmt(costoUnitElegido)} USD/u.</div>
+            <div style="font-size:12px; color:#c9bda3;">≈ $${fmt(costoUnitElegidoARS)} ARS/u. (blue $${fmt(dolarBlue)})</div>
+          </div>
+        </div>
+        ${p.modoFlete === "courier" ? `
+        <div style="margin-top:10px; padding:8px 10px; border-radius:6px; font-size:11px; ${p.courierEnRiesgo ? "background:rgba(224,80,80,0.25);" : "background:rgba(95,216,143,0.2);"}">
+          ${p.courierEnRiesgo
+            ? `🔴 Fuera del régimen simplificado: ${p.excedePesoCourier ? `peso (${fmt(p.pesoTotalCourierKg)} kg) supera 50 kg. ` : ""}${p.excedeValorCourier ? `CIF ($${fmt(p.cifTotalCourier)}) supera USD 3.000.` : ""}`
+            : `🟢 Dentro de los límites (peso: ${fmt(p.pesoTotalCourierKg)}/50 kg · CIF: $${fmt(p.cifTotalCourier)}/$3.000)`}
+        </div>` : ""}
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#f0e4d0; border-radius:6px; padding:8px 12px; margin-bottom:10px;">
+        <span style="font-size:11px; color:#6b5d47; text-transform:uppercase; letter-spacing:0.5px;">Margen de ganancia aplicado</span>
+        <span style="font-size:18px; font-weight:700; color:#B5622E;">${fmt(p.margen)}%</span>
+      </div>
+
+      <table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:10px;">
+        <thead><tr style="background:#f7f3ea;">
+          <th style="text-align:left; padding:6px 8px; border-bottom:1px solid #ddd;">Vía</th>
+          <th style="text-align:right; padding:6px 8px; border-bottom:1px solid #ddd;">Medida</th>
+          <th style="text-align:right; padding:6px 8px; border-bottom:1px solid #ddd;">Flete u.</th>
+          <th style="text-align:right; padding:6px 8px; border-bottom:1px solid #ddd;">Impuestos u.</th>
+          <th style="text-align:right; padding:6px 8px; border-bottom:1px solid #ddd;">Costo u.</th>
+          <th style="text-align:right; padding:6px 8px; border-bottom:1px solid #ddd;">Total compra</th>
+        </tr></thead>
+        <tbody>
+          <tr style="${p.modoFlete!=="maritimo"&&p.modoFlete!=="courier"?"background:#fdf3ec; font-weight:700;":""}">
+            <td style="padding:6px 8px; border-bottom:1px solid #eee;">✈️ Aéreo${p.modoFlete!=="maritimo"&&p.modoFlete!=="courier"?" ✓":""}</td>
+            <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee;">${fmt(p.pesoKg*p.cant)} kg</td>
+            <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee;">$${fmt(p.fleteUnitAereo)}</td>
+            <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee; color:#999;">—</td>
+            <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee; font-size:${p.modoFlete!=="maritimo"&&p.modoFlete!=="courier"?"15px":"12px"};">$${fmt(p.costoUnitAereo)}</td>
+            <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee;">$${fmt(p.costoUnitAereo*p.cant)}</td>
+          </tr>
+          <tr style="${p.modoFlete==="maritimo"?"background:#fdf3ec; font-weight:700;":""}">
+            <td style="padding:6px 8px; border-bottom:1px solid #eee;">🚢 Marítimo${p.modoFlete==="maritimo"?" ✓":""}</td>
+            <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee;">${fmt(p.m3Total)} m³</td>
+            <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee;">$${fmt(p.fleteUnitMaritimo)}</td>
+            <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee; color:#999;">—</td>
+            <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee; font-size:${p.modoFlete==="maritimo"?"15px":"12px"};">$${fmt(p.costoUnitMaritimo)}</td>
+            <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee;">$${fmt(p.costoUnitMaritimo*p.cant)}</td>
+          </tr>
+          <tr style="${p.modoFlete==="courier"?"background:#fdf3ec; font-weight:700;":""}">
+            <td style="padding:6px 8px;">📦 Courier${p.modoFlete==="courier"?" ✓":""}</td>
+            <td style="text-align:right; padding:6px 8px;">CIF $${fmt(p.cifTotalCourier)}</td>
+            <td style="text-align:right; padding:6px 8px;">$${fmt(p.cant > 0 ? p.fleteCourierTotal / p.cant : 0)}</td>
+            <td style="text-align:right; padding:6px 8px; color:#c0392b;">$${fmt(p.cant > 0 ? p.derechosImportacionCourier / p.cant : 0)}</td>
+            <td style="text-align:right; padding:6px 8px; font-size:${p.modoFlete==="courier"?"15px":"12px"};">$${fmt(p.costoUnitCourier)}</td>
+            <td style="text-align:right; padding:6px 8px;">$${fmt(p.costoTotalCourier)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="font-size:9.5px; color:#a89a80; margin-bottom:4px;">Alícuota courier aplicada: ${fmt(alicuotaCourier)}% sobre CIF. Aéreo y marítimo no contemplan impuestos aduaneros en este informe.</div>
+      <div style="font-size:11px; color:#8a7a5f; margin-bottom:14px;">${convieneTxt}</div>
+
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:${p.hayReferencia ? "14px" : "0"};">
+        <div style="background:#f7f3ea; border-radius:6px; padding:8px 10px;">
+          <div style="font-size:9px; color:#8a7a5f; text-transform:uppercase;">Costo final u.</div>
+          <div style="font-size:14px; font-weight:700;">$${fmt(p.costoUnit)}</div>
+          <div style="font-size:10px; color:#8a7a5f;">≈ $${fmt(p.costoUnit * dolarBlue)} ARS</div>
+        </div>
+        <div style="background:#f7f3ea; border-radius:6px; padding:8px 10px;">
+          <div style="font-size:9px; color:#8a7a5f; text-transform:uppercase;">Venta u.</div>
+          <div style="font-size:14px; font-weight:700; color:#B5622E;">$${fmt(p.ventaUnit)}</div>
+          <div style="font-size:10px; color:#8a7a5f;">≈ $${fmt(p.ventaUnit * dolarBlue)} ARS</div>
+        </div>
+        <div style="background:#f7f3ea; border-radius:6px; padding:8px 10px;">
+          <div style="font-size:9px; color:#8a7a5f; text-transform:uppercase;">Ganancia total</div>
+          <div style="font-size:14px; font-weight:700; color:#B5622E;">$${fmt(p.gananciaTotal)}</div>
+          <div style="font-size:10px; color:#8a7a5f;">≈ $${fmt(p.gananciaTotal * dolarBlue)} ARS</div>
+        </div>
+      </div>
+
+      ${p.hayReferencia ? `
+      <div style="background:${p.gananciaPotencial > 0 ? "#eef7ee" : "#fdeeee"}; border-radius:8px; padding:14px; border:1px solid ${p.gananciaPotencial > 0 ? "#cfe6cf" : "#f0c9c9"};">
+        <div style="font-size:10px; color:#6b5d47; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">Margen aplicado vs. margen real contra Mercado Libre</div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:10px;">
+          <div>
+            <div style="font-size:9px; color:#8a7a5f; text-transform:uppercase;">Precio ref. ML</div>
+            <div style="font-size:15px; font-weight:700;">$${fmt(p.precioReferenciaUSD)} USD</div>
+            <div style="font-size:9.5px; color:#8a7a5f;">($${fmt(p.precioReferenciaAR)} ARS)</div>
+          </div>
+          <div>
+            <div style="font-size:9px; color:#8a7a5f; text-transform:uppercase;">Costo puesto en Arg.</div>
+            <div style="font-size:15px; font-weight:700;">$${fmt(p.costoUnit)} USD</div>
+          </div>
+          <div>
+            <div style="font-size:9px; color:#8a7a5f; text-transform:uppercase;">Ganancia si vendés a ML</div>
+            <div style="font-size:15px; font-weight:700; color:${p.gananciaPotencial > 0 ? "#1d7a4a" : "#a33"};">$${fmt(p.gananciaPotencial)} USD</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div style="flex:1;">
+            <div style="font-size:9.5px; color:#6b5d47; margin-bottom:3px;">Margen aplicado por vos: <b>${fmt(p.margen)}%</b></div>
+            <div style="height:8px; background:#e5ddc8; border-radius:4px; overflow:hidden;">
+              <div style="height:100%; width:${Math.min(100, Math.max(0, p.margen))}%; background:#c9bda3;"></div>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:9.5px; color:#6b5d47; margin-bottom:3px;">Margen real vs. ML: <b style="color:${p.margenSobrePrecio > p.margen ? "#1d7a4a" : "#a33"};">${fmt(p.margenSobrePrecio)}%</b></div>
+            <div style="height:8px; background:#e5ddc8; border-radius:4px; overflow:hidden;">
+              <div style="height:100%; width:${Math.min(100, Math.max(0, p.margenSobrePrecio))}%; background:${p.margenSobrePrecio > p.margen ? "#0F6E56" : "#B5622E"};"></div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:10px; font-size:12px;">
+          ${p.margenSobrePrecio > p.margen
+            ? `📈 El mercado paga más de lo que estimaste: podrías vender con <b>${fmt(p.margenSobrePrecio - p.margen)} puntos más</b> de margen que tu ${fmt(p.margen)}% aplicado.`
+            : `📉 El mercado paga menos de lo que estimaste: tu ${fmt(p.margen)}% aplicado no se sostiene, el margen real es ${fmt(p.margenSobrePrecio)}%.`}
+          — ${p.gananciaPotencial <= 0 ? "⚠️ No viable" : p.margenSobrePrecio < 20 ? "⚠️ Margen ajustado" : "✅ Viable"}
+        </div>
+        <div style="margin-top:12px; padding-top:10px; border-top:1px dashed #d8cfb8; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; font-size:11px;">
+          <div style="${p.modoFlete!=="maritimo"&&p.modoFlete!=="courier" ? "font-weight:700;" : "opacity:0.6;"}">✈️ Avión: <b style="color:${p.gananciaPotencialAereo > 0 ? "#1d7a4a" : "#a33"};">$${fmt(p.gananciaPotencialAereo)}</b> (${fmt(p.margenSobrePrecioAereo)}%)${p.modoFlete!=="maritimo"&&p.modoFlete!=="courier" ? " 👈" : ""}</div>
+          <div style="${p.modoFlete==="maritimo" ? "font-weight:700;" : "opacity:0.6;"}">🚢 Barco: <b style="color:${p.gananciaPotencialMaritimo > 0 ? "#1d7a4a" : "#a33"};">$${fmt(p.gananciaPotencialMaritimo)}</b> (${fmt(p.margenSobrePrecioMaritimo)}%)${p.modoFlete==="maritimo" ? " 👈" : ""}</div>
+          <div style="${p.modoFlete==="courier" ? "font-weight:700;" : "opacity:0.6;"}">📦 Courier: <b style="color:${p.gananciaPotencialCourier > 0 ? "#1d7a4a" : "#a33"};">$${fmt(p.gananciaPotencialCourier)}</b> (${fmt(p.margenSobrePrecioCourier)}%)${p.modoFlete==="courier" ? " 👈" : ""}</div>
+        </div>
+      </div>` : ""}
+    </div>`;
+  }).join("");
+
+  const tituloInforme = calc.length === 1
+    ? `Informe — ${calc[0].nombre} — Jawa Logistic`
+    : `Informe — ${calc[0].nombre} y ${calc.length - 1} más — Jawa Logistic`;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${tituloInforme}</title>
+    <style>
+      body { font-family: ui-monospace, Menlo, monospace; color:#2C2416; padding: 32px; max-width:820px; margin:0 auto; background:#fff; position:relative; }
+      @media print { button { display: none; } body { padding:16px; } }
+      .membrete { display:flex; align-items:center; gap:12px; padding-bottom:18px; border-bottom:2px solid #B5622E; margin-bottom:24px; }
+      .membrete-title { font-size:20px; font-weight:700; letter-spacing:1px; }
+      .membrete-sub { font-size:11px; color:#8a7a5f; letter-spacing:2px; text-transform:uppercase; }
+
+      .watermark {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+        display: flex;
+        flex-wrap: wrap;
+        align-content: center;
+        justify-content: center;
+        gap: 60px;
+        transform: rotate(-30deg) scale(1.4);
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .watermark span {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: #B5622E;
+        opacity: 0.07;
+        white-space: nowrap;
+      }
+      .contenido { position: relative; z-index: 1; }
+    </style></head>
+    <body>
+      <div class="watermark">${Array(60).fill("<span>JAWA LOGISTIC</span>").join("")}</div>
+      <div class="contenido">
+      <button onclick="window.print()" style="margin-bottom:20px;padding:10px 18px;font-size:13px;cursor:pointer;background:#B5622E;color:#fff;border:none;border-radius:6px;">Imprimir / Guardar como PDF</button>
+
+      <div class="membrete">
+        <svg width="52" height="52" viewBox="0 0 236 236">
+          <circle cx="118" cy="118" r="112" fill="#7a1f22" stroke="#e0942f" stroke-width="4"/>
+          <path d="M 54,137 Q 78,52 118,74 Q 150,93 182,103" fill="none" stroke="#f0913b" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="54" cy="137" r="8" fill="#e0942f"/><circle cx="118" cy="74" r="7" fill="#fff"/><circle cx="182" cy="103" r="8" fill="#ffd98a"/>
+        </svg>
+        <div>
+          <div class="membrete-title">JAWA LOGISTIC</div>
+          <div class="membrete-sub">China · Miami · Argentina</div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px;">
+        <h1 style="font-size:20px; margin:0;">Informe completo de costos y rentabilidad</h1>
+        <span style="font-size:12px; color:#8a7a5f;">${fecha}</span>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:10px;">
+        <div style="background:#faf6ee; border:1px solid #eee2c8; border-radius:8px; padding:12px;">
+          <div style="font-size:9px; color:#8a7a5f; text-transform:uppercase;">Productos</div>
+          <div style="font-size:16px; font-weight:700;">${calc.length}</div>
+        </div>
+        <div style="background:#faf6ee; border:1px solid #eee2c8; border-radius:8px; padding:12px;">
+          <div style="font-size:9px; color:#8a7a5f; text-transform:uppercase;">Unidades totales</div>
+          <div style="font-size:16px; font-weight:700;">${calc.reduce((a,p)=>a+p.cant,0)}</div>
+        </div>
+        <div style="background:#faf6ee; border:1px solid #eee2c8; border-radius:8px; padding:12px;">
+          <div style="font-size:9px; color:#8a7a5f; text-transform:uppercase;">Peso total</div>
+          <div style="font-size:16px; font-weight:700;">${fmt(t.peso)} kg</div>
+        </div>
+        <div style="background:#faf6ee; border:1px solid #eee2c8; border-radius:8px; padding:12px;">
+          <div style="font-size:9px; color:#8a7a5f; text-transform:uppercase;">Volumen total</div>
+          <div style="font-size:16px; font-weight:700;">${fmt(t.m3)} m³</div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:28px;">
+        <div style="background:#faf6ee; border:1px solid #eee2c8; border-radius:8px; padding:12px;">
+          <div style="font-size:9px; color:#8a7a5f; text-transform:uppercase;">FOB total</div>
+          <div style="font-size:16px; font-weight:700;">$${fmt(t.fob)}</div>
+        </div>
+        <div style="background:#faf6ee; border:1px solid #eee2c8; border-radius:8px; padding:12px;">
+          <div style="font-size:9px; color:#8a7a5f; text-transform:uppercase;">Flete a pagar</div>
+          <div style="font-size:16px; font-weight:700;">$${fmt(t.flete)}</div>
+        </div>
+        <div style="background:#faf6ee; border:1px solid #eee2c8; border-radius:8px; padding:12px;">
+          <div style="font-size:9px; color:#8a7a5f; text-transform:uppercase;">Costo total</div>
+          <div style="font-size:16px; font-weight:700;">$${fmt(t.costo)}</div>
+        </div>
+      </div>
+
+      <div style="background:#fdf3ec; border:1px solid #f0d8c0; border-radius:8px; padding:14px; margin-bottom:28px; text-align:center;">
+        <div style="font-size:9px; color:#8a7a5f; text-transform:uppercase;">Ganancia total estimada</div>
+        <div style="font-size:22px; font-weight:700; color:#B5622E;">$${fmt(t.ganancia)}</div>
+        <div style="font-size:11px; color:#8a7a5f;">≈ $${fmt(t.ganancia * dolarBlue)} ARS al blue de hoy ($${fmt(dolarBlue)})</div>
+      </div>
+
+      <div style="font-size:9px; color:#a89a80; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Composición del costo total</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:28px; align-items:center;">
+        <div style="position:relative; height:200px;"><canvas id="chartTorta"></canvas></div>
+        <div style="font-size:12px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="width:12px;height:12px;background:#B5622E;border-radius:3px;display:inline-block;"></span>
+            FOB: $${fmt(t.fob)} (${t.fob + t.flete > 0 ? Math.round(t.fob / (t.fob + t.flete) * 100) : 0}%)
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="width:12px;height:12px;background:#0F6E56;border-radius:3px;display:inline-block;"></span>
+            Flete: $${fmt(t.flete)} (${t.fob + t.flete > 0 ? Math.round(t.flete / (t.fob + t.flete) * 100) : 0}%)
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:9px; color:#a89a80; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Costo vs. venta vs. ganancia por producto</div>
+      <div style="position:relative; height:${Math.max(220, calc.length * 60)}px; margin-bottom:28px;"><canvas id="chartBarras"></canvas></div>
+
+      <div style="font-size:9px; color:#a89a80; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Detalle por producto</div>
+      ${productosHtml}
+
+      <div style="margin-top:20px; font-size:10.5px; color:#a89a80; border-top:1px solid #eee; padding-top:12px;">
+        Informe generado con fines internos — valores estimados sujetos a variación de tarifas de flete y tipo de cambio. Dólar blue de referencia usado: $${fmt(dolarBlue)}.
+      </div>
+
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"><\/script>
+      <script>
+        new Chart(document.getElementById("chartTorta"), {
+          type: "doughnut",
+          data: {
+            labels: ["FOB (proveedor)", "Flete"],
+            datasets: [{ data: [${t.fob}, ${t.flete}], backgroundColor: ["#B5622E", "#0F6E56"], borderWidth: 0 }]
+          },
+          options: { plugins: { legend: { display: false } }, cutout: "62%" }
+        });
+
+        new Chart(document.getElementById("chartBarras"), {
+          type: "bar",
+          data: {
+            labels: ${JSON.stringify(calc.map(p => (p.nombre.length > 22 ? p.nombre.slice(0, 22) + "…" : p.nombre) + " (" + p.cant + "u.)"))},
+            datasets: [
+              { label: "Costo", data: ${JSON.stringify(calc.map(p => Math.round(p.costoTotal * 100) / 100))}, backgroundColor: "#c9bda3" },
+              { label: "Venta", data: ${JSON.stringify(calc.map(p => Math.round(p.ventaTotal * 100) / 100))}, backgroundColor: "#B5622E" },
+              { label: "Ganancia", data: ${JSON.stringify(calc.map(p => Math.round(p.gananciaTotal * 100) / 100))}, backgroundColor: "#0F6E56" }
+            ]
+          },
+          options: {
+            indexAxis: "y",
+            layout: { padding: { left: 4, right: 12 } },
+            plugins: { legend: { position: "top", labels: { font: { size: 11 } } } },
+            scales: {
+              x: { ticks: { callback: function(v) { return "$" + v; } } },
+              y: { ticks: { font: { size: 10 } } }
+            }
+          }
+        });
+      <\/script>
+      </div>
+    </body></html>`;
+
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const nombreArchivo = calc.length === 1
+    ? calc[0].nombre.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9\-]/g,"").slice(0, 40)
+    : `${calc[0].nombre.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9\-]/g,"").slice(0, 25)}-y-${calc.length - 1}-mas`;
+  a.href = url; a.download = `informe-${nombreArchivo}-${fecha.replace(/\//g,"-")}.html`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+document.getElementById("informe-completo-btn").addEventListener("click", descargarInformeCompleto);
+
+function descargarInforme(titulo, subtitulo, columnas, filas, extraHtml) {
+  const filasHtml = filas.map(f => `<tr>${f.map((v,i)=>`<td style="text-align:${i===0?"left":"right"};padding:7px 8px;border-bottom:1px solid #ddd;${i===0?"word-break:break-word;max-width:280px;":"white-space:nowrap;"}">${v}</td>`).join("")}</tr>`).join("");
+  const cabecera = columnas.map((c,i)=>`<th style="text-align:${i===0?"left":"right"};padding:6px 8px;border-bottom:1px solid #999;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#555;${i===0?"":"white-space:nowrap;"}">${c}</th>`).join("");
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${titulo}</title>
+    <style>
+      body{font-family:ui-monospace,Menlo,monospace;color:#111;padding:24px;}
+      h1{font-size:18px;margin:0 0 2px;} p.sub{font-size:12px;color:#666;margin:0 0 18px;}
+      table{width:100%;border-collapse:collapse;font-size:13px;}
+      @media print{ button{display:none;} }
+    </style></head><body>
+    <button onclick="window.print()" style="margin-bottom:16px;padding:8px 16px;font-size:13px;cursor:pointer;">Imprimir esta página</button>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+      <svg width="26" height="26" viewBox="0 0 236 236">
+        <circle cx="118" cy="118" r="112" fill="#7a1f22" stroke="#e0942f" stroke-width="4"/>
+        <path d="M 54,137 Q 78,52 118,74 Q 150,93 182,103" fill="none" stroke="#f0913b" stroke-width="7" stroke-linecap="round"/>
+      </svg>
+      <span style="font-size:12px;font-weight:700;letter-spacing:.5px;color:#555;">JAWA LOGISTIC</span>
+    </div>
+    <h1>${titulo}</h1><p class="sub">${subtitulo}</p>
+    <table><thead><tr>${cabecera}</tr></thead><tbody>${filasHtml || `<tr><td colspan="${columnas.length}" style="padding:14px 8px;color:#888;">Sin productos cargados</td></tr>`}</tbody></table>
+    ${extraHtml || ""}
+    </body></html>`;
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = titulo.toLowerCase().replace(/\s+/g,"-") + ".html";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+document.getElementById("btn-imprimir-proveedor").addEventListener("click", () => {
+  const calc = getCalculados().filter(p => p.nombre && p.cant > 0);
+  const t = getTotales();
+  descargarInforme("Pedido a proveedor", `Precios FOB — sin flete ni margen · ${fechaHoy}`,
+    ["Producto","Cant.","FOB u.","Total"],
+    calc.map(p => [
+      `${p.foto ? `<img src="${p.foto}" style="width:36px;height:36px;object-fit:cover;border-radius:5px;vertical-align:middle;margin-right:8px;" />` : ""}${p.nombre}`,
+      p.cant,
+      `$${fmt(p.fob)}`,
+      `$${fmt(p.fobTotal)}`
+    ]),
+    `<div style="margin-top:14px;display:flex;justify-content:flex-end;gap:24px;font-size:14px;">
+      <div>Ítems: <b>${calc.length}</b></div><div>Unidades: <b>${calc.reduce((a,p)=>a+p.cant,0)}</b></div>
+      <div style="font-weight:700;">Total FOB: $${fmt(t.fob)}</div>
+    </div>`);
+});
+
+document.getElementById("btn-imprimir-flete").addEventListener("click", () => {
+  const calc = getCalculados().filter(p => p.nombre && p.cant > 0);
+  const t = getTotales();
+  descargarInforme("Flete", `Aéreo: $${fmt(fleteRate)} USD/kg — Marítimo: $${fmt(fleteMaritimoRate)} USD/m³ · ${fechaHoy}`,
+    ["Producto","Modo","Cant.","Medida total","Tarifa","Total a pagar"],
+    calc.map(p => [
+      p.nombre,
+      p.modoFlete === "maritimo" ? "Marítimo" : "Aéreo",
+      p.cant,
+      p.medidaLabel,
+      `$${fmt(p.modoFlete === "maritimo" ? fleteMaritimoRate : fleteRate)}/${p.modoFlete === "maritimo" ? "m³" : "kg"}`,
+      `$${fmt(p.fleteTotal)}`
+    ]),
+    `<div style="margin-top:14px;display:flex;justify-content:flex-end;gap:24px;font-size:14px;">
+      <div>Peso aéreo: <b>${fmt(t.peso)} kg</b></div>
+      <div>Volumen marítimo: <b>${fmt(t.m3)} m³</b></div>
+      <div style="font-weight:700;">Flete a pagar: $${fmt(t.flete)}</div>
+    </div>`);
+});
+
+document.getElementById("btn-imprimir-cliente").addEventListener("click", () => {
+  const calc = getCalculados().filter(p => p.nombre && p.cant > 0);
+  const t = getTotales();
+  const totalUnidades = calc.reduce((a,p)=>a+p.cant,0);
+
+  const itemsHtml = calc.map(p => `
+    <div style="display:flex; gap:14px; padding:14px 0; border-bottom:1px solid #eee;">
+      ${p.foto ? `<img src="${p.foto}" style="width:80px; height:80px; object-fit:cover; border-radius:8px; flex:none;" />` : `<div style="width:80px; height:80px; border-radius:8px; background:#f0f0f0; flex:none;"></div>`}
+      <div style="flex:1;">
+        <div style="font-weight:700; font-size:14px;">${p.nombre}</div>
+        ${p.descripcion ? `<div style="font-size:12px; color:#666; margin-top:3px;">${p.descripcion}</div>` : ""}
+        <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:13px;">
+          <span>Cant: ${p.cant} — $${fmt(p.ventaUnit)} c/u</span>
+          <span style="font-weight:700;">$${fmt(p.ventaTotal)}</span>
+        </div>
+      </div>
+    </div>`).join("");
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Lista de precios</title>
+    <style>
+      body { font-family: ui-monospace, Menlo, monospace; color:#111; padding: 24px; }
+      h1 { font-size: 18px; margin: 0 0 2px; } p.sub { font-size: 12px; color:#666; margin: 0 0 18px; }
+      @media print { button { display: none; } }
+    </style></head>
+    <body>
+      <button onclick="window.print()" style="margin-bottom:16px;padding:8px 16px;font-size:13px;cursor:pointer;">Imprimir esta página</button>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <svg width="26" height="26" viewBox="0 0 236 236">
+          <circle cx="118" cy="118" r="112" fill="#7a1f22" stroke="#e0942f" stroke-width="4"/>
+          <path d="M 54,137 Q 78,52 118,74 Q 150,93 182,103" fill="none" stroke="#f0913b" stroke-width="7" stroke-linecap="round"/>
+        </svg>
+        <span style="font-size:12px;font-weight:700;letter-spacing:.5px;color:#555;">JAWA LOGISTIC</span>
+      </div>
+      <h1>Lista de precios</h1><p class="sub">Precios finales · ${fechaHoy}</p>
+      ${itemsHtml || `<div style="padding:14px 0;color:#888;">Sin productos cargados</div>`}
+      <div style="margin-top:18px; display:flex; justify-content:flex-end; gap:24px; font-size:14px;">
+        <div>Unidades: <b>${totalUnidades}</b></div>
+        <div style="font-weight:700;">Total: $${fmt(t.venta)}</div>
+      </div>
+    </body></html>`;
+
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "lista-de-precios.html";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+});
+
+// ---------- Init ----------
+renderEditor();
+renderInformes();
+renderPresupuestos();
+</script>
+</body>
+</html>
