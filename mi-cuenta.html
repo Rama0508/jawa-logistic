@@ -176,7 +176,11 @@ try {
 
       const params = new URLSearchParams(location.search);
       const volver = params.get("volver");
-      if (volver) { location.href = volver; return; }
+      // Solo redirigimos a una ruta relativa dentro del propio sitio — nunca
+      // a una URL absoluta ni protocol-relative (//dominio-ajeno.com), que
+      // permitiría usar este link de login como open redirect a un sitio de
+      // phishing.
+      if (volver && volver.startsWith("/") && !volver.startsWith("//")) { location.href = volver; return; }
 
       const { data: pedidos } = await supabaseClient
         .from("pedidos")
