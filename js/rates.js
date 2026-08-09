@@ -30,7 +30,7 @@ let FLETE_RATES = {
 let CBM_MINIMO = 0.5;
 let DIVISOR_VOLUMETRICO_AEREO = 6000;
 let RATE_COURIER_USD_KG = 0;
-let COURIER_REGIMEN = { limitePesoKg: 50, limiteCifUsd: 3000, alicuota: 0.5 };
+let COURIER_REGIMEN = { limitePesoKg: 50, limiteCifUsd: 3000, alicuota: 0.5, maxUnidadesMismaEspecie: 3 };
 
 // Se resuelve cuando las tarifas reales ya están cargadas. El resto del código
 // espera este evento antes de habilitar los botones de calcular.

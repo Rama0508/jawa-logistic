@@ -282,6 +282,26 @@ function mejorEmpaque(cajaL, cajaW, cajaH, prodL, prodW, prodH) {
   return mejor;
 }
 
+// Avisa si el pedido se pasa de los topes del régimen simplificado de envíos
+// courier (peso, valor FOB o unidades de la misma especie por envío). Pasarse
+// de estos límites no es un problema de nuestro precio — es que el envío deja
+// de calificar para este régimen y pasa a trámite formal con despachante de
+// aduana, un proceso distinto. Mejor avisar antes de que el cliente confirme.
+function avisoLimiteRegimen(pesoKg, fobTotal, unidades) {
+  const motivos = [];
+  if (pesoKg > COURIER_REGIMEN.limitePesoKg) {
+    motivos.push(`el peso (${pesoKg.toFixed(1)}kg) supera el máximo de ${COURIER_REGIMEN.limitePesoKg}kg`);
+  }
+  if (fobTotal > COURIER_REGIMEN.limiteCifUsd) {
+    motivos.push(`el valor FOB (USD ${fobTotal.toFixed(2)}) supera el máximo de USD ${COURIER_REGIMEN.limiteCifUsd}`);
+  }
+  if (unidades && unidades > COURIER_REGIMEN.maxUnidadesMismaEspecie) {
+    motivos.push(`la cantidad (${unidades} unidades) supera el máximo de ${COURIER_REGIMEN.maxUnidadesMismaEspecie} unidades de la misma especie`);
+  }
+  if (!motivos.length) return "";
+  return `<div class="fc-result-row warn">⚠️ Este pedido no entra en el régimen simplificado: ${motivos.join("; ")}. Pasa a trámite formal con despachante de aduana — <a href="#contacto">escribinos</a> antes de confirmar para coordinarlo.</div>`;
+}
+
 try {
   (function () {
     const tabSea = document.getElementById("fc-tab-sea");
@@ -375,6 +395,7 @@ try {
         <div class="fc-result-row"><span>CBM a cobrar (mínimo ${CBM_MINIMO})</span><span class="v">${cbmCobrable.toFixed(3)} m³</span></div>
         <div class="fc-result-row math">${cbmCobrable.toFixed(3)} m³ × $${fmt(rate)}/m³ (${origenLabel(origenSea)}) = $${fmt(costoFlete)}</div>
         ${sinTarifa ? `<div class="fc-result-row warn">⚠️ Tarifa no configurada todavía para este origen</div>` : ""}
+        ${avisoLimiteRegimen(pesoKg, fob, unidadesTotales)}
         <div class="fc-result-total"><span class="lbl">Total estimado (flete + FOB)</span><span class="val">$${fmt(total)}</span></div>
       `;
 
@@ -427,6 +448,7 @@ try {
         <div class="fc-result-row"><span>Peso a cobrar (el mayor)</span><span class="v">${pesoCobrable.toFixed(2)} kg</span></div>
         <div class="fc-result-row"><span>Tarifa (${origenLabel(origenAir)})</span><span class="v">$${fmt(rate)} / kg</span></div>
         ${sinTarifa ? `<div class="fc-result-row warn">⚠️ Tarifa no configurada todavía para este origen</div>` : ""}
+        ${avisoLimiteRegimen(pesoCobrable, fob, qty)}
         <div class="fc-result-total"><span class="lbl">Total estimado</span><span class="val">$${fmt(total)}</span></div>
       `;
       document.getElementById("fc-result-air").classList.add("show");
@@ -465,7 +487,9 @@ function getTotales() {
     items: acc.items + (p.nombre && p.cant > 0 ? 1 : 0),
     unidades: acc.unidades + p.cant,
     total: acc.total + p.costoTotal,
-  }), { items: 0, unidades: 0, total: 0 });
+    pesoTotalKg: acc.pesoTotalKg + p.pesoKg * p.cant,
+    fobTotal: acc.fobTotal + p.fob * p.cant,
+  }), { items: 0, unidades: 0, total: 0, pesoTotalKg: 0, fobTotal: 0 });
 }
 
 // ---------- Render ----------
@@ -516,6 +540,7 @@ function render() {
     <div class="resumen-row"><span>Productos cargados</span><span>${t.items}</span></div>
     <div class="resumen-row"><span>Unidades totales</span><span>${t.unidades}</span></div>
     <div class="resumen-row total"><span>Total del pedido</span><span class="val">$${fmt(t.total)}</span></div>
+    ${avisoLimiteRegimen(t.pesoTotalKg, t.fobTotal, t.unidades)}
   `;
 }
 

@@ -12,6 +12,8 @@
     --line:#dde1e8;
     --muted:#5b6472;
     --white:#ffffff;
+    --font-body: 'IBM Plex Sans', -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-display: 'Oswald', -apple-system, "Segoe UI", Arial, sans-serif;
     font-size: 16px;
   }
   * { box-sizing: border-box; }
@@ -22,12 +24,13 @@
   }
   body {
     margin:0; background:var(--paper); color:var(--ink);
-    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
   }
   a { color:inherit; }
   img, svg { display:block; max-width:100%; }
   .wrap { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+  h1, h2, h3 { font-family: var(--font-display); }
   .data { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-variant-numeric: tabular-nums; }
   .eyebrow { font-size: 11px; font-weight:700; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
   .eyebrow.on-dark { color: var(--gold-bright); }
@@ -52,7 +55,7 @@
   .navbar-inner { max-width: 1100px; margin: 0 auto; padding: 13px 20px; display:flex; align-items:center; justify-content:space-between; gap:16px; position:relative; }
   .brand { display:flex; align-items:center; gap:10px; text-decoration:none; }
   .logo-box { width:34px; height:34px; flex:none; }
-  .brand-name { font-size:15px; font-weight:800; letter-spacing:-.01em; color: var(--navy); }
+  .brand-name { font-family: var(--font-display); font-size:16px; font-weight:700; letter-spacing:.01em; color: var(--navy); text-transform:uppercase; }
   .nav-links { display:flex; align-items:center; gap:22px; }
   .nav-links a { font-size:13px; font-weight:600; text-decoration:none; color: var(--ink); opacity:.72; }
   .nav-links a:hover { opacity:1; }
@@ -90,6 +93,17 @@
     opacity:.35; animation: lane-move 3.2s linear infinite;
   }
   @keyframes lane-move { to { background-position-x: 68px; } }
+
+  /* ---------- Model strip: aclara en 3 pasos que Jawa no vende productos ---------- */
+  .model-strip { background: var(--navy-2); position:relative; z-index:1; padding: 28px 0 32px; }
+  .model-strip-eyebrow { text-align:center; font-size:10.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color: var(--gold-bright); margin-bottom:18px; }
+  .model-strip-grid { display:flex; align-items:stretch; justify-content:center; gap:18px; flex-wrap:wrap; }
+  .model-strip-step { flex: 1 1 260px; max-width:300px; text-align:center; }
+  .model-strip-n { width:30px; height:30px; margin:0 auto 10px; border-radius:50%; background: var(--coral); color:#fff; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center; }
+  .model-strip-t { color:#fff; font-weight:700; font-size:14px; margin-bottom:6px; }
+  .model-strip-d { color: rgba(255,255,255,0.68); font-size:12.5px; line-height:1.6; }
+  .model-strip-arrow { align-self:center; color: var(--gold-bright); font-size:20px; opacity:.6; }
+  @media (max-width:760px) { .model-strip-arrow { display:none; } }
 
   .hero-inner { max-width:840px; margin:0 auto; padding: 54px 20px 0; text-align:center; position:relative; z-index:2; }
   .hero-kicker { font-size: clamp(14px, 1.8vw, 18px); font-weight:300; letter-spacing:.08em; text-transform:uppercase; margin: 14px 0 4px; color: var(--gold-bright); }
@@ -148,7 +162,10 @@
   /* ---------- Sections ---------- */
   /* Las secciones van semi-transparentes a propósito, para que la foto de fondo se asome detrás. */
   .section { padding: 74px 0; position:relative; overflow:hidden; background-color: rgba(246,247,250,0.5); background-image: radial-gradient(rgba(22,34,61,0.05) 1px, transparent 1px); background-size: 24px 24px; }
-  .section-head { max-width: 560px; margin: 0 0 40px; }
+  /* Fondo propio con leve desenfoque: sin esto, el título queda flotando
+     directo sobre la foto de fondo y pierde contraste en las zonas claras
+     de las nubes — un problema real de legibilidad, no solo estético. */
+  .section-head { max-width: 560px; margin: 0 0 40px; background: rgba(255,255,255,0.62); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 14px; padding: 18px 22px; }
   .section-head.center { max-width:640px; margin-left:auto; margin-right:auto; text-align:center; }
   .section-head h2 { font-size: clamp(23px, 2.9vw, 31px); font-weight:800; letter-spacing:-.01em; margin: 8px 0 10px; text-wrap: balance; }
   .section-head p { font-size:14.5px; color: var(--muted); line-height:1.6; margin:0; }
@@ -191,6 +208,10 @@
 
   /* Cotizador marítimo/aéreo */
   .freight-calc { max-width:720px; margin:0 auto; background:var(--white); border:1px solid var(--line); border-radius:16px; padding:8px; box-shadow: 0 30px 60px -34px rgba(22,34,61,0.35); }
+  .fc-modo-ayuda { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:12px 10px 4px; }
+  @media (max-width:600px) { .fc-modo-ayuda { grid-template-columns:1fr; } }
+  .fc-modo-ayuda-item { font-size:11.5px; line-height:1.55; color: var(--muted); background: var(--paper-2); border-radius:8px; padding:10px 12px; }
+  .fc-modo-ayuda-item strong { color: var(--navy); }
   .fc-tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:6px; }
   .fc-tab { background:transparent; border:none; border-radius:10px; padding:14px; font-size:14px; font-weight:800; font-family:inherit; cursor:pointer; color:var(--muted); transition: all .2s ease; }
   .fc-tab.active { background: var(--navy); color:var(--white); }
@@ -312,6 +333,8 @@
   .compare-card.us li { color: rgba(255,255,255,0.9); }
   .compare-card.diy li { color: var(--muted); }
   .compare-card .ic { flex:none; width:18px; height:18px; margin-top:1px; }
+  .envio-gratis-note { max-width:760px; margin: 28px auto 0; font-size:12.5px; line-height:1.7; color: var(--muted); text-align:center; padding-top:20px; border-top:1px dashed var(--line); }
+  .envio-gratis-note strong { display:block; color: var(--navy); font-size:13.5px; margin-bottom:6px; }
 
   /* Glosario */
   .glossary { display:grid; grid-template-columns: repeat(2, 1fr); gap: 14px 32px; }
@@ -321,6 +344,36 @@
   .gloss-term { font-size:13px; font-weight:800; color: var(--navy); font-family: ui-monospace, monospace; }
   .gloss-en { font-size:11px; font-weight:500; color: var(--muted); font-family: inherit; }
   .gloss-def { font-size:12.5px; color: var(--muted); line-height:1.6; margin-top:4px; }
+
+  /* ---------- Legal e impuestos ---------- */
+  .legal-callout { max-width:720px; margin: 0 auto 32px; background: var(--navy); color:#fff; border-radius:12px; padding:18px 24px; text-align:center; font-size:14px; line-height:1.6; }
+  .legal-callout strong { color: var(--gold-bright); }
+  .legal-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; margin-bottom:28px; }
+  @media (max-width: 900px) { .legal-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .legal-grid { grid-template-columns: 1fr; } }
+  .legal-card { background: var(--white); border:1px solid var(--line); border-radius:10px; padding:20px 18px; }
+  .legal-card-t { font-size:13.5px; font-weight:700; color: var(--navy); margin-bottom:8px; }
+  .legal-card-d { font-size:12.5px; color: var(--muted); line-height:1.65; }
+  .legal-prohibited { max-width:840px; margin: 0 auto; background: var(--paper-2); border-radius:10px; padding:20px 24px; }
+  .legal-prohibited-t { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color: var(--coral); margin-bottom:8px; }
+  .legal-prohibited-d { font-size:12.5px; color: var(--muted); line-height:1.7; }
+  .legal-disclaimer { max-width:720px; margin: 20px auto 0; text-align:center; font-size:11px; color: var(--muted); opacity:.8; line-height:1.6; }
+
+  /* ---------- Cómo elegir proveedor ---------- */
+  .proveedor-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; }
+  @media (max-width: 900px) { .proveedor-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .proveedor-grid { grid-template-columns: 1fr; } }
+  .proveedor-tip { background: var(--white); border:1px solid var(--line); border-radius:10px; padding:20px 18px; }
+  .proveedor-tip-n { width:26px; height:26px; border-radius:50%; background: var(--navy); color:#fff; font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center; margin-bottom:12px; }
+  .proveedor-tip-t { font-size:13.5px; font-weight:700; color: var(--navy); margin-bottom:6px; }
+  .proveedor-tip-d { font-size:12.5px; color: var(--muted); line-height:1.65; }
+
+  /* ---------- ¿Y si algo sale mal? ---------- */
+  .salemal-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; }
+  @media (max-width: 900px) { .salemal-grid { grid-template-columns: 1fr; } }
+  .salemal-card { background: var(--white); border-left:3px solid var(--coral); border-radius:8px; padding:20px 20px; box-shadow: 0 12px 30px -20px rgba(22,34,61,0.3); }
+  .salemal-t { font-size:14px; font-weight:800; color: var(--navy); margin-bottom:8px; }
+  .salemal-d { font-size:12.5px; color: var(--muted); line-height:1.65; }
 
   /* ---------- Calculator (restyled, same IDs/classes for JS) ---------- */
   #cotizador .section-head { margin-left:auto; margin-right:auto; text-align:center; max-width:560px; }
@@ -398,15 +451,15 @@
   footer { background: var(--navy); color: rgba(255,255,255,0.85); }
   .footer-brand { display:flex; align-items:center; gap:14px; }
   .footer-brand .logo-box { width:46px; height:46px; }
-  .footer-brand-text .jawa { font-size:20px; font-weight:800; color: var(--white); letter-spacing:.01em; line-height:1; }
+  .footer-brand-text .jawa { font-family: var(--font-display); font-size:20px; font-weight:700; color: var(--white); letter-spacing:.02em; line-height:1; }
   .footer-brand-text .logistic { font-size:11px; font-weight:700; letter-spacing:.2em; color: var(--coral); margin-top:4px; }
   .footer-brand-text .tagline { font-size:10px; font-weight:700; letter-spacing:.16em; color: var(--gold-bright); margin-top:6px; text-transform:uppercase; }
   .footer-grid { display:flex; flex-wrap:wrap; gap:32px; justify-content:space-between; padding: 46px 0 26px; }
   .footer-col .t { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color: var(--gold-bright); margin-bottom:12px; }
-  .footer-col a, .footer-col div.line { font-size:13px; line-height:2.1; color: rgba(255,255,255,0.75); text-decoration:none; }
+  .footer-col a, .footer-col div.line { display:block; font-size:13px; line-height:2.1; color: rgba(255,255,255,0.75); text-decoration:none; }
   .footer-col a:hover { color: var(--white); }
-  .footer-bottom { font-size:11px; color: rgba(255,255,255,0.45); text-align:center; padding: 18px 0 0; border-top:1px solid rgba(255,255,255,0.12); }
-  .footer-credits { font-size:10px; color: rgba(255,255,255,0.3); text-align:center; padding: 6px 0 24px; }
+  .footer-legal { font-size:11px; color: rgba(255,255,255,0.4); text-align:center; padding: 18px 0 0; border-top:1px solid rgba(255,255,255,0.12); }
+  .footer-bottom { font-size:11px; color: rgba(255,255,255,0.45); text-align:center; padding: 8px 0 24px; }
 
   /* Floating WhatsApp */
   .float-wa { position:fixed; bottom:22px; right:22px; z-index:50; width:56px; height:56px; border-radius:50%; background:#25d366; display:flex; align-items:center; justify-content:center; box-shadow: 0 8px 20px -6px rgba(0,0,0,0.4); text-decoration:none; opacity:0; transform: translateY(12px) scale(.9); transition: opacity .3s ease, transform .3s ease; }
