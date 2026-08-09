@@ -1227,6 +1227,30 @@ const FLETE_RATES = {
 const CBM_MINIMO = 0.5;
 const DIVISOR_VOLUMETRICO_AEREO = 6000;
 
+// Cuántas unidades de un producto entran en una caja: prueba las orientaciones
+// posibles (qué medida del producto va en cada lado de la caja) y se queda con
+// la que mejor aprovecha el espacio, dividiendo eje por eje (no por volumen total,
+// porque el volumen total sobreestima: los productos no se pueden "licuar" para
+// llenar los huecos, se acomodan en filas enteras por lado).
+function mejorEmpaque(cajaL, cajaW, cajaH, prodL, prodW, prodH) {
+  const caja = [cajaL, cajaW, cajaH];
+  const prod = [prodL, prodW, prodH];
+  const permutaciones = [
+    [0, 1, 2], [0, 2, 1], [1, 0, 2],
+    [1, 2, 0], [2, 0, 1], [2, 1, 0],
+  ];
+  let mejor = null;
+  permutaciones.forEach((p) => {
+    const conteos = [0, 1, 2].map((i) => Math.floor(caja[i] / prod[p[i]]));
+    if (conteos.some((c) => c === 0)) return;
+    const total = conteos[0] * conteos[1] * conteos[2];
+    if (!mejor || total > mejor.total) {
+      mejor = { total, conteos, lados: [0, 1, 2].map((i) => caja[i]), medidas: [0, 1, 2].map((i) => prod[p[i]]) };
+    }
+  });
+  return mejor;
+}
+
 try {
   (function () {
     const tabSea = document.getElementById("fc-tab-sea");
@@ -1290,13 +1314,15 @@ try {
       const total = costoFlete + fob;
 
       // Unidades por caja: si el usuario lo completó a mano, se respeta ese número.
-      // Si no, se estima por volumen (volumen de la caja ÷ volumen del producto).
+      // Si no, se prueba cada orientación posible del producto dentro de la caja
+      // (división entera eje por eje) y se toma la que más unidades permite.
       let unidadesPorCaja = 0;
+      let empaque = null;
       if (unidadesManual > 0) {
         unidadesPorCaja = Math.floor(unidadesManual);
       } else if (pl > 0 && pw > 0 && ph > 0) {
-        const volProducto = (pl * pw * ph) / 1000000;
-        unidadesPorCaja = volProducto > 0 ? Math.floor(cbmPorBulto / volProducto) : 0;
+        empaque = mejorEmpaque(l, w, h, pl, pw, ph);
+        unidadesPorCaja = empaque ? empaque.total : 0;
       }
       const unidadesTotales = unidadesPorCaja * qty;
 
@@ -1312,9 +1338,15 @@ try {
       `;
 
       if (unidadesTotales > 0) {
+        html += `<div class="fc-subtitle" style="margin-top:18px;">Costo por producto</div>`;
+        if (empaque) {
+          html += `
+          <div class="fc-result-row math">${empaque.lados[0]}cm ÷ ${empaque.medidas[0]}cm = ${empaque.conteos[0]} &nbsp;|&nbsp; ${empaque.lados[1]}cm ÷ ${empaque.medidas[1]}cm = ${empaque.conteos[1]} &nbsp;|&nbsp; ${empaque.lados[2]}cm ÷ ${empaque.medidas[2]}cm = ${empaque.conteos[2]}</div>
+          <div class="fc-result-row math">${empaque.conteos[0]} × ${empaque.conteos[1]} × ${empaque.conteos[2]} = ${empaque.total} unidades por caja (mejor orientación)</div>
+          `;
+        }
         html += `
-        <div class="fc-subtitle" style="margin-top:18px;">Costo por producto</div>
-        <div class="fc-result-row"><span>Unidades por caja (estimado)</span><span class="v">${unidadesPorCaja}</span></div>
+        <div class="fc-result-row"><span>Unidades por caja${unidadesManual > 0 ? "" : " (estimado)"}</span><span class="v">${unidadesPorCaja}</span></div>
         <div class="fc-result-row"><span>Unidades totales (${qty} caja${qty === 1 ? "" : "s"})</span><span class="v">${unidadesTotales}</span></div>
         <div class="fc-result-total"><span class="lbl">Flete + FOB por unidad</span><span class="val">$${fmt(total / unidadesTotales)}</span></div>
         `;
