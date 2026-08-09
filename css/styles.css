@@ -65,15 +65,21 @@
   .nav-cart:hover { opacity:1; }
   .nav-cart svg { width:20px; height:20px; }
   .cart-count { position:absolute; top:-8px; right:-9px; background: var(--coral); color:#fff; font-size:10px; font-weight:800; line-height:1; min-width:16px; height:16px; border-radius:8px; align-items:center; justify-content:center; padding:0 3px; }
+  .nav-user { display:flex; align-items:center; gap:6px; opacity:.72; transition: opacity .2s ease; }
+  .nav-user:hover { opacity:1; }
+  .nav-user svg { width:20px; height:20px; flex:none; }
+  .nav-user-label { display:none; }
   .nav-toggle { display:none; background:none; border:none; cursor:pointer; padding:6px; flex:none; }
   .nav-toggle svg { width:22px; height:22px; display:block; color: var(--navy); }
   @media (max-width: 720px) {
     .nav-toggle { display:block; }
     .nav-links { position:absolute; top:100%; left:0; right:0; background:var(--paper); flex-direction:column; align-items:stretch; gap:0; border-bottom:1px solid var(--line); max-height:0; overflow:hidden; transition:max-height .3s ease; box-shadow: 0 12px 20px -14px rgba(22,34,61,0.3); }
     .nav-links.open { max-height:520px; }
-    .nav-links a:not(.nav-cta):not(.nav-cart) { display:block; opacity:1; padding:14px 20px; border-bottom:1px solid var(--line); }
+    .nav-links a:not(.nav-cta):not(.nav-cart):not(.nav-user) { display:block; opacity:1; padding:14px 20px; border-bottom:1px solid var(--line); }
     .nav-links .nav-cta { margin:14px 20px; text-align:center; }
     .nav-links .nav-cart { padding:14px 20px; border-bottom:1px solid var(--line); }
+    .nav-links .nav-user { padding:14px 20px; border-bottom:1px solid var(--line); }
+    .nav-user-label { display:inline; font-size:13px; font-weight:600; }
   }
 
   /* ---------- Hero ---------- */
