@@ -250,7 +250,15 @@
             <div class="fc-field"><label>Peso real total (kg)</label><input type="text" inputmode="decimal" id="air-weight" placeholder="0" /></div>
             <div class="fc-field"><label>Valor FOB (USD)</label><input type="text" inputmode="decimal" id="air-fob" placeholder="0.00" /></div>
           </div>
-          <div class="fc-hint">Aéreo se cobra por peso — el real o el <strong>peso volumétrico</strong> (Largo×Ancho×Alto ÷ 6000), el que sea mayor.</div>
+
+          <div class="fc-subtitle">Tu producto <span>(opcional — para ver el costo por unidad)</span></div>
+          <div class="fc-field-grid">
+            <div class="fc-field"><label>Largo prod. (cm)</label><input type="text" inputmode="decimal" id="air-pl" placeholder="0" /></div>
+            <div class="fc-field"><label>Ancho prod. (cm)</label><input type="text" inputmode="decimal" id="air-pw" placeholder="0" /></div>
+            <div class="fc-field"><label>Alto prod. (cm)</label><input type="text" inputmode="decimal" id="air-ph" placeholder="0" /></div>
+            <div class="fc-field"><label>Unid. por caja</label><input type="text" inputmode="decimal" id="air-punits" placeholder="Auto" /></div>
+          </div>
+          <div class="fc-hint">Aéreo se cobra por peso — el real o el <strong>peso volumétrico</strong> (Largo×Ancho×Alto ÷ 6000), el que sea mayor. Si cargás las medidas de tu producto, estimamos cuántas unidades entran por caja (o completá vos ese número si ya lo sabés) para calcular el costo de envío por unidad.</div>
           <button class="fc-btn" id="fc-calc-air" type="button">Calcular flete aéreo</button>
           <div class="fc-result" id="fc-result-air"></div>
         </div>

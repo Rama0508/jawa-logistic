@@ -425,6 +425,8 @@ try {
       const qty = pNum("air-qty") || 1;
       const pesoReal = pNum("air-weight");
       const fob = pNum("air-fob");
+      const pl = pNum("air-pl"), pw = pNum("air-pw"), ph = pNum("air-ph");
+      const unidadesManual = pNum("air-punits");
 
       if (!pesoReal && (!l || !w || !h)) { alert("Cargá el peso real o las dimensiones del bulto."); return; }
 
@@ -441,16 +443,48 @@ try {
         }).then(() => {}, () => {});
       }
 
+      // Mismo criterio que en marítimo: si el usuario carga las medidas del
+      // producto, probamos cada orientación posible dentro del bulto y nos
+      // quedamos con la que más unidades permite (ver mejorEmpaque arriba).
+      let unidadesPorCaja = 0;
+      let empaque = null;
+      if (unidadesManual > 0) {
+        unidadesPorCaja = Math.floor(unidadesManual);
+      } else if (pl > 0 && pw > 0 && ph > 0) {
+        empaque = mejorEmpaque(l, w, h, pl, pw, ph);
+        unidadesPorCaja = empaque ? empaque.total : 0;
+      }
+      const unidadesTotales = unidadesPorCaja * qty;
+
       const sinTarifa = !rate;
-      document.getElementById("fc-result-air").innerHTML = `
+      let html = `
         <div class="fc-result-row"><span>Peso real</span><span class="v">${pesoReal.toFixed(2)} kg</span></div>
         <div class="fc-result-row"><span>Peso volumétrico</span><span class="v">${pesoVolTotal.toFixed(2)} kg</span></div>
         <div class="fc-result-row"><span>Peso a cobrar (el mayor)</span><span class="v">${pesoCobrable.toFixed(2)} kg</span></div>
         <div class="fc-result-row"><span>Tarifa (${origenLabel(origenAir)})</span><span class="v">$${fmt(rate)} / kg</span></div>
         ${sinTarifa ? `<div class="fc-result-row warn">⚠️ Tarifa no configurada todavía para este origen</div>` : ""}
         ${avisoLimiteRegimen(pesoCobrable, fob, qty)}
-        <div class="fc-result-total"><span class="lbl">Total estimado</span><span class="val">$${fmt(total)}</span></div>
+        <div class="fc-result-total"><span class="lbl">Total estimado (flete + FOB)</span><span class="val">$${fmt(total)}</span></div>
       `;
+
+      if (unidadesTotales > 0) {
+        html += `<div class="fc-subtitle" style="margin-top:18px;">Costo por producto</div>`;
+        if (empaque) {
+          html += `
+          <div class="fc-result-row math">${empaque.lados[0]}cm ÷ ${empaque.medidas[0]}cm = ${empaque.conteos[0]} &nbsp;|&nbsp; ${empaque.lados[1]}cm ÷ ${empaque.medidas[1]}cm = ${empaque.conteos[1]} &nbsp;|&nbsp; ${empaque.lados[2]}cm ÷ ${empaque.medidas[2]}cm = ${empaque.conteos[2]}</div>
+          <div class="fc-result-row math">${empaque.conteos[0]} × ${empaque.conteos[1]} × ${empaque.conteos[2]} = ${empaque.total} unidades por caja (mejor orientación)</div>
+          `;
+        }
+        html += `
+        <div class="fc-result-row"><span>Unidades por caja${unidadesManual > 0 ? "" : " (estimado)"}</span><span class="v">${unidadesPorCaja}</span></div>
+        <div class="fc-result-row"><span>Unidades totales (${qty} caja${qty === 1 ? "" : "s"})</span><span class="v">${unidadesTotales}</span></div>
+        <div class="fc-result-total"><span class="lbl">Flete + FOB por unidad</span><span class="val">$${fmt(total / unidadesTotales)}</span></div>
+        `;
+      } else if (pl > 0 && pw > 0 && ph > 0) {
+        html += `<div class="fc-result-row warn">⚠️ El producto no entra en la caja con esas medidas — revisá los datos.</div>`;
+      }
+
+      document.getElementById("fc-result-air").innerHTML = html;
       document.getElementById("fc-result-air").classList.add("show");
     });
   })();
