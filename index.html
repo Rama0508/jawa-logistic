@@ -168,6 +168,22 @@
   .stat-badge .num { font-size:22px; font-weight:800; color: var(--navy); font-family: ui-monospace, monospace; line-height:1; }
   .stat-badge .lbl { font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color: var(--muted); margin-top:6px; line-height:1.3; padding:0 6px; }
 
+  /* Pegar link del producto */
+  .link-box { max-width:720px; margin: 0 auto 14px; background:var(--white); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .link-box-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .link-box input { flex:1; min-width:200px; background:var(--paper); border:1px solid var(--line); border-radius:7px; padding:10px 12px; font-size:13px; font-family:inherit; color:var(--ink); }
+  .link-box input:focus { outline:none; border-color:var(--navy); }
+  .link-box button { background:var(--navy); color:#fff; border:none; border-radius:7px; padding:10px 18px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .link-box button:hover { background:var(--navy-2); }
+  .link-box-hint { font-size:10.5px; color:var(--muted); margin-top:8px; }
+  .link-box-result { display:none; align-items:center; gap:10px; margin-top:12px; padding-top:12px; border-top:1px dashed var(--line); font-size:12px; }
+  .link-box-result.show { display:flex; }
+  .link-box-result img { width:44px; height:44px; object-fit:cover; border-radius:6px; border:1px solid var(--line); flex:none; }
+  .link-box-result .txt { color:var(--muted); }
+  .link-box-result .txt b { color:var(--ink); display:block; font-size:12.5px; margin-bottom:2px; }
+  .link-box-error { display:none; margin-top:10px; font-size:11.5px; color:#a05a00; background:#fff4de; border:1px solid var(--gold); border-radius:7px; padding:9px 11px; }
+  .link-box-error.show { display:block; }
+
   /* Cotizador marítimo/aéreo */
   .freight-calc { max-width:720px; margin:0 auto; background:var(--white); border:1px solid var(--line); border-radius:16px; padding:8px; box-shadow: 0 30px 60px -34px rgba(22,34,61,0.35); }
   .fc-tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:6px; }
@@ -507,6 +523,19 @@
         <div class="stat-badge"><div class="num">3</div><div class="lbl">Años trabajando</div></div>
         <div class="stat-badge"><div class="num">10K+</div><div class="lbl">Envíos gestionados</div></div>
         <div class="stat-badge"><div class="num">24/7</div><div class="lbl">Atención personalizada</div></div>
+      </div>
+
+      <div class="link-box reveal">
+        <div class="link-box-row">
+          <input type="url" id="link-producto" placeholder="Pegá el link del producto (Alibaba, 1688, Amazon, Mercado Libre...)" />
+          <button id="link-buscar" type="button">Autocompletar</button>
+        </div>
+        <div class="link-box-hint">Buscamos el nombre y el precio automáticamente. El peso y las medidas siempre hay que cargarlos a mano.</div>
+        <div class="link-box-result" id="link-result">
+          <img id="link-result-img" src="" alt="" />
+          <div class="txt"><b id="link-result-title"></b><span id="link-result-price"></span></div>
+        </div>
+        <div class="link-box-error" id="link-error"></div>
       </div>
 
       <div class="freight-calc reveal">
@@ -1217,6 +1246,69 @@ Estimado puesto en Argentina: $${fmtQQ(total)}`;
     });
   })();
 } catch (e) { console.error("cotizador rápido:", e); }
+
+// ---------- Pegar link del producto (autocompletar) ----------
+try {
+  (function () {
+    const btn = document.getElementById("link-buscar");
+    if (!btn) return;
+    const input = document.getElementById("link-producto");
+    const resultBox = document.getElementById("link-result");
+    const errorBox = document.getElementById("link-error");
+
+    btn.addEventListener("click", async () => {
+      const url = input.value.trim();
+      resultBox.classList.remove("show");
+      errorBox.classList.remove("show");
+
+      if (!url) { alert("Pegá primero el link del producto."); return; }
+
+      if (!API_BASE_URL || API_BASE_URL === "PENDIENTE") {
+        errorBox.textContent = "⚠️ El autocompletado todavía no está conectado (falta desplegar el servicio — ver api/README.md).";
+        errorBox.classList.add("show");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Buscando…";
+      try {
+        const resp = await fetch(API_BASE_URL.replace(/\/$/, "") + "/api/extract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+        const data = await resp.json();
+
+        if (!data.success) {
+          errorBox.textContent = "⚠️ " + (data.error || "No pudimos leer ese link. Cargá los datos a mano.");
+          errorBox.classList.add("show");
+          return;
+        }
+
+        if (data.precio) {
+          const seaFob = document.getElementById("sea-fob");
+          const airFob = document.getElementById("air-fob");
+          if (seaFob) seaFob.value = data.precio;
+          if (airFob) airFob.value = data.precio;
+        }
+
+        document.getElementById("link-result-img").src = data.imagen || "";
+        document.getElementById("link-result-img").style.display = data.imagen ? "block" : "none";
+        document.getElementById("link-result-title").textContent = data.titulo || "Producto encontrado";
+        document.getElementById("link-result-price").textContent = data.precio
+          ? `Precio detectado: ${data.moneda || "USD"} ${data.precio} — ya lo cargamos en FOB. Completá peso y medidas para calcular.`
+          : "No encontramos el precio automáticamente — completá FOB, peso y medidas a mano.";
+        resultBox.classList.add("show");
+      } catch (e) {
+        errorBox.textContent = "⚠️ No se pudo conectar con el servicio de lectura de links. Cargá los datos a mano.";
+        errorBox.classList.add("show");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Autocompletar";
+      }
+    });
+  })();
+} catch (e) { console.error("link autocompletar:", e); }
 
 // ---------- Cotizador marítimo / aéreo ----------
 // Tarifas cargadas desde rates.js (fuente única, compartida con admin.html)

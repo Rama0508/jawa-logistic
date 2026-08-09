@@ -19,3 +19,9 @@ const COURIER_REGIMEN = {
   limiteCifUsd: 3000,   // valor CIF máximo para calificar
   alicuota: 0.50,       // % que se cobra sobre el CIF en concepto de impuestos
 };
+
+// ---------- API de extracción de productos (pegar un link) ----------
+// ⚠️ Reemplazá esto por la URL pública de tu servicio /api una vez que lo despliegues
+// en EasyPanel (ver api/README.md). Mientras diga "PENDIENTE", el botón de "pegar link"
+// avisa que todavía no está conectado, en vez de fallar en silencio.
+const API_BASE_URL = "PENDIENTE";
