@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Jawa Logistic — Panel interno</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<style>
+  :root{
+    --navy:#16223d; --navy-2:#1f3157; --ink:#171b22;
+    --paper:#f6f7fa; --paper-2:#eceff4;
+    --coral:#c9502e; --coral-deep:#a23f22;
+    --gold:#a9865a; --gold-bright:#d7b686;
+    --line:#dde1e8; --muted:#5b6472; --white:#ffffff;
+    --green:#1f8a4c; --green-bg:#e9f7ef;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; }
+  .data { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-variant-numeric: tabular-nums; }
+  .wrap { max-width: 980px; margin:0 auto; padding: 0 20px 80px; }
+
+  header.top { background:var(--navy); color:var(--white); padding:18px 0; margin-bottom:28px; }
+  .top-inner { max-width:980px; margin:0 auto; padding:0 20px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .brand { font-weight:800; font-size:15px; display:flex; align-items:center; gap:10px; }
+  .brand .tag { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; background:var(--coral); padding:4px 9px; border-radius:5px; }
+  .warn-banner { background:#fff4de; border:1px solid var(--gold); color:#7a5416; font-size:11.5px; padding:10px 16px; border-radius:8px; margin-bottom:24px; }
+
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { font-size:12.5px; color:var(--muted); margin:0 0 24px; }
+
+  .card { background:var(--white); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:18px; }
+  .card-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--navy); margin-bottom:14px; }
+
+  .field-row { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:10px; }
+  @media (max-width:700px) { .field-row { grid-template-columns: repeat(2, 1fr); } }
+  .field { display:flex; flex-direction:column; gap:4px; }
+  .field label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  .field input, .field select { background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:9px 10px; font-size:13.5px; font-family:inherit; color:var(--ink); width:100%; }
+  .field input:focus, .field select:focus { outline:none; border-color:var(--navy); }
+
+  .producto-card { border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:14px; position:relative; }
+  .producto-card .del { position:absolute; top:10px; right:10px; background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer; padding:4px 8px; }
+  .producto-card .del:hover { color:var(--coral); }
+  .add-btn { width:100%; padding:12px; background:transparent; border:1.5px dashed var(--gold); border-radius:8px; color:var(--gold); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .add-btn:hover { background:var(--paper-2); }
+
+  .btn-primary { background:var(--coral); color:#fff; border:none; border-radius:8px; padding:14px 22px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .btn-primary:hover { background:var(--coral-deep); }
+  .btn-ghost { background:transparent; border:1px solid var(--line); border-radius:8px; padding:12px 18px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; color:var(--ink); }
+
+  /* ---------- Report ---------- */
+  #reporte { display:none; }
+  .rep-header { background:var(--navy); color:var(--white); border-radius:14px; padding:24px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .rep-header .brand { font-size:16px; }
+  .rep-header .fecha { font-size:12px; color:rgba(255,255,255,0.7); }
+
+  .stat-cards { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:14px; }
+  @media (max-width:700px) { .stat-cards { grid-template-columns: repeat(2, 1fr); } }
+  .stat-card { background:var(--white); border:1px solid var(--line); border-radius:10px; padding:14px; }
+  .stat-card .lbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  .stat-card .val { font-size:19px; font-weight:800; color:var(--navy); margin-top:4px; }
+
+  .ganancia-card { background:linear-gradient(135deg, var(--navy-2), var(--navy)); color:var(--white); border-radius:12px; padding:22px; text-align:center; margin-bottom:20px; }
+  .ganancia-card .lbl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--gold-bright); }
+  .ganancia-card .val { font-size:32px; font-weight:800; margin:6px 0 4px; }
+  .ganancia-card .ars { font-size:13px; color:rgba(255,255,255,0.75); }
+
+  .charts-row { display:grid; grid-template-columns: 1fr 1.3fr; gap:16px; margin-bottom:20px; }
+  @media (max-width:700px) { .charts-row { grid-template-columns: 1fr; } }
+  .chart-card { background:var(--white); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .chart-card .card-title { margin-bottom:10px; }
+  .legend { display:flex; gap:14px; justify-content:center; margin-top:10px; font-size:11.5px; flex-wrap:wrap; }
+  .legend span { display:inline-flex; align-items:center; gap:6px; }
+  .legend i { width:10px; height:10px; border-radius:2px; display:inline-block; }
+
+  .prod-detail { background:var(--white); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:16px; }
+  .prod-detail-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
+  .prod-detail-head h3 { font-size:16px; margin:0 0 4px; }
+  .prod-detail-head .meta { font-size:12px; color:var(--muted); }
+  .elegibilidad { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; padding:5px 10px; border-radius:20px; }
+  .elegibilidad.ok { background:var(--green-bg); color:var(--green); }
+  .elegibilidad.no { background:#fdeceb; color:var(--coral-deep); }
+
+  table.metodos { width:100%; border-collapse:collapse; font-size:12.5px; margin:14px 0; }
+  table.metodos th { text-align:left; padding:8px 6px; font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); border-bottom:1px solid var(--line); }
+  table.metodos td { padding:9px 6px; border-bottom:1px solid var(--line); }
+  table.metodos tr.selected { background:var(--paper-2); }
+  table.metodos tr.selected td:first-child { font-weight:800; color:var(--navy); }
+  table.metodos td.num { font-family:ui-monospace,monospace; text-align:right; }
+
+  .costo-venta-row { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin:14px 0; }
+  @media (max-width:600px) { .costo-venta-row { grid-template-columns: 1fr; } }
+  .cv-box { background:var(--paper); border-radius:8px; padding:12px 14px; text-align:center; }
+  .cv-box .lbl { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  .cv-box .val { font-size:18px; font-weight:800; color:var(--navy); margin-top:4px; }
+  .cv-box.ganancia .val { color:var(--green); }
+
+  .ml-box { background:var(--paper-2); border-radius:10px; padding:16px; }
+  .ml-box .card-title { margin-bottom:10px; }
+  .ml-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:10px; }
+  @media (max-width:600px) { .ml-grid { grid-template-columns: 1fr; } }
+  .ml-grid .lbl { font-size:10px; text-transform:uppercase; color:var(--muted); }
+  .ml-grid .val { font-size:14px; font-weight:800; margin-top:2px; }
+  .ml-note { font-size:12px; padding:10px; border-radius:7px; margin-top:6px; }
+  .ml-note.up { background:var(--green-bg); color:var(--green); }
+  .ml-note.down { background:#fdeceb; color:var(--coral-deep); }
+  .ml-methods { display:flex; gap:14px; flex-wrap:wrap; margin-top:12px; font-size:12px; }
+  .ml-methods b { font-family:ui-monospace,monospace; }
+
+  .print-note { font-size:10.5px; color:var(--muted); text-align:center; margin-top:24px; }
+  @media print {
+    header.top, .card:not(.no-print), .warn-banner, #form-actions { display:none !important; }
+    #reporte { display:block !important; }
+    body { background:#fff; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">🧭 Jawa Logistic <span class="tag">Panel interno</span></div>
+    <div style="font-size:11.5px; color:rgba(255,255,255,0.6);">Solo para uso del equipo — no compartir este link</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="warn-banner">
+    ⚠️ Este panel no tiene login todavía — cualquiera con el link puede entrar. Es una herramienta interna de cálculo, no expone datos de clientes, pero si querés protegerlo con contraseña avisame y lo agregamos.
+  </div>
+
+  <h1>Generador de informes de costos y rentabilidad</h1>
+  <p class="sub">Cargá los productos que estás evaluando importar. Calcula automáticamente flete aéreo, marítimo y courier, elegibilidad al régimen simplificado, y tu margen real contra Mercado Libre.</p>
+
+  <div class="card">
+    <div class="card-title">Configuración general</div>
+    <div class="field-row" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="field">
+        <label>Dólar blue hoy (ARS)</label>
+        <input type="text" inputmode="decimal" id="cfg-blue" value="1550" />
+      </div>
+      <div class="field">
+        <label>Origen</label>
+        <select id="cfg-origen">
+          <option value="china">🇨🇳 China</option>
+          <option value="miami">🇺🇸 Miami</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Margen de ganancia por defecto (%)</label>
+        <input type="text" inputmode="decimal" id="cfg-margen" value="40" />
+      </div>
+    </div>
+  </div>
+
+  <div id="productos-admin"></div>
+  <button class="add-btn" id="add-producto-admin">+ Agregar producto</button>
+
+  <div id="form-actions" style="margin-top:20px; display:flex; gap:12px; flex-wrap:wrap;">
+    <button class="btn-primary" id="generar-informe">Generar informe</button>
+  </div>
+
+  <div id="reporte">
+    <div class="rep-header">
+      <div>
+        <div class="brand">🧭 JAWA LOGISTIC</div>
+        <div style="font-size:11px; color:rgba(255,255,255,0.6); margin-top:2px;">CHINA · MIAMI · ARGENTINA</div>
+      </div>
+      <div class="fecha" id="rep-fecha"></div>
+    </div>
+
+    <div class="stat-cards">
+      <div class="stat-card"><div class="lbl">Productos</div><div class="val" id="stat-productos">0</div></div>
+      <div class="stat-card"><div class="lbl">Unidades totales</div><div class="val" id="stat-unidades">0</div></div>
+      <div class="stat-card"><div class="lbl">Peso total</div><div class="val" id="stat-peso">0 kg</div></div>
+      <div class="stat-card"><div class="lbl">Volumen total</div><div class="val" id="stat-volumen">0 m³</div></div>
+      <div class="stat-card"><div class="lbl">FOB total</div><div class="val" id="stat-fob">$0</div></div>
+      <div class="stat-card"><div class="lbl">Flete a pagar</div><div class="val" id="stat-flete">$0</div></div>
+      <div class="stat-card"><div class="lbl">Costo total</div><div class="val" id="stat-costo">$0</div></div>
+      <div class="stat-card"><div class="lbl">Precio blue usado</div><div class="val" id="stat-blue">$0</div></div>
+    </div>
+
+    <div class="ganancia-card">
+      <div class="lbl">Ganancia total estimada</div>
+      <div class="val" id="stat-ganancia">$0</div>
+      <div class="ars" id="stat-ganancia-ars">≈ $0 ARS</div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="card-title">Composición del costo</div>
+        <canvas id="chart-pie" width="260" height="220" style="width:100%; height:auto;"></canvas>
+        <div class="legend" id="legend-pie"></div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">Costo vs. venta vs. ganancia por producto</div>
+        <canvas id="chart-bar" width="420" height="220" style="width:100%; height:auto;"></canvas>
+      </div>
+    </div>
+
+    <div class="card-title" style="margin: 24px 0 4px;">Detalle por producto</div>
+    <div id="detalle-productos"></div>
+
+    <button class="btn-ghost no-print" onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
+    <div class="print-note">Informe generado con fines internos — valores estimados, sujetos a variación de tarifas y tipo de cambio.</div>
+  </div>
+</div>
+
+<script src="rates.js"></script>
+<script>
+// ---------- Estado ----------
+let productos = [];
+function uidA() { return Math.random().toString(36).slice(2, 9); }
+function nuevoProductoAdmin() {
+  return {
+    id: uidA(), nombre: "", cantidad: "", fob: "", peso: "",
+    largo: "", ancho: "", alto: "", margen: "", precioML: "", metodo: "auto",
+  };
+}
+productos.push(nuevoProductoAdmin());
+
+function pNumA(v) {
+  const n = parseFloat(String(v || "").trim().replace(",", "."));
+  return isNaN(n) ? 0 : n;
+}
+function fmtA(n) {
+  return (n || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtInt(n) {
+  return Math.round(n || 0).toLocaleString("es-AR");
+}
+
+// ---------- Render formulario ----------
+function renderFormulario() {
+  const cont = document.getElementById("productos-admin");
+  cont.innerHTML = "";
+  productos.forEach((p, i) => {
+    const div = document.createElement("div");
+    div.className = "producto-card";
+    div.innerHTML = `
+      ${productos.length > 1 ? `<button class="del" data-del="${p.id}">✕</button>` : ""}
+      <div class="field-row">
+        <div class="field" style="grid-column: span 2;">
+          <label>Nombre del producto</label>
+          <input type="text" data-field="nombre" data-id="${p.id}" value="${p.nombre.replace(/"/g, "&quot;")}" placeholder="Ej: soporte magnético" />
+        </div>
+        <div class="field">
+          <label>Cantidad</label>
+          <input type="text" inputmode="decimal" data-field="cantidad" data-id="${p.id}" value="${p.cantidad}" placeholder="100" />
+        </div>
+        <div class="field">
+          <label>FOB por unidad (USD)</label>
+          <input type="text" inputmode="decimal" data-field="fob" data-id="${p.id}" value="${p.fob}" placeholder="0.00" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Peso total (kg)</label>
+          <input type="text" inputmode="decimal" data-field="peso" data-id="${p.id}" value="${p.peso}" placeholder="0" />
+        </div>
+        <div class="field">
+          <label>Largo bulto (cm)</label>
+          <input type="text" inputmode="decimal" data-field="largo" data-id="${p.id}" value="${p.largo}" placeholder="0" />
+        </div>
+        <div class="field">
+          <label>Ancho bulto (cm)</label>
+          <input type="text" inputmode="decimal" data-field="ancho" data-id="${p.id}" value="${p.ancho}" placeholder="0" />
+        </div>
+        <div class="field">
+          <label>Alto bulto (cm)</label>
+          <input type="text" inputmode="decimal" data-field="alto" data-id="${p.id}" value="${p.alto}" placeholder="0" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Margen (%) — vacío usa el general</label>
+          <input type="text" inputmode="decimal" data-field="margen" data-id="${p.id}" value="${p.margen}" placeholder="40" />
+        </div>
+        <div class="field">
+          <label>Precio ref. Mercado Libre (USD, opcional)</label>
+          <input type="text" inputmode="decimal" data-field="precioML" data-id="${p.id}" value="${p.precioML}" placeholder="0.00" />
+        </div>
+        <div class="field" style="grid-column: span 2;">
+          <label>Vía a usar</label>
+          <select data-field="metodo" data-id="${p.id}">
+            <option value="auto" ${p.metodo === "auto" ? "selected" : ""}>Automático (la más barata)</option>
+            <option value="aereo" ${p.metodo === "aereo" ? "selected" : ""}>✈️ Aéreo</option>
+            <option value="maritimo" ${p.metodo === "maritimo" ? "selected" : ""}>🚢 Marítimo</option>
+            <option value="courier" ${p.metodo === "courier" ? "selected" : ""}>📦 Courier</option>
+          </select>
+        </div>
+      </div>
+    `;
+    cont.appendChild(div);
+  });
+}
+
+document.getElementById("productos-admin").addEventListener("input", (e) => {
+  const id = e.target.getAttribute("data-id");
+  const field = e.target.getAttribute("data-field");
+  if (!id || !field) return;
+  const p = productos.find((x) => x.id === id);
+  if (p) p[field] = e.target.value;
+});
+document.getElementById("productos-admin").addEventListener("change", (e) => {
+  const id = e.target.getAttribute("data-id");
+  const field = e.target.getAttribute("data-field");
+  if (id && field === "metodo") {
+    const p = productos.find((x) => x.id === id);
+    if (p) p.metodo = e.target.value;
+  }
+});
+document.getElementById("productos-admin").addEventListener("click", (e) => {
+  const delId = e.target.getAttribute("data-del");
+  if (delId && productos.length > 1) {
+    productos = productos.filter((p) => p.id !== delId);
+    renderFormulario();
+  }
+});
+document.getElementById("add-producto-admin").addEventListener("click", () => {
+  productos.push(nuevoProductoAdmin());
+  renderFormulario();
+});
+
+renderFormulario();
+
+// ---------- Motor de cálculo ----------
+function calcularMetodos(p, origen) {
+  const cantidad = pNumA(p.cantidad) || 1;
+  const fobU = pNumA(p.fob);
+  const pesoTotal = pNumA(p.peso);
+  const l = pNumA(p.largo), w = pNumA(p.ancho), h = pNumA(p.alto);
+
+  const cbm = (l * w * h) / 1000000;
+  const toneladas = pesoTotal / 1000;
+  const cbmCobrable = Math.max(cbm, toneladas, CBM_MINIMO);
+  const rateSea = FLETE_RATES.sea[origen] || 0;
+  const fleteMaritimoTotal = cbmCobrable * rateSea;
+
+  const pesoVolumetrico = (l * w * h) / DIVISOR_VOLUMETRICO_AEREO;
+  const pesoCobrableAereo = Math.max(pesoTotal, pesoVolumetrico);
+  const rateAir = FLETE_RATES.air[origen] || 0;
+  const fleteAereoTotal = pesoCobrableAereo * rateAir;
+
+  const fleteCourierTotal = pesoTotal * RATE_COURIER_USD_KG;
+  const fobTotal = fobU * cantidad;
+  const cifTotal = fobTotal + fleteCourierTotal;
+  const impuestosCourierTotal = cifTotal * COURIER_REGIMEN.alicuota;
+  const courierElegible = pesoTotal > 0 && pesoTotal <= COURIER_REGIMEN.limitePesoKg && cifTotal <= COURIER_REGIMEN.limiteCifUsd;
+
+  const metodos = {
+    aereo: {
+      label: "✈️ Aéreo", medida: `${pesoCobrableAereo.toFixed(2)} kg`,
+      fleteU: fleteAereoTotal / cantidad, impuestosU: 0,
+      costoU: fobU + fleteAereoTotal / cantidad,
+      total: fobTotal + fleteAereoTotal,
+      disponible: rateAir > 0,
+    },
+    maritimo: {
+      label: "🚢 Marítimo", medida: `${cbm.toFixed(2)} m³`,
+      fleteU: fleteMaritimoTotal / cantidad, impuestosU: 0,
+      costoU: fobU + fleteMaritimoTotal / cantidad,
+      total: fobTotal + fleteMaritimoTotal,
+      disponible: rateSea > 0,
+    },
+    courier: {
+      label: "📦 Courier", medida: `CIF $${fmtA(cifTotal)}`,
+      fleteU: fleteCourierTotal / cantidad, impuestosU: impuestosCourierTotal / cantidad,
+      costoU: fobU + fleteCourierTotal / cantidad + impuestosCourierTotal / cantidad,
+      total: fobTotal + fleteCourierTotal + impuestosCourierTotal,
+      disponible: RATE_COURIER_USD_KG > 0 && courierElegible,
+    },
+  };
+
+  let elegido = p.metodo;
+  if (elegido === "auto" || !metodos[elegido] || !metodos[elegido].disponible) {
+    const disponibles = Object.entries(metodos).filter(([, m]) => m.disponible);
+    if (disponibles.length) {
+      disponibles.sort((a, b) => a[1].costoU - b[1].costoU);
+      elegido = disponibles[0][0];
+    } else {
+      elegido = "maritimo";
+    }
+  }
+  const masBarata = Object.entries(metodos)
+    .filter(([, m]) => m.disponible)
+    .sort((a, b) => a[1].costoU - b[1].costoU)[0];
+
+  return {
+    cantidad, fobU, pesoTotal, cbm, toneladas, cifTotal, courierElegible,
+    metodos, elegido, masBarataKey: masBarata ? masBarata[0] : null,
+  };
+}
+
+// ---------- Charts (canvas) ----------
+function drawPie(canvasId, segments) {
+  const canvas = document.getElementById(canvasId);
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 260, h = canvas.clientHeight || 220;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+  const cx = w / 2, cy = h / 2, rOuter = Math.min(w, h) / 2 - 8, rInner = rOuter * 0.58;
+  let start = -Math.PI / 2;
+  segments.forEach((seg) => {
+    const angle = (seg.value / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rOuter, start, start + angle);
+    ctx.arc(cx, cy, rInner, start + angle, start, true);
+    ctx.closePath();
+    ctx.fillStyle = seg.color;
+    ctx.fill();
+    start += angle;
+  });
+}
+
+function drawBars(canvasId, rows) {
+  const canvas = document.getElementById(canvasId);
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 420, h = Math.max(220, rows.length * 60);
+  canvas.height = h; canvas.style.height = h + "px";
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const maxVal = Math.max(1, ...rows.map((r) => Math.max(r.costo, r.venta, r.ganancia)));
+  const leftPad = 90, rightPad = 16;
+  const barH = 12, gap = 5, groupGap = 26;
+  const colors = { costo: "#a9865a", venta: "#c9502e", ganancia: "#1f8a4c" };
+  let y = 14;
+
+  ctx.font = "10.5px ui-monospace, monospace";
+  ctx.fillStyle = "#5b6472";
+
+  rows.forEach((row) => {
+    ctx.fillStyle = "#171b22";
+    ctx.font = "11px -apple-system, sans-serif";
+    ctx.fillText(row.label.length > 20 ? row.label.slice(0, 19) + "…" : row.label, 0, y + 8);
+    ["costo", "venta", "ganancia"].forEach((k) => {
+      const val = row[k];
+      const barW = Math.max(2, ((w - leftPad - rightPad) * val) / maxVal);
+      ctx.fillStyle = colors[k];
+      ctx.fillRect(leftPad, y, barW, barH);
+      y += barH + gap;
+    });
+    y += groupGap - gap;
+  });
+}
+
+// ---------- Generar informe ----------
+document.getElementById("generar-informe").addEventListener("click", () => {
+  const origen = document.getElementById("cfg-origen").value;
+  const blue = pNumA(document.getElementById("cfg-blue").value) || 1;
+  const margenGeneral = pNumA(document.getElementById("cfg-margen").value) || 0;
+
+  const validos = productos.filter((p) => p.nombre && pNumA(p.cantidad) > 0 && pNumA(p.fob) >= 0);
+  if (!validos.length) { alert("Cargá al menos un producto con nombre y cantidad."); return; }
+
+  const resultados = validos.map((p) => {
+    const r = calcularMetodos(p, origen);
+    const margen = pNumA(p.margen) || margenGeneral;
+    const seleccionado = r.metodos[r.elegido];
+    const ventaU = seleccionado.costoU * (1 + margen / 100);
+    const gananciaTotal = (ventaU - seleccionado.costoU) * r.cantidad;
+    const precioML = pNumA(p.precioML);
+    return { p, r, margen, seleccionado, ventaU, gananciaTotal, precioML };
+  });
+
+  const totales = resultados.reduce((acc, x) => {
+    acc.unidades += x.r.cantidad;
+    acc.peso += x.r.pesoTotal;
+    acc.volumen += x.r.cbm;
+    acc.fob += x.r.fobU * x.r.cantidad;
+    acc.flete += x.seleccionado.fleteU * x.r.cantidad + x.seleccionado.impuestosU * x.r.cantidad;
+    acc.costo += x.seleccionado.costoU * x.r.cantidad;
+    acc.ganancia += x.gananciaTotal;
+    return acc;
+  }, { unidades: 0, peso: 0, volumen: 0, fob: 0, flete: 0, costo: 0, ganancia: 0 });
+
+  document.getElementById("rep-fecha").textContent = new Date().toLocaleDateString("es-AR");
+  document.getElementById("stat-productos").textContent = resultados.length;
+  document.getElementById("stat-unidades").textContent = fmtInt(totales.unidades);
+  document.getElementById("stat-peso").textContent = fmtA(totales.peso) + " kg";
+  document.getElementById("stat-volumen").textContent = totales.volumen.toFixed(3) + " m³";
+  document.getElementById("stat-fob").textContent = "$" + fmtA(totales.fob);
+  document.getElementById("stat-flete").textContent = "$" + fmtA(totales.flete);
+  document.getElementById("stat-costo").textContent = "$" + fmtA(totales.costo);
+  document.getElementById("stat-blue").textContent = "$" + fmtA(blue);
+  document.getElementById("stat-ganancia").textContent = "$" + fmtA(totales.ganancia);
+  document.getElementById("stat-ganancia-ars").textContent = `≈ $${fmtInt(totales.ganancia * blue)} ARS al blue de hoy ($${fmtA(blue)})`;
+
+  drawPie("chart-pie", [
+    { label: "FOB", value: totales.fob, color: "#a9865a" },
+    { label: "Flete", value: totales.flete, color: "#16223d" },
+  ]);
+  const fobPct = totales.fob + totales.flete > 0 ? (totales.fob / (totales.fob + totales.flete)) * 100 : 0;
+  document.getElementById("legend-pie").innerHTML = `
+    <span><i style="background:#a9865a;"></i>FOB $${fmtA(totales.fob)} (${fobPct.toFixed(0)}%)</span>
+    <span><i style="background:#16223d;"></i>Flete $${fmtA(totales.flete)} (${(100 - fobPct).toFixed(0)}%)</span>
+  `;
+
+  drawBars("chart-bar", resultados.map((x) => ({
+    label: x.p.nombre, costo: x.seleccionado.costoU, venta: x.ventaU, ganancia: x.ventaU - x.seleccionado.costoU,
+  })));
+
+  const detalle = document.getElementById("detalle-productos");
+  detalle.innerHTML = resultados.map((x) => {
+    const m = x.r.metodos;
+    const filas = ["aereo", "maritimo", "courier"].map((key) => {
+      const met = m[key];
+      const isSel = key === x.r.elegido;
+      const disp = met.disponible;
+      return `<tr class="${isSel ? "selected" : ""}">
+        <td>${met.label}${isSel ? " ✓" : ""}${!disp ? " (sin tarifa)" : ""}</td>
+        <td class="num">${met.medida}</td>
+        <td class="num">$${fmtA(met.fleteU)}</td>
+        <td class="num">${met.impuestosU > 0 ? "$" + fmtA(met.impuestosU) : "—"}</td>
+        <td class="num">$${fmtA(met.costoU)}</td>
+        <td class="num">$${fmtA(met.total)}</td>
+      </tr>`;
+    }).join("");
+
+    const masBarataLabel = x.r.masBarataKey ? m[x.r.masBarataKey].label : "—";
+    const convieneNota = x.r.masBarataKey && x.r.masBarataKey !== x.r.elegido
+      ? `<div style="font-size:11.5px; color:var(--coral-deep); margin-top:4px;">${masBarataLabel} conviene más</div>` : "";
+
+    let mlBlock = "";
+    if (x.precioML > 0) {
+      const gananciaML = x.precioML - x.seleccionado.costoU;
+      const margenReal = (gananciaML / x.precioML) * 100;
+      const diff = margenReal - x.margen;
+      const metodosML = ["aereo", "maritimo", "courier"]
+        .filter((k) => m[k].disponible)
+        .map((k) => `<span>${m[k].label}: <b>$${fmtA(x.precioML - m[k].costoU)}</b> (${(((x.precioML - m[k].costoU) / x.precioML) * 100).toFixed(2)}%)${k === x.r.elegido ? " 👈" : ""}</span>`)
+        .join("");
+      mlBlock = `
+        <div class="ml-box">
+          <div class="card-title">Margen aplicado vs. margen real contra Mercado Libre</div>
+          <div class="ml-grid">
+            <div><div class="lbl">Precio ref. ML</div><div class="val">$${fmtA(x.precioML)} USD</div></div>
+            <div><div class="lbl">Costo puesto en Arg.</div><div class="val">$${fmtA(x.seleccionado.costoU)} USD</div></div>
+            <div><div class="lbl">Ganancia si vendés a ML</div><div class="val">$${fmtA(gananciaML)} USD</div></div>
+          </div>
+          <div style="font-size:11.5px; color:var(--muted);">Margen aplicado por vos: <b>${x.margen.toFixed(2)}%</b> &nbsp;·&nbsp; Margen real vs. ML: <b>${margenReal.toFixed(2)}%</b></div>
+          <div class="ml-note ${diff >= 0 ? "up" : "down"}">
+            ${diff >= 0
+              ? `📈 El mercado paga más de lo que estimaste: podrías vender con ${diff.toFixed(2)} puntos más de margen.`
+              : `📉 Ojo: tu margen aplicado está por encima de lo que paga el mercado en ML (${Math.abs(diff).toFixed(2)} puntos de diferencia).`}
+          </div>
+          <div class="ml-methods">${metodosML}</div>
+        </div>`;
+    }
+
+    return `
+      <div class="prod-detail">
+        <div class="prod-detail-head">
+          <div>
+            <h3>${x.p.nombre}</h3>
+            <div class="meta">Cantidad: ${fmtInt(x.r.cantidad)} u. — FOB: $${fmtA(x.r.fobU)}/u.</div>
+          </div>
+          <div class="elegibilidad ${x.r.courierElegible ? "ok" : "no"}">
+            ${x.r.courierElegible ? "🟢" : "🔴"} Courier: peso ${fmtA(x.r.pesoTotal)}/${COURIER_REGIMEN.limitePesoKg}kg · CIF $${fmtA(x.r.cifTotal)}/$${fmtInt(COURIER_REGIMEN.limiteCifUsd)}
+          </div>
+        </div>
+
+        <table class="metodos">
+          <thead><tr><th>Vía</th><th>Medida</th><th>Flete u.</th><th>Impuestos u.</th><th>Costo u.</th><th>Total</th></tr></thead>
+          <tbody>${filas}</tbody>
+        </table>
+        ${convieneNota}
+
+        <div class="costo-venta-row">
+          <div class="cv-box"><div class="lbl">Costo final u.</div><div class="val">$${fmtA(x.seleccionado.costoU)}</div></div>
+          <div class="cv-box"><div class="lbl">Venta u. (margen ${x.margen.toFixed(0)}%)</div><div class="val">$${fmtA(x.ventaU)}</div></div>
+          <div class="cv-box ganancia"><div class="lbl">Ganancia total</div><div class="val">$${fmtA(x.gananciaTotal)}</div></div>
+        </div>
+
+        ${mlBlock}
+      </div>
+    `;
+  }).join("");
+
+  document.getElementById("reporte").style.display = "block";
+  document.getElementById("reporte").scrollIntoView({ behavior: "smooth" });
+});
+</script>
+</body>
+</html>
