@@ -147,14 +147,20 @@
   .fact { font-size:12px; color: rgba(255,255,255,0.85); display:flex; align-items:baseline; gap:8px; }
   .fact .n { font-family: ui-monospace, monospace; color: var(--gold-bright); font-weight:700; }
 
+  /* ---------- Fondo animado (marca de agua) ---------- */
+  body { background: var(--paper); }
+  /* z-index:-1 (no 0) a propósito: así pinta detrás de TODO el contenido normal de la
+     página, incluso elementos que no tienen position/z-index propio (como .lane-divider). */
+  #bg-watermark { position:fixed; inset:0; width:100vw; height:100vh; z-index:-1; pointer-events:none; display:block; }
+
   /* ---------- Sections ---------- */
-  .section { padding: 74px 0; position:relative; overflow:hidden; }
-  body { background-image: radial-gradient(rgba(22,34,61,0.05) 1px, transparent 1px); background-size: 24px 24px; }
+  /* Las secciones van semi-transparentes a propósito, para que el fondo animado se asome detrás. */
+  .section { padding: 74px 0; position:relative; overflow:hidden; background-color: rgba(246,247,250,0.9); background-image: radial-gradient(rgba(22,34,61,0.05) 1px, transparent 1px); background-size: 24px 24px; }
   .section-head { max-width: 560px; margin: 0 0 40px; }
   .section-head.center { max-width:640px; margin-left:auto; margin-right:auto; text-align:center; }
   .section-head h2 { font-size: clamp(23px, 2.9vw, 31px); font-weight:800; letter-spacing:-.01em; margin: 8px 0 10px; text-wrap: balance; }
   .section-head p { font-size:14.5px; color: var(--muted); line-height:1.6; margin:0; }
-  .section-alt { background-color: var(--paper-2); background-image: radial-gradient(rgba(22,34,61,0.06) 1px, transparent 1px); background-size: 24px 24px; }
+  .section-alt { background-color: rgba(236,239,244,0.9); background-image: radial-gradient(rgba(22,34,61,0.06) 1px, transparent 1px); background-size: 24px 24px; }
   .section-blob { position:absolute; border-radius:50%; filter: blur(50px); pointer-events:none; z-index:0; }
   .section > .wrap, .section-head, .globe-section-inner, .lane-grid, .process-list, .why-grid, .compare-grid, .glossary, .testi-placeholder, .faq { position:relative; z-index:1; }
   .watermark-compass { position:absolute; pointer-events:none; z-index:0; opacity:.05; }
@@ -417,6 +423,8 @@
 </style>
 </head>
 <body>
+
+<canvas id="bg-watermark" aria-hidden="true"></canvas>
 
 <div class="navbar">
   <div class="navbar-inner">
@@ -1147,6 +1155,126 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="rates.js"></script>
 <script>
+// ---------- Fondo animado (marca de agua: barcos y avión) ----------
+try {
+  (function () {
+    const canvas = document.getElementById("bg-watermark");
+    if (!canvas || !canvas.getContext) return;
+    const ctx = canvas.getContext("2d");
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let w = 0, h = 0;
+    const dpr = window.devicePixelRatio || 1;
+
+    function resize() {
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    resize();
+    let resizeTimer;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(resize, 150);
+    });
+
+    function drawShip(x, y, scale, alpha) {
+      const len = 130 * scale, wid = len * 0.16;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.strokeStyle = `rgba(22,34,61,${alpha * 0.5})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(-len * 0.5, 0);
+      ctx.quadraticCurveTo(-len * 1.1, -wid * 1.3, -len * 1.7, -wid * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-len * 0.5, 0);
+      ctx.quadraticCurveTo(-len * 1.1, wid * 1.3, -len * 1.7, wid * 2);
+      ctx.stroke();
+      ctx.fillStyle = `rgba(22,34,61,${alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(-len * 0.5, -wid * 0.5);
+      ctx.lineTo(len * 0.4, -wid * 0.5);
+      ctx.quadraticCurveTo(len * 0.5, 0, len * 0.4, wid * 0.5);
+      ctx.lineTo(-len * 0.5, wid * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = `rgba(201,80,46,${alpha * 0.7})`;
+      for (let i = 0; i < 5; i++) {
+        ctx.fillRect(-len * 0.42 + i * (len * 0.16), -wid * 0.4, len * 0.13, wid * 0.35);
+      }
+      ctx.restore();
+    }
+
+    function drawPlane(x, y, angleDeg, scale, alpha) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((angleDeg * Math.PI) / 180);
+      const len = 60 * scale;
+      ctx.strokeStyle = `rgba(22,34,61,${alpha * 0.35})`;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 5]);
+      ctx.beginPath();
+      ctx.moveTo(-len * 2.4, 0);
+      ctx.lineTo(-len * 0.6, 0);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = `rgba(22,34,61,${alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(len * 0.5, 0);
+      ctx.lineTo(-len * 0.4, -len * 0.08);
+      ctx.lineTo(-len * 0.55, 0);
+      ctx.lineTo(-len * 0.4, len * 0.08);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-len * 0.15, -len * 0.35);
+      ctx.lineTo(-len * 0.05, -len * 0.02);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-len * 0.15, len * 0.35);
+      ctx.lineTo(-len * 0.05, len * 0.02);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    const SHIPS = [
+      { yFrac: 0.62, speed: 0.018, scale: 1.1, alpha: 0.055, offset: 0 },
+      { yFrac: 0.76, speed: 0.011, scale: 0.8, alpha: 0.045, offset: 6000 },
+    ];
+
+    function frame(t) {
+      ctx.clearRect(0, 0, w, h);
+
+      SHIPS.forEach((cfg) => {
+        const span = w + 260 * cfg.scale;
+        const x = ((t + cfg.offset) * cfg.speed) % span - 130 * cfg.scale;
+        drawShip(x, h * cfg.yFrac, cfg.scale, cfg.alpha);
+      });
+
+      const planeSpeed = 0.035;
+      const planeSpan = w + h * 0.6 + 300;
+      const pT = (t * planeSpeed) % planeSpan;
+      const px = -150 + pT;
+      const py = h * 0.1 + pT * 0.1;
+      if (py < h * 0.55) drawPlane(px, py, 11, 1, 0.06);
+
+      if (!reduce) requestAnimationFrame(frame);
+    }
+
+    if (reduce) frame(0);
+    else requestAnimationFrame(frame);
+  })();
+} catch (e) { console.error("fondo animado:", e); }
+
 // ---------- Menú mobile ----------
 try {
   (function () {
