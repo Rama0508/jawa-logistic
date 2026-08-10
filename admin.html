@@ -248,7 +248,12 @@
   </div>
 
   <div id="productos-admin"></div>
-  <button class="add-btn" id="add-producto-admin">+ Agregar producto</button>
+  <div style="display:flex; gap:10px;">
+    <button class="add-btn" id="add-producto-admin" style="flex:1;">+ Agregar producto</button>
+    <button id="limpiar-todo-btn" style="flex:none; padding:0 16px; background:transparent; border:1px solid var(--line); border-radius:8px; color:var(--muted); font-size:13px; cursor:pointer; font-family:inherit;">Limpiar todo</button>
+  </div>
+
+  <div id="acumulado-courier-container"></div>
 
   <div id="form-actions" style="margin-top:20px; display:flex; gap:12px; flex-wrap:wrap;">
     <button class="btn-primary" id="generar-informe">Generar informe</button>
@@ -379,7 +384,8 @@ function nuevoProductoAdmin() {
   return {
     id: uidA(), nombre: "", cantidad: "", fob: "",
     pesoModo: "total", peso: "", pesoTotalRef: "", pesoUnidad: "kg",
-    largo: "", ancho: "", alto: "", margen: "", precioML: "", metodo: "auto",
+    largo: "", ancho: "", alto: "", dimUnidad: "cm", unidadesPorCaja: "",
+    margen: "", precioML: "", metodo: "auto",
     foto: "", descripcion: "",
     fleteCourierManual: "", seguroCourier: "",
   };
@@ -430,6 +436,11 @@ function guardarPresupuestos() {
   try { localStorage.setItem(PRESUPUESTOS_KEY, JSON.stringify(presupuestos)); } catch (e) {}
 }
 
+// Una vez que se generó el informe una vez, se mantiene sincronizado solo
+// con cada cambio de datos — no hace falta acordarse de volver a tocar
+// "Generar informe" cada vez que se corrige un número.
+let informeGenerado = false;
+
 (function initDolarBlue() {
   const saved = localStorage.getItem(DOLAR_BLUE_KEY);
   if (saved) document.getElementById("cfg-blue").value = saved;
@@ -452,15 +463,26 @@ function calcularMetodos(p, origen) {
   const cantidad = pNumA(p.cantidad) || 1;
   const fobU = pNumA(p.fob);
   const pesoTotal = pesoTotalKgDe(p);
-  const l = pNumA(p.largo), w = pNumA(p.ancho), h = pNumA(p.alto);
 
-  const cbm = (l * w * h) / 1000000;
+  // Marítimo: las medidas son de LA CAJA (el bulto que te manda el
+  // proveedor), no del producto individual — "unidades por caja" es el dato
+  // que te pasa el proveedor (ej. "esta caja trae 100 unidades"). Con eso se
+  // calcula cuántas cajas hacen falta para la cantidad total del pedido.
+  const factorDim = p.dimUnidad === "mm" ? 0.1 : 1; // convierte a cm
+  const l = pNumA(p.largo) * factorDim, w = pNumA(p.ancho) * factorDim, h = pNumA(p.alto) * factorDim;
+  const unidadesPorCaja = pNumA(p.unidadesPorCaja);
+  const m3PorCaja = (l * w * h) / 1000000;
+  const cajas = unidadesPorCaja > 0 ? Math.ceil(cantidad / unidadesPorCaja) : (cantidad > 0 ? 1 : 0);
+  const cbm = cajas * m3PorCaja;
+
   const toneladas = pesoTotal / 1000;
   const cbmCobrable = Math.max(cbm, toneladas, CBM_MINIMO);
   const rateSea = FLETE_RATES.sea[origen] || 0;
   const fleteMaritimoTotal = cbmCobrable * rateSea;
 
-  const pesoVolumetrico = (l * w * h) / DIVISOR_VOLUMETRICO_AEREO;
+  // Mismas cajas que en marítimo (es el mismo bulto físico) — si el pedido
+  // ocupa 3 cajas, el peso volumétrico es el de las 3, no el de una sola.
+  const pesoVolumetrico = cajas * ((l * w * h) / DIVISOR_VOLUMETRICO_AEREO);
   const pesoCobrableAereo = Math.max(pesoTotal, pesoVolumetrico);
   const rateAir = FLETE_RATES.air[origen] || 0;
   const fleteAereoTotal = pesoCobrableAereo * rateAir;
@@ -526,19 +548,20 @@ function calcularMetodos(p, origen) {
 
   return {
     cantidad, fobU, pesoTotal, cbm, toneladas, cifTotal, courierElegible, seguroCourierTotal,
+    m3PorCaja, cajas, unidadesPorCaja,
     metodos, elegido, masBarataKey,
   };
 }
 
 // ---------- Comparativo en vivo por producto ----------
-function renderLiveResultado(p) {
+function renderLiveResultado(p, rPrecalculado) {
   if (!p.nombre || pNumA(p.cantidad) <= 0) {
     return `<div style="font-size:11.5px; color:var(--muted);">Cargá nombre y cantidad para ver el comparativo en vivo (aéreo / marítimo / courier).</div>`;
   }
   const origen = document.getElementById("cfg-origen").value;
   const margenGeneral = pNumA(document.getElementById("cfg-margen").value) || 0;
   const blue = pNumA(document.getElementById("cfg-blue").value) || 0;
-  const r = calcularMetodos(p, origen);
+  const r = rPrecalculado || calcularMetodos(p, origen);
   const margen = pNumA(p.margen) || margenGeneral;
   const seleccionado = r.metodos[r.elegido];
   const ventaU = seleccionado.costoU * (1 + margen / 100);
@@ -573,11 +596,52 @@ function renderLiveResultado(p) {
   `;
 }
 
+// ---------- Acumulado en Courier ----------
+// El límite del régimen simplificado (50kg / USD 3.000) es por ENVÍO, no
+// por producto — si vas a mandar varios productos juntos en el mismo envío
+// courier, lo que importa es la suma de todos, no cada uno por separado.
+function renderAcumuladoCourier() {
+  const cont = document.getElementById("acumulado-courier-container");
+  const origen = document.getElementById("cfg-origen").value;
+  const conCourier = productos.filter((p) => p.nombre && pNumA(p.cantidad) > 0 && pNumA(p.fleteCourierManual) > 0);
+  if (!conCourier.length) { cont.innerHTML = ""; return; }
+
+  const totales = conCourier.reduce((acc, p) => {
+    const r = calcularMetodos(p, origen);
+    acc.peso += r.pesoTotal;
+    acc.cif += r.cifTotal;
+    return acc;
+  }, { peso: 0, cif: 0 });
+
+  const dentroDeLimite = totales.peso <= COURIER_REGIMEN.limitePesoKg && totales.cif <= COURIER_REGIMEN.limiteCifUsd;
+
+  cont.innerHTML = `
+    <div class="card" style="border-color:${dentroDeLimite ? "var(--green)" : "var(--coral-deep)"}; margin-top:16px;">
+      <div class="card-title">🧮 Acumulado en Courier (${conCourier.length} producto${conCourier.length === 1 ? "" : "s"})</div>
+      <div class="field-row" style="grid-template-columns: repeat(2,1fr); margin-bottom:10px;">
+        <div>
+          <div style="font-size:10px; color:var(--muted); text-transform:uppercase;">Peso acumulado</div>
+          <div style="font-size:18px; font-weight:800; color:var(--navy);">${fmtA(totales.peso)} / ${COURIER_REGIMEN.limitePesoKg} kg</div>
+        </div>
+        <div>
+          <div style="font-size:10px; color:var(--muted); text-transform:uppercase;">CIF acumulado</div>
+          <div style="font-size:18px; font-weight:800; color:var(--navy);">$${fmtA(totales.cif)} / $${fmtInt(COURIER_REGIMEN.limiteCifUsd)}</div>
+        </div>
+      </div>
+      <div class="elegibilidad ${dentroDeLimite ? "ok" : "no"}">
+        ${dentroDeLimite ? "🟢 Dentro de los límites del régimen simplificado, sumando todo lo que pusiste en Courier." : "🔴 Fuera del régimen simplificado sumando todos los productos en Courier — pasa a trámite formal."}
+      </div>
+    </div>
+  `;
+}
+
 // ---------- Render formulario ----------
 function renderFormulario() {
   const cont = document.getElementById("productos-admin");
   cont.innerHTML = "";
+  const origenActual = document.getElementById("cfg-origen").value;
   productos.forEach((p) => {
+    const c = calcularMetodos(p, origenActual);
     const div = document.createElement("div");
     div.className = "producto-card";
     div.innerHTML = `
@@ -651,20 +715,35 @@ function renderFormulario() {
       <div style="margin-top:10px; padding:12px; background:var(--paper); border-radius:8px; border:1px solid var(--line);">
         <div style="font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px;">🚢 Marítimo — SOLO referencia, no se elige solo</div>
         <div style="font-size:11px; color:var(--muted); margin-bottom:8px;">Se muestra para comparar el número, pero el sistema nunca lo va a elegir automáticamente aunque salga más barato — si querés usarlo en un pedido puntual, elegilo a mano abajo en "Vía a usar".</div>
+        <div style="font-size:10.5px; color:var(--muted); margin-bottom:8px;">Las medidas son de <b>la caja</b> que te manda el proveedor (ej. "esta caja trae 100 unidades") — no del producto individual. Si te dan las medidas de una caja de 1 sola unidad, poné 1 en "Unidades por caja".</div>
+        <div class="field-row" style="grid-template-columns: repeat(2,1fr);">
+          <div class="field">
+            <label>Unidad de medida</label>
+            <select data-field="dimUnidad" data-id="${p.id}">
+              <option value="cm" ${p.dimUnidad !== "mm" ? "selected" : ""}>cm</option>
+              <option value="mm" ${p.dimUnidad === "mm" ? "selected" : ""}>mm</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Unidades por caja</label>
+            <input type="text" inputmode="decimal" data-field="unidadesPorCaja" data-id="${p.id}" value="${p.unidadesPorCaja}" placeholder="Ej: 100" />
+          </div>
+        </div>
         <div class="field-row">
           <div class="field">
-            <label>Largo bulto (cm)</label>
+            <label>Largo caja (${p.dimUnidad === "mm" ? "mm" : "cm"})</label>
             <input type="text" inputmode="decimal" data-field="largo" data-id="${p.id}" value="${p.largo}" placeholder="0" />
           </div>
           <div class="field">
-            <label>Ancho bulto (cm)</label>
+            <label>Ancho caja (${p.dimUnidad === "mm" ? "mm" : "cm"})</label>
             <input type="text" inputmode="decimal" data-field="ancho" data-id="${p.id}" value="${p.ancho}" placeholder="0" />
           </div>
           <div class="field">
-            <label>Alto bulto (cm)</label>
+            <label>Alto caja (${p.dimUnidad === "mm" ? "mm" : "cm"})</label>
             <input type="text" inputmode="decimal" data-field="alto" data-id="${p.id}" value="${p.alto}" placeholder="0" />
           </div>
         </div>
+        ${c.cajas > 0 ? `<div style="font-size:11px; color:var(--muted); margin-top:6px;">${c.cajas} caja(s) × ${fmtA(c.m3PorCaja)} m³ c/u = <b style="color:var(--ink);">${fmtA(c.cbm)} m³</b> totales</div>` : ""}
       </div>
 
       <div class="field-row" style="margin-top:10px;">
@@ -686,10 +765,12 @@ function renderFormulario() {
           </select>
         </div>
       </div>
-      <div class="live-resultado">${renderLiveResultado(p)}</div>
+      <div class="live-resultado">${renderLiveResultado(p, c)}</div>
     `;
     cont.appendChild(div);
   });
+  renderAcumuladoCourier();
+  if (informeGenerado) generarInforme();
 }
 
 function aplicarFotoProducto(productoId, file) {
@@ -728,6 +809,7 @@ document.getElementById("productos-admin").addEventListener("change", (e) => {
   if (!p) return;
   if (field === "pesoModo") { p.pesoModo = e.target.value; guardarProductos(); renderFormulario(); }
   else if (field === "pesoUnidad") { p.pesoUnidad = e.target.value; guardarProductos(); renderFormulario(); }
+  else if (field === "dimUnidad") { p.dimUnidad = e.target.value; guardarProductos(); renderFormulario(); }
   else if (field === "metodo") { p.metodo = e.target.value; guardarProductos(); renderFormulario(); }
   else if (field === "foto-input") {
     const file = e.target.files[0];
@@ -785,6 +867,38 @@ document.getElementById("add-producto-admin").addEventListener("click", () => {
   productos.push(nuevoProductoAdmin());
   guardarProductos();
   renderFormulario();
+});
+
+let limpiarConfirmando = false;
+document.getElementById("limpiar-todo-btn").addEventListener("click", () => {
+  const btn = document.getElementById("limpiar-todo-btn");
+  if (!limpiarConfirmando) {
+    limpiarConfirmando = true;
+    btn.textContent = "¿Seguro? Tocá de nuevo";
+    btn.style.color = "var(--coral-deep)";
+    btn.style.borderColor = "var(--coral-deep)";
+    setTimeout(() => {
+      if (limpiarConfirmando) {
+        limpiarConfirmando = false;
+        btn.textContent = "Limpiar todo";
+        btn.style.color = "var(--muted)";
+        btn.style.borderColor = "var(--line)";
+      }
+    }, 3000);
+    return;
+  }
+  limpiarConfirmando = false;
+  productos = [nuevoProductoAdmin()];
+  presupuestos = [];
+  guardarProductos();
+  guardarPresupuestos();
+  informeGenerado = false;
+  document.getElementById("reporte").style.display = "none";
+  renderFormulario();
+  renderPresupuestos();
+  btn.textContent = "Limpiar todo";
+  btn.style.color = "var(--muted)";
+  btn.style.borderColor = "var(--line)";
 });
 
 document.getElementById("cfg-origen").addEventListener("change", renderFormulario);
@@ -1149,13 +1263,17 @@ try {
 // ---------- Generar informe ----------
 esperarTarifasPara(document.getElementById("generar-informe"), "Cargando tarifas…");
 
-document.getElementById("generar-informe").addEventListener("click", () => {
+function generarInforme(opts) {
+  const scroll = !!(opts && opts.scroll);
   const origen = document.getElementById("cfg-origen").value;
   const blue = pNumA(document.getElementById("cfg-blue").value) || 1;
   const margenGeneral = pNumA(document.getElementById("cfg-margen").value) || 0;
 
   const validos = productos.filter((p) => p.nombre && pNumA(p.cantidad) > 0 && pNumA(p.fob) >= 0);
-  if (!validos.length) { alert("Cargá al menos un producto con nombre y cantidad."); return; }
+  if (!validos.length) {
+    if (scroll) alert("Cargá al menos un producto con nombre y cantidad.");
+    return;
+  }
 
   const resultados = validos.map((p) => {
     const r = calcularMetodos(p, origen);
@@ -1286,7 +1404,12 @@ document.getElementById("generar-informe").addEventListener("click", () => {
   }).join("");
 
   document.getElementById("reporte").style.display = "block";
-  document.getElementById("reporte").scrollIntoView({ behavior: "smooth" });
+  if (scroll) document.getElementById("reporte").scrollIntoView({ behavior: "smooth" });
+}
+
+document.getElementById("generar-informe").addEventListener("click", () => {
+  informeGenerado = true;
+  generarInforme({ scroll: true });
 });
 </script>
 </body>
