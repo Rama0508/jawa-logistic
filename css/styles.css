@@ -275,15 +275,14 @@
   .country-card li::before { content:"›"; position:absolute; left:0; color: var(--coral); font-weight:800; }
 
   /* Timeline (Cómo funciona) — detailed process */
-  .process-list { counter-reset: proc; display:flex; flex-direction:column; position:relative; }
-  .process-list::before { content:""; position:absolute; left:19px; top:14px; bottom:14px; width:2px; background: repeating-linear-gradient(180deg, var(--line) 0 6px, transparent 6px 11px); z-index:0; }
-  .process-item { display:grid; grid-template-columns: 56px 1fr; gap:18px; padding: 20px 0; border-bottom: 1px solid var(--line); position:relative; z-index:1; }
-  .process-item:last-child { border-bottom:none; }
+  .process-list { counter-reset: proc; display:flex; flex-direction:column; gap:14px; position:relative; }
+  .process-list::before { content:""; position:absolute; left:37px; top:0; bottom:0; width:2px; background: repeating-linear-gradient(180deg, var(--line) 0 6px, transparent 6px 11px); z-index:0; }
+  .process-item { display:grid; grid-template-columns: 56px 1fr; gap:18px; padding:16px 18px; border-radius:12px; background:var(--white); box-shadow:0 10px 26px -18px rgba(22,34,61,0.35); position:relative; z-index:1; }
   .process-num { counter-increment: proc; width:40px; height:40px; border-radius:50%; background: var(--navy); color: var(--white); font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; font-family: ui-monospace, monospace; }
   .process-item:nth-child(even) .process-num { background: var(--coral); }
-  .process-title { font-size:14.5px; font-weight:700; margin-bottom:4px; }
-  .process-text { font-size:13px; color: var(--muted); line-height:1.65; max-width:560px; }
-  .process-phase { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color: var(--gold); margin: 30px 0 4px; }
+  .process-title { font-size:16.5px; font-weight:800; margin-bottom:4px; color:var(--ink); }
+  .process-text { font-size:14px; font-weight:600; color: var(--ink); line-height:1.65; max-width:560px; }
+  .process-phase { display:inline-block; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color: var(--coral-deep); background:var(--white); padding:6px 12px; border-radius:20px; margin: 30px 0 4px; position:relative; z-index:1; }
   .process-phase:first-child { margin-top:0; }
 
   /* Why cards */
