@@ -106,7 +106,11 @@
       </div>
       <div class="qq-result" id="qq-result" style="display:none;">
         <div>
-          <div class="qq-result-lbl">Estimado puesto en Argentina</div>
+          <div class="qq-result-lbl">Precio por unidad</div>
+          <div class="qq-result-val" id="qq-result-unit-val">$0,00</div>
+        </div>
+        <div>
+          <div class="qq-result-lbl">Total<span id="qq-result-cant-lbl"></span></div>
           <div class="qq-result-val" id="qq-result-val">$0,00</div>
         </div>
         <div class="qq-result-actions">
@@ -191,15 +195,15 @@
 
       <div class="freight-calc reveal">
         <div class="fc-modo-ayuda">
-          <div class="fc-modo-ayuda-item"><strong>🚢 Marítimo:</strong> más barato, ideal para volumen (varias unidades o productos pesados). Tarda más — es la opción por defecto para la mayoría de los pedidos.</div>
-          <div class="fc-modo-ayuda-item"><strong>✈️ Aéreo:</strong> más caro por kilo, pero mucho más rápido. Conviene para pedidos chicos, livianos, o cuando lo necesitás con urgencia.</div>
+          <div class="fc-modo-ayuda-item"><strong>✈️ Aéreo:</strong> nuestro servicio base — USD 80/kg, rápido y sin mínimo de volumen. La opción recomendada para arrancar, sobre todo con pedidos chicos o medianos.</div>
+          <div class="fc-modo-ayuda-item"><strong>🚢 Marítimo:</strong> más barato por kilo pero solo conviene con volumen alto y tarda bastante más — es más a modo de referencia. Si tu pedido lo justifica, <a href="https://wa.me/5493813312280" target="_blank">escribinos</a> y te lo cotizamos a medida.</div>
         </div>
         <div class="fc-tabs">
-          <button class="fc-tab active" id="fc-tab-sea" type="button">🚢 Marítimo (LCL)</button>
-          <button class="fc-tab" id="fc-tab-air" type="button">✈️ Aéreo</button>
+          <button class="fc-tab active" id="fc-tab-air" type="button">✈️ Aéreo</button>
+          <button class="fc-tab" id="fc-tab-sea" type="button">🚢 Marítimo (LCL)</button>
         </div>
 
-        <div class="fc-panel" id="fc-panel-sea">
+        <div class="fc-panel" id="fc-panel-sea" style="display:none;">
           <div class="fc-origin-row">
             <span class="fc-origin-label">Origen</span>
             <div class="fc-origin-options" id="fc-origin-sea">
@@ -232,7 +236,7 @@
           <div class="fc-result" id="fc-result-sea"></div>
         </div>
 
-        <div class="fc-panel" id="fc-panel-air" style="display:none;">
+        <div class="fc-panel" id="fc-panel-air">
           <div class="fc-origin-row">
             <span class="fc-origin-label">Origen</span>
             <div class="fc-origin-options" id="fc-origin-air">

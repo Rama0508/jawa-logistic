@@ -159,16 +159,23 @@ try {
         return;
       }
 
-      const total = (fob + pesoKg * FLETE_USD_KG) * cant;
+      const costoUnitario = fob + pesoKg * FLETE_USD_KG;
+      const total = costoUnitario * cant;
 
+      // Siempre mostramos el precio por unidad primero, y el total aparte
+      // según la cantidad — así la gente ve de entrada cuánto le sale cada
+      // producto, no solo el total de la compra.
+      document.getElementById("qq-result-unit-val").textContent = "$" + fmtQQ(costoUnitario);
       document.getElementById("qq-result-val").textContent = "$" + fmtQQ(total);
+      document.getElementById("qq-result-cant-lbl").textContent = cant > 1 ? ` (${cant} u.)` : "";
       document.getElementById("qq-result").style.display = "flex";
 
       const texto = `Hola! Quiero cotizar un producto con Jawa Logistic:
 FOB unitario: USD ${fmtQQ(fob)}
 Peso: ${pesoRaw || 0} ${unidad}
 Cantidad: ${cant}
-Estimado puesto en Argentina: $${fmtQQ(total)}`;
+Precio por unidad puesto en Argentina: $${fmtQQ(costoUnitario)}
+Total estimado: $${fmtQQ(total)}`;
       const numero = TELEFONO_NOTIFICACION.replace(/[^\d]/g, "");
       document.getElementById("qq-wa-btn").href = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
     });
