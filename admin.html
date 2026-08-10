@@ -553,6 +553,25 @@ function calcularMetodos(p, origen) {
   };
 }
 
+// ---------- Qué se paga ahora vs. cuándo llega la mercadería ----------
+// El producto, el flete y el seguro se pagan al despachar (ahora); los
+// derechos de importación del régimen courier recién se pagan cuando la
+// carga llega — separarlo ayuda a ver la inversión real de arranque, no
+// solo el costo total (aéreo/marítimo no tienen impuestos en este modelo,
+// así que ahí "al llegar" siempre da $0).
+function pagoAhoraYDespues(r) {
+  const seleccionado = r.metodos[r.elegido];
+  const fobTotal = r.fobU * r.cantidad;
+  const fleteTotal = seleccionado.fleteU * r.cantidad;
+  const seguroTotal = r.elegido === "courier" ? r.seguroCourierTotal : 0;
+  const impuestosTotal = seleccionado.impuestosU * r.cantidad;
+  return {
+    fobTotal, fleteTotal, seguroTotal,
+    ahora: fobTotal + fleteTotal + seguroTotal,
+    alLlegar: impuestosTotal,
+  };
+}
+
 // ---------- Comparativo en vivo por producto ----------
 function renderLiveResultado(p, rPrecalculado) {
   if (!p.nombre || pNumA(p.cantidad) <= 0) {
@@ -587,6 +606,25 @@ function renderLiveResultado(p, rPrecalculado) {
     <div class="riesgo-badge ${r.courierElegible ? "ok" : "no"}">
       ${r.courierElegible ? "🟢" : "🔴"} Courier: peso ${fmtA(r.pesoTotal)}/${COURIER_REGIMEN.limitePesoKg}kg · CIF $${fmtA(r.cifTotal)}/$${fmtInt(COURIER_REGIMEN.limiteCifUsd)}
     </div>
+    ${(() => {
+      const pago = pagoAhoraYDespues(r);
+      return `
+      <div style="margin-top:8px; padding:10px; background:var(--paper); border-radius:7px; border:1px solid var(--line);">
+        <div style="font-size:9.5px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;">Qué se paga y cuándo</div>
+        <div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap;">
+          <div>
+            <div style="font-size:10px; color:var(--muted);">Total a pagar HOY</div>
+            <div style="font-size:16px; font-weight:800; color:var(--navy);">$${fmtA(pago.ahora)}</div>
+            <div style="font-size:9.5px; color:var(--muted);">Producto $${fmtA(pago.fobTotal)} + Envío $${fmtA(pago.fleteTotal + pago.seguroTotal)}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px; color:var(--muted);">Impuestos (al llegar)</div>
+            <div style="font-size:16px; font-weight:800; color:${pago.alLlegar > 0 ? "var(--gold)" : "var(--muted)"};">$${fmtA(pago.alLlegar)}</div>
+            <div style="font-size:9.5px; color:var(--muted);">${pago.alLlegar > 0 ? "Se paga al recibir la carga" : "No aplica con esta vía"}</div>
+          </div>
+        </div>
+      </div>`;
+    })()}
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); font-size:12.5px;">
       <span>Costo u. <b>$${fmtA(seleccionado.costoU)}</b></span>
       <span>Venta u. (margen ${margen.toFixed(0)}%) <b style="color:var(--coral-deep);">$${fmtA(ventaU)}</b></span>
@@ -1391,6 +1429,19 @@ function generarInforme(opts) {
           <tbody>${filas}</tbody>
         </table>
         ${convieneNota}
+
+        ${(() => {
+          const pago = pagoAhoraYDespues(x.r);
+          return `
+          <div class="ml-box" style="margin-bottom:14px;">
+            <div class="card-title">Qué se paga y cuándo</div>
+            <div class="ml-grid" style="grid-template-columns: repeat(2,1fr);">
+              <div><div class="lbl">Total a pagar HOY</div><div class="val">$${fmtA(pago.ahora)}</div></div>
+              <div><div class="lbl">Impuestos (al llegar)</div><div class="val" style="color:${pago.alLlegar > 0 ? "var(--gold)" : "var(--muted)"};">$${fmtA(pago.alLlegar)}</div></div>
+            </div>
+            <div style="font-size:11px; color:var(--muted);">Producto $${fmtA(pago.fobTotal)} + Envío $${fmtA(pago.fleteTotal + pago.seguroTotal)} se pagan al despachar — ${pago.alLlegar > 0 ? "los impuestos recién se pagan cuando la carga llega a Argentina." : "esta vía no tiene impuestos en este modelo."}</div>
+          </div>`;
+        })()}
 
         <div class="costo-venta-row">
           <div class="cv-box"><div class="lbl">Costo final u.</div><div class="val">$${fmtA(x.seleccionado.costoU)}</div></div>
