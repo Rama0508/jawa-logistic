@@ -135,15 +135,18 @@
   .btn-ghost:hover { background: rgba(255,255,255,0.08); }
 
   /* Cotizador rápido en el hero */
-  .quick-quote { background:var(--white); border-radius:14px; box-shadow:0 24px 54px -22px rgba(0,0,0,0.5); padding:22px 24px; margin:36px auto 0; max-width:780px; text-align:left; color:var(--ink); }
+  .quick-quote { background:var(--white); border-radius:14px; box-shadow:0 24px 54px -22px rgba(0,0,0,0.5); padding:22px 24px; margin:36px auto 0; max-width:860px; text-align:left; color:var(--ink); }
   .qq-eyebrow { font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--coral); margin-bottom:14px; }
-  .qq-body { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:12px; align-items:end; }
+  .qq-body { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; align-items:end; }
   .qq-field { display:flex; flex-direction:column; gap:5px; }
-  .qq-field label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  .qq-field label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); display:flex; align-items:center; }
   .qq-field input, .qq-field select { background:var(--paper); border:1px solid var(--line); border-radius:7px; padding:11px 12px; font-size:14px; font-family:inherit; color:var(--ink); width:100%; }
   .qq-field input:focus, .qq-field select:focus { outline:none; border-color:var(--navy); }
+  .qq-field input[readonly] { background:var(--paper-2); color:var(--muted); cursor:default; }
   .qq-peso-row { display:flex; gap:6px; }
   .qq-peso-row select { width:62px; flex:none; }
+  .qq-tooltip { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; background:var(--muted); color:#fff; font-size:9px; font-weight:800; cursor:help; margin-left:5px; text-transform:none; letter-spacing:0; flex:none; }
+  .qq-peso-nota { font-size:11px; color:var(--muted); margin-top:8px; line-height:1.5; }
   .qq-btn { background:var(--coral); color:#fff; border:none; border-radius:7px; padding:0 22px; height:42px; font-size:13.5px; font-weight:800; cursor:pointer; font-family:inherit; white-space:nowrap; transition: background .2s ease; }
   .qq-btn:hover { background:var(--coral-deep); }
   @media (max-width:700px) { .qq-body { grid-template-columns:1fr 1fr; } .qq-btn { grid-column:1/-1; } }

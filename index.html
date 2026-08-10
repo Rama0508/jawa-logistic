@@ -85,11 +85,15 @@
       <div class="qq-eyebrow">Cotización rápida</div>
       <div class="qq-body">
         <div class="qq-field">
-          <label>FOB unitario (USD)</label>
+          <label>Nombre del producto</label>
+          <input type="text" id="qq-nombre" placeholder="Ej: auriculares bluetooth" />
+        </div>
+        <div class="qq-field">
+          <label>FOB unitario (USD) <span class="qq-tooltip" tabindex="0" title="Es el precio del producto que te da tu proveedor (Alibaba, 1688, etc.), antes del flete internacional — el número que aparece en la cotización o en la ficha del producto.">?</span></label>
           <input type="text" inputmode="decimal" id="qq-fob" placeholder="0.00" />
         </div>
         <div class="qq-field">
-          <label>Peso</label>
+          <label>Peso por unidad</label>
           <div class="qq-peso-row">
             <input type="text" inputmode="decimal" id="qq-peso" placeholder="0" />
             <select id="qq-peso-unidad">
@@ -102,16 +106,25 @@
           <label>Cantidad</label>
           <input type="text" inputmode="decimal" id="qq-cantidad" placeholder="1" />
         </div>
+        <div class="qq-field">
+          <label>Peso total (estimado)</label>
+          <input type="text" id="qq-peso-total" value="0 g" readonly />
+        </div>
         <button class="qq-btn" id="qq-calcular" type="button">Calcular</button>
       </div>
+      <div class="qq-peso-nota">Peso total estimado = peso por unidad × cantidad, más un margen por caja/embalaje — es aproximado, el peso real se confirma cuando llega el paquete.</div>
       <div class="qq-result" id="qq-result" style="display:none;">
         <div>
-          <div class="qq-result-lbl">Precio por unidad</div>
-          <div class="qq-result-val" id="qq-result-unit-val">$0,00</div>
+          <div class="qq-result-lbl">Pagás a tu proveedor</div>
+          <div class="qq-result-val" id="qq-result-proveedor-val">U$0,00</div>
         </div>
         <div>
-          <div class="qq-result-lbl">Total<span id="qq-result-cant-lbl"></span></div>
-          <div class="qq-result-val" id="qq-result-val">$0,00</div>
+          <div class="qq-result-lbl">Pagás de flete</div>
+          <div class="qq-result-val" id="qq-result-flete-val">U$0,00</div>
+        </div>
+        <div>
+          <div class="qq-result-lbl">Total estimado</div>
+          <div class="qq-result-val" id="qq-result-val">U$0,00</div>
         </div>
         <div class="qq-result-actions">
           <a class="qq-cta-wa" id="qq-wa-btn" href="#" target="_blank">Cotizar por WhatsApp</a>

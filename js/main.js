@@ -147,35 +147,66 @@ try {
     };
     const fmtQQ = (n) => (n || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+    // Margen fijo de embalaje (caja, papeles, relleno) que se suma al peso
+    // total estimado — no es exacto, solo para que la estimación de flete
+    // no quede corta por no contar el packaging.
+    const EMBALAJE_GRAMOS = 100;
+
+    function pesoTotalEstimadoG() {
+      const pesoRaw = parseNumQQ(document.getElementById("qq-peso").value);
+      const unidad = document.getElementById("qq-peso-unidad").value;
+      const cant = parseNumQQ(document.getElementById("qq-cantidad").value) || 1;
+      const pesoUnitG = unidad === "kg" ? pesoRaw * 1000 : pesoRaw;
+      if (!pesoUnitG) return 0;
+      return pesoUnitG * cant + EMBALAJE_GRAMOS;
+    }
+
+    function actualizarPesoTotal() {
+      const totalG = pesoTotalEstimadoG();
+      const campo = document.getElementById("qq-peso-total");
+      if (!totalG) { campo.value = "0 g"; return; }
+      campo.value = totalG >= 1000
+        ? (totalG / 1000).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " kg"
+        : Math.round(totalG) + " g";
+    }
+    ["qq-peso", "qq-peso-unidad", "qq-cantidad"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("input", actualizarPesoTotal);
+    });
+    actualizarPesoTotal();
+
     btn.addEventListener("click", () => {
+      const nombre = document.getElementById("qq-nombre").value.trim();
       const fob = parseNumQQ(document.getElementById("qq-fob").value);
       const pesoRaw = parseNumQQ(document.getElementById("qq-peso").value);
       const unidad = document.getElementById("qq-peso-unidad").value;
       const cant = parseNumQQ(document.getElementById("qq-cantidad").value) || 1;
-      const pesoKg = unidad === "kg" ? pesoRaw : pesoRaw / 1000;
 
       if (!fob && !pesoRaw) {
         alert("Cargá al menos el precio FOB o el peso para calcular.");
         return;
       }
 
-      const costoUnitario = fob + pesoKg * FLETE_USD_KG;
-      const total = costoUnitario * cant;
+      const pesoTotalKg = pesoTotalEstimadoG() / 1000;
+      const pagoProveedor = fob * cant;
+      const pagoFlete = pesoTotalKg * FLETE_USD_KG;
+      const total = pagoProveedor + pagoFlete;
 
-      // Siempre mostramos el precio por unidad primero, y el total aparte
-      // según la cantidad — así la gente ve de entrada cuánto le sale cada
-      // producto, no solo el total de la compra.
-      document.getElementById("qq-result-unit-val").textContent = "$" + fmtQQ(costoUnitario);
-      document.getElementById("qq-result-val").textContent = "$" + fmtQQ(total);
-      document.getElementById("qq-result-cant-lbl").textContent = cant > 1 ? ` (${cant} u.)` : "";
+      // Desglosado para que se entienda qué se le paga al proveedor y qué
+      // es flete — dos pagos distintos, no un solo número sin explicar.
+      document.getElementById("qq-result-proveedor-val").textContent = "U$" + fmtQQ(pagoProveedor);
+      document.getElementById("qq-result-flete-val").textContent = "U$" + fmtQQ(pagoFlete);
+      document.getElementById("qq-result-val").textContent = "U$" + fmtQQ(total);
       document.getElementById("qq-result").style.display = "flex";
 
       const texto = `Hola! Quiero cotizar un producto con Jawa Logistic:
-FOB unitario: USD ${fmtQQ(fob)}
-Peso: ${pesoRaw || 0} ${unidad}
+${nombre ? `Producto: ${nombre}\n` : ""}FOB unitario: USD ${fmtQQ(fob)}
+Peso por unidad: ${pesoRaw || 0} ${unidad}
 Cantidad: ${cant}
-Precio por unidad puesto en Argentina: $${fmtQQ(costoUnitario)}
-Total estimado: $${fmtQQ(total)}`;
+Peso total estimado: ${document.getElementById("qq-peso-total").value}
+Pagás a tu proveedor: U$${fmtQQ(pagoProveedor)}
+Pagás de flete: U$${fmtQQ(pagoFlete)}
+Total estimado: U$${fmtQQ(total)}`;
       const numero = TELEFONO_NOTIFICACION.replace(/[^\d]/g, "");
       document.getElementById("qq-wa-btn").href = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
     });
