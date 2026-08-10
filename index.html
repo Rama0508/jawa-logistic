@@ -71,11 +71,12 @@
 </div>
 
 <header class="hero" id="top">
-  <!-- El fondo (imagen grande de avión) es #page-bg, fijo detrás de toda la
-       página — ver la regla en css/styles.css. Acá solo va el degradé para
-       que el texto sea legible. -->
+  <!-- El fondo (foto del barco) está definido en .hero, en css/styles.css.
+       Acá van el degradé para que el texto sea legible y el canvas de
+       partículas flotantes (ver #hero-particles en js/main.js). -->
   <div class="hero-overlay"></div>
   <div class="hero-shimmer"></div>
+  <canvas id="hero-particles" class="hero-particles" aria-hidden="true"></canvas>
 
   <div class="hero-quicklinks">
     <a href="#cotizador">Cotizador</a>

@@ -98,6 +98,70 @@ try {
   })();
 } catch (e) { console.error("contadores animados:", e); }
 
+// ---------- Partículas flotantes del hero ----------
+// Animación liviana (sin video, sin librerías): triangulitos que suben
+// despacio sobre la foto de fondo, para que el hero no quede del todo
+// estático. Se desactiva si el usuario prefiere menos movimiento.
+try {
+  (function () {
+    const canvas = document.getElementById("hero-particles");
+    const hero = document.getElementById("top");
+    if (!canvas || !hero) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const ctx = canvas.getContext("2d");
+    let w, h, dpr;
+    let particulas = [];
+
+    function crearParticulas() {
+      const cantidad = Math.round((w * h) / 45000); // densidad ~ constante según el tamaño del hero
+      particulas = Array.from({ length: Math.min(45, Math.max(14, cantidad)) }, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: 4 + Math.random() * 7,
+        velY: 0.15 + Math.random() * 0.3,
+        velX: (Math.random() - 0.5) * 0.15,
+        alpha: 0.08 + Math.random() * 0.16,
+      }));
+    }
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = hero.clientWidth;
+      h = hero.clientHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      crearParticulas();
+    }
+
+    function dibujarTriangulo(p) {
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y - p.r);
+      ctx.lineTo(p.x - p.r * 0.87, p.y + p.r * 0.5);
+      ctx.lineTo(p.x + p.r * 0.87, p.y + p.r * 0.5);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(215, 182, 134, ${p.alpha})`;
+      ctx.fill();
+    }
+
+    function tick() {
+      ctx.clearRect(0, 0, w, h);
+      particulas.forEach((p) => {
+        p.y -= p.velY;
+        p.x += p.velX;
+        if (p.y < -10) { p.y = h + 10; p.x = Math.random() * w; }
+        dibujarTriangulo(p);
+      });
+      requestAnimationFrame(tick);
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+    requestAnimationFrame(tick);
+  })();
+} catch (e) { console.error("partículas del hero:", e); }
+
 // ---------- Config oculta ----------
 const FLETE_USD_KG = 80; // tarifa interna, no se muestra en ningún lado
 
