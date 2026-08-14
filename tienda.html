@@ -100,10 +100,10 @@ try {
     grid.innerHTML = productos.map((p) => `
       <a class="catalogo-card" href="producto.html?slug=${encodeURIComponent(p.slug)}">
         <div class="catalogo-img">
-          ${primeraImagen(p) ? `<img src="${primeraImagen(p)}" alt="${p.nombre}" loading="lazy" />` : `<div class="catalogo-img-vacio">Sin imagen</div>`}
+          ${primeraImagen(p) ? `<img src="${escHtml(primeraImagen(p))}" alt="${escHtml(p.nombre)}" loading="lazy" />` : `<div class="catalogo-img-vacio">Sin imagen</div>`}
         </div>
         <div class="catalogo-info">
-          <div class="catalogo-nombre">${p.nombre}</div>
+          <div class="catalogo-nombre">${escHtml(p.nombre)}</div>
           <div class="catalogo-precio">${fmtCentavos(p.precio_centavos)}</div>
           ${p.stock === 0 ? `<div class="catalogo-sin-stock">Sin stock</div>` : ""}
         </div>

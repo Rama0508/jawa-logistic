@@ -689,18 +689,18 @@ function renderFormulario() {
         <div>
           <label style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); display:block; margin-bottom:4px;">Foto</label>
           <div class="foto-drop" data-id="${p.id}" tabindex="0">
-            ${p.foto ? `<img src="${p.foto}" />` : `<div class="hint">📋 Click, pegar<br/>o arrastrar</div>`}
+            ${p.foto ? `<img src="${escHtml(p.foto)}" />` : `<div class="hint">📋 Click, pegar<br/>o arrastrar</div>`}
             <input type="file" accept="image/*" data-field="foto-input" data-id="${p.id}" style="display:none;" />
           </div>
         </div>
         <div style="flex:1;">
           <div class="field" style="margin-bottom:8px;">
             <label>Nombre del producto</label>
-            <input type="text" data-field="nombre" data-id="${p.id}" value="${p.nombre.replace(/"/g, "&quot;")}" placeholder="Ej: soporte magnético" />
+            <input type="text" data-field="nombre" data-id="${p.id}" value="${escHtml(p.nombre)}" placeholder="Ej: soporte magnético" />
           </div>
           <div class="field">
             <label>Descripción (para el cliente)</label>
-            <textarea data-field="descripcion" data-id="${p.id}" placeholder="Ej: soporte magnético para auto, imán reforzado" style="width:100%; min-height:44px; resize:vertical; background:var(--paper); border:1px solid var(--line); border-radius:6px; color:var(--ink); font-size:12.5px; padding:7px 9px; font-family:inherit;">${p.descripcion || ""}</textarea>
+            <textarea data-field="descripcion" data-id="${p.id}" placeholder="Ej: soporte magnético para auto, imán reforzado" style="width:100%; min-height:44px; resize:vertical; background:var(--paper); border:1px solid var(--line); border-radius:6px; color:var(--ink); font-size:12.5px; padding:7px 9px; font-family:inherit;">${escHtml(p.descripcion || "")}</textarea>
           </div>
         </div>
       </div>
@@ -1017,7 +1017,7 @@ function renderStockDisponible() {
     <div style="display:flex; flex-direction:column; gap:4px;">
       ${stock.map((p) => `
         <div style="display:flex; justify-content:space-between; font-size:12px; padding:3px 0;">
-          <span>${p.nombre}</span>
+          <span>${escHtml(p.nombre)}</span>
           <span style="${p.disponible < 0 ? "color:var(--coral-deep); font-weight:700;" : "color:var(--muted);"}">${p.asignado}/${p.cant} asignadas · ${p.disponible} disp.</span>
         </div>
       `).join("")}
@@ -1041,14 +1041,14 @@ function renderPresupuestos() {
     return `
     <div class="presupuesto-card">
       <div style="display:flex; gap:8px; margin-bottom:10px;">
-        <input type="text" placeholder="Nombre del cliente" data-pres-field="cliente" data-pres-id="${pr.id}" value="${pr.cliente.replace(/"/g, "&quot;")}" style="flex:1;" />
+        <input type="text" placeholder="Nombre del cliente" data-pres-field="cliente" data-pres-id="${pr.id}" value="${escHtml(pr.cliente)}" style="flex:1;" />
         <button class="del-btn" data-pres-del="${pr.id}">✕</button>
       </div>
       ${itemsCalc.map((it) => `
         <div class="presupuesto-item-row">
           <select data-item-field="productoId" data-pres-id="${pr.id}" data-item-id="${it.id}">
             <option value="">Elegir producto…</option>
-            ${stock.map((p) => `<option value="${p.id}" ${it.productoId === p.id ? "selected" : ""}>${p.nombre} (disp. ${p.disponible + (it.productoId === p.id ? it.cant : 0)})</option>`).join("")}
+            ${stock.map((p) => `<option value="${p.id}" ${it.productoId === p.id ? "selected" : ""}>${escHtml(p.nombre)} (disp. ${p.disponible + (it.productoId === p.id ? it.cant : 0)})</option>`).join("")}
           </select>
           <input type="text" inputmode="decimal" placeholder="Cant." data-item-field="cantidad" data-pres-id="${pr.id}" data-item-id="${it.id}" value="${it.cantidad}" style="width:64px;" />
           <input type="text" inputmode="decimal" placeholder="$${fmtA(it.precioLista)}" data-item-field="precio" data-pres-id="${pr.id}" data-item-id="${it.id}" value="${it.precio}" style="width:80px; color:var(--coral-deep);" />
@@ -1160,17 +1160,17 @@ function descargarPresupuesto(id) {
   const fecha = new Date().toLocaleDateString("es-AR");
   const itemsHtml = d.items.map((i) => `
     <div style="display:flex; gap:16px; padding:16px 0; border-bottom:1px solid #eee;">
-      ${i.foto ? `<img src="${i.foto}" style="width:90px; height:90px; object-fit:cover; border-radius:8px; flex:none;" />` : `<div style="width:90px; height:90px; border-radius:8px; background:#f2ede0; flex:none;"></div>`}
+      ${i.foto ? `<img src="${escHtml(i.foto)}" style="width:90px; height:90px; object-fit:cover; border-radius:8px; flex:none;" />` : `<div style="width:90px; height:90px; border-radius:8px; background:#f2ede0; flex:none;"></div>`}
       <div style="flex:1;">
-        <div style="font-weight:700; font-size:15px; color:#16223d;">${i.nombre}</div>
-        ${i.descripcion ? `<div style="font-size:12px; color:#8a7a5f; margin-top:3px; line-height:1.4;">${i.descripcion}</div>` : ""}
+        <div style="font-weight:700; font-size:15px; color:#16223d;">${escHtml(i.nombre)}</div>
+        ${i.descripcion ? `<div style="font-size:12px; color:#8a7a5f; margin-top:3px; line-height:1.4;">${escHtml(i.descripcion)}</div>` : ""}
         <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:10px;">
           <span style="font-size:13px; color:#4a3b2a;">${i.cant} u. × $${fmtA(i.precioUnit)}</span>
           <span style="font-size:16px; font-weight:700; color:#c9502e;">$${fmtA(i.subtotal)}</span>
         </div>
       </div>
     </div>`).join("");
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Presupuesto — ${d.cliente}</title>
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Presupuesto — ${escHtml(d.cliente)}</title>
     <style>
       body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; color:#171b22; padding: 32px; max-width:720px; margin:0 auto; background:#fff; }
       @media print { button { display: none; } body { padding:0; } }
@@ -1188,7 +1188,7 @@ function descargarPresupuesto(id) {
         <h1 style="font-size:19px; margin:0;">Presupuesto</h1>
         <span style="font-size:12px; color:#5b6472;">${fecha}</span>
       </div>
-      <div style="font-size:14px; color:#4a3b2a; margin-bottom:20px;">Para: <b>${d.cliente}</b></div>
+      <div style="font-size:14px; color:#4a3b2a; margin-bottom:20px;">Para: <b>${escHtml(d.cliente)}</b></div>
       ${itemsHtml}
       <div style="margin-top:20px; display:flex; justify-content:flex-end;">
         <div style="font-size:20px; font-weight:700;">Total: <span style="color:#c9502e;">$${fmtA(d.total)}</span></div>
@@ -1413,11 +1413,11 @@ function generarInforme(opts) {
       <div class="prod-detail">
         <div class="prod-detail-head">
           <div style="display:flex; gap:12px; align-items:flex-start;">
-            ${x.p.foto ? `<img src="${x.p.foto}" style="width:52px; height:52px; object-fit:cover; border-radius:8px; flex:none;" />` : ""}
+            ${x.p.foto ? `<img src="${escHtml(x.p.foto)}" style="width:52px; height:52px; object-fit:cover; border-radius:8px; flex:none;" />` : ""}
             <div>
-              <h3>${x.p.nombre}</h3>
+              <h3>${escHtml(x.p.nombre)}</h3>
               <div class="meta">Cantidad: ${fmtInt(x.r.cantidad)} u. — FOB: $${fmtA(x.r.fobU)}/u.</div>
-              ${x.p.descripcion ? `<div class="meta" style="margin-top:2px;">${x.p.descripcion}</div>` : ""}
+              ${x.p.descripcion ? `<div class="meta" style="margin-top:2px;">${escHtml(x.p.descripcion)}</div>` : ""}
             </div>
           </div>
           <div class="elegibilidad ${x.r.courierElegible ? "ok" : "no"}">

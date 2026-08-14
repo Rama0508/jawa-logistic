@@ -45,7 +45,7 @@ try {
       div.className = "hub-chat-msg " + (m.autor_rol === "cliente" ? "propio" : "ajeno");
       div.innerHTML = `
         <div class="autor">${m.autor_rol === "cliente" ? "Vos" : "Jawa Logistic"}</div>
-        <div>${m.mensaje}</div>
+        <div>${escHtml(m.mensaje)}</div>
         <div class="hora">${fmtFechaHora(m.creado_en)}</div>
       `;
       box.appendChild(div);

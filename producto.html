@@ -116,7 +116,7 @@ try {
 
     const imgs = Array.isArray(producto.imagenes) ? producto.imagenes : [];
     document.getElementById("producto-imgs").innerHTML = imgs.length
-      ? imgs.map((url, i) => `<img src="${url}" alt="${producto.nombre}" loading="lazy" class="${i === 0 ? "principal" : ""}" />`).join("")
+      ? imgs.map((url, i) => `<img src="${escHtml(url)}" alt="${escHtml(producto.nombre)}" loading="lazy" class="${i === 0 ? "principal" : ""}" />`).join("")
       : `<div class="catalogo-img-vacio" style="height:320px;">Sin imagen</div>`;
 
     const sinStock = producto.stock != null && producto.stock <= 0;

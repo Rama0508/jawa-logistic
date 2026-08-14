@@ -113,10 +113,10 @@ try {
       lista.innerHTML = items.map((it) => `
         <div class="carrito-item">
           <div class="carrito-item-img">
-            ${primeraImagen(it) ? `<img src="${primeraImagen(it)}" alt="${it.nombre}" />` : `<div class="catalogo-img-vacio">Sin imagen</div>`}
+            ${primeraImagen(it) ? `<img src="${escHtml(primeraImagen(it))}" alt="${escHtml(it.nombre)}" />` : `<div class="catalogo-img-vacio">Sin imagen</div>`}
           </div>
           <div class="carrito-item-info">
-            <div class="carrito-item-nombre">${it.nombre}</div>
+            <div class="carrito-item-nombre">${escHtml(it.nombre)}</div>
             <div class="carrito-item-precio data">${fmtCentavos(it.precio_centavos)} ${it.tipo === "curso" ? "" : "c/u"}</div>
           </div>
           ${it.tipo === "curso"

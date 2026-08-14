@@ -50,10 +50,10 @@ try {
       <div class="hub-item">
         <div class="hub-item-head">
           <div>
-            <div class="hub-item-title">${d.nombre_archivo}</div>
-            <div class="hub-item-meta">${DOC_TIPO_LABEL[d.tipo] || d.tipo} · ${fmtFecha(d.creado_en)}</div>
+            <div class="hub-item-title">${escHtml(d.nombre_archivo)}</div>
+            <div class="hub-item-meta">${escHtml(DOC_TIPO_LABEL[d.tipo] || d.tipo)} · ${fmtFecha(d.creado_en)}</div>
           </div>
-          <button class="hub-btn-ghost" data-descargar="${d.storage_path}">Descargar</button>
+          <button class="hub-btn-ghost" data-descargar="${escHtml(d.storage_path)}">Descargar</button>
         </div>
       </div>
     `).join("");

@@ -299,9 +299,9 @@ function initBuscadorCliente({ inputId, btnId, resultadosId, onElegir }) {
     if (error) { cont.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
     if (!data || !data.length) { cont.innerHTML = `<p class="hub-empty">Sin resultados.</p>`; return; }
     cont.innerHTML = data.map((c) => `
-      <div class="hub-item" data-elegir="${c.id}" style="cursor:pointer;">
-        <div class="hub-item-title">${c.nombre || "(sin nombre cargado)"}</div>
-        <div class="hub-item-meta">${c.email}${c.telefono ? " · " + c.telefono : ""}</div>
+      <div class="hub-item" data-elegir="${escHtml(c.id)}" style="cursor:pointer;">
+        <div class="hub-item-title">${escHtml(c.nombre) || "(sin nombre cargado)"}</div>
+        <div class="hub-item-meta">${escHtml(c.email)}${c.telefono ? " · " + escHtml(c.telefono) : ""}</div>
       </div>
     `).join("");
     cont.querySelectorAll("[data-elegir]").forEach((el) => {
@@ -380,10 +380,10 @@ try {
         <div class="hub-item">
           <div class="hub-item-head">
             <div>
-              <div class="hub-item-title data">${o.codigo}</div>
-              <div class="hub-item-meta">${o.cliente_nombre || o.cliente_email} · ${o.tipo}${o.origen ? " · " + o.origen : ""}</div>
+              <div class="hub-item-title data">${escHtml(o.codigo)}</div>
+              <div class="hub-item-meta">${escHtml(o.cliente_nombre || o.cliente_email)} · ${escHtml(o.tipo)}${o.origen ? " · " + escHtml(o.origen) : ""}</div>
               <div class="hub-item-meta">${fmtFecha(o.creado_en)}${o.total_estimado_centavos ? " · " + fmtCentavos(o.total_estimado_centavos) : ""}</div>
-              ${o.descripcion ? `<div class="hub-item-meta">${o.descripcion}</div>` : ""}
+              ${o.descripcion ? `<div class="hub-item-meta">${escHtml(o.descripcion)}</div>` : ""}
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
               <select data-estado="${o.id}">
@@ -414,7 +414,7 @@ try {
         <div class="hub-item">
           <div class="hub-item-head">
             <div>
-              <div class="hub-item-title">${c.cliente_nombre || c.cliente_email} · ${c.modo}${c.origen ? " · " + c.origen : ""}</div>
+              <div class="hub-item-title">${escHtml(c.cliente_nombre || c.cliente_email)} · ${escHtml(c.modo)}${c.origen ? " · " + escHtml(c.origen) : ""}</div>
               <div class="hub-item-meta">${fmtFecha(c.creado_en)} · USD ${c.total_estimado_usd != null ? Number(c.total_estimado_usd).toFixed(2) : "—"}</div>
             </div>
             ${c.convertida_en_operacion_id
@@ -506,7 +506,7 @@ try {
         <div class="hub-item">
           <div class="hub-item-head">
             <div>
-              <div class="hub-item-title">${m.cliente_nombre || m.cliente_email} · ${m.concepto}</div>
+              <div class="hub-item-title">${escHtml(m.cliente_nombre || m.cliente_email)} · ${escHtml(m.concepto)}</div>
               <div class="hub-item-meta">${fmtFecha(m.creado_en)}</div>
             </div>
             <div style="text-align:right;">
@@ -586,8 +586,8 @@ try {
         <div class="hub-item">
           <div class="hub-item-head">
             <div>
-              <div class="hub-item-title">${d.nombre_archivo}</div>
-              <div class="hub-item-meta">${d.cliente_nombre || d.cliente_email} · ${d.tipo} · ${fmtFecha(d.creado_en)}</div>
+              <div class="hub-item-title">${escHtml(d.nombre_archivo)}</div>
+              <div class="hub-item-meta">${escHtml(d.cliente_nombre || d.cliente_email)} · ${escHtml(d.tipo)} · ${fmtFecha(d.creado_en)}</div>
             </div>
           </div>
         </div>
@@ -607,7 +607,7 @@ try {
       const box = document.getElementById("chat-admin-box");
       const div = document.createElement("div");
       div.className = "hub-chat-msg " + (m.autor_rol === "staff" ? "propio" : "ajeno");
-      div.innerHTML = `<div class="autor">${m.autor_rol === "staff" ? "Vos" : "Cliente"}</div><div>${m.mensaje}</div><div class="hora">${fmtFechaHora(m.creado_en)}</div>`;
+      div.innerHTML = `<div class="autor">${m.autor_rol === "staff" ? "Vos" : "Cliente"}</div><div>${escHtml(m.mensaje)}</div><div class="hora">${fmtFechaHora(m.creado_en)}</div>`;
       box.appendChild(div);
     }
 
@@ -617,9 +617,9 @@ try {
       if (error) { cont.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
       if (!data || !data.length) { cont.innerHTML = `<p class="hub-empty">Todavía no hay conversaciones.</p>`; return; }
       cont.innerHTML = data.map((h) => `
-        <div class="hub-item hub-chat-hilo ${h.cliente_id === hiloActivo ? "active" : ""}" data-hilo="${h.cliente_id}" data-email="${h.cliente_email}" data-nombre="${h.cliente_nombre || ""}">
-          <div class="hub-item-title">${h.cliente_nombre || h.cliente_email}</div>
-          <div class="hub-item-meta">${h.ultimo_autor_rol === "staff" ? "Vos: " : ""}${(h.ultimo_mensaje || "").slice(0, 60)}</div>
+        <div class="hub-item hub-chat-hilo ${h.cliente_id === hiloActivo ? "active" : ""}" data-hilo="${escHtml(h.cliente_id)}" data-email="${escHtml(h.cliente_email)}" data-nombre="${escHtml(h.cliente_nombre || "")}">
+          <div class="hub-item-title">${escHtml(h.cliente_nombre || h.cliente_email)}</div>
+          <div class="hub-item-meta">${h.ultimo_autor_rol === "staff" ? "Vos: " : ""}${escHtml((h.ultimo_mensaje || "").slice(0, 60))}</div>
           <div class="hub-item-meta">${fmtFechaHora(h.ultimo_creado_en)}</div>
         </div>
       `).join("");

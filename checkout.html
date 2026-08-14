@@ -124,7 +124,7 @@ try {
     document.getElementById("checkout-direccion-box").style.display = hayFisicos ? "block" : "none";
 
     document.getElementById("checkout-items").innerHTML = items.map((it) => `
-      <div class="carrito-resumen-row"><span>${it.cantidad} × ${it.nombre}</span><span class="data">${fmtCentavos(it.precio_centavos * it.cantidad)}</span></div>
+      <div class="carrito-resumen-row"><span>${it.cantidad} × ${escHtml(it.nombre)}</span><span class="data">${fmtCentavos(it.precio_centavos * it.cantidad)}</span></div>
     `).join("");
 
     const subtotal = items.reduce((acc, it) => acc + it.precio_centavos * it.cantidad, 0);

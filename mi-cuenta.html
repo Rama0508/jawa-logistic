@@ -216,10 +216,10 @@ try {
           return `
             <a class="catalogo-card" href="curso.html?slug=${encodeURIComponent(c.slug)}">
               <div class="catalogo-img">
-                ${primeraImagen(c) ? `<img src="${primeraImagen(c)}" alt="${c.nombre}" loading="lazy" />` : `<div class="catalogo-img-vacio">Sin imagen</div>`}
+                ${primeraImagen(c) ? `<img src="${escHtml(primeraImagen(c))}" alt="${escHtml(c.nombre)}" loading="lazy" />` : `<div class="catalogo-img-vacio">Sin imagen</div>`}
               </div>
               <div class="catalogo-info">
-                <div class="catalogo-nombre">${c.nombre}</div>
+                <div class="catalogo-nombre">${escHtml(c.nombre)}</div>
                 <div class="catalogo-precio">Ver contenido →</div>
               </div>
             </a>

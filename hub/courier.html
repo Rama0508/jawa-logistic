@@ -110,13 +110,13 @@ try {
       if (error) { cont.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
       if (!data || !data.length) { cont.innerHTML = `<p class="hub-empty">Todavía no tenés envíos courier confirmados como operación.</p>`; return; }
       cont.innerHTML = data.map((o) => `
-        <a class="hub-item" href="/hub/operacion.html?id=${o.id}" style="display:block; text-decoration:none; color:inherit;">
+        <a class="hub-item" href="/hub/operacion.html?id=${encodeURIComponent(o.id)}" style="display:block; text-decoration:none; color:inherit;">
           <div class="hub-item-head">
             <div>
-              <div class="hub-item-title data">${o.codigo}</div>
-              <div class="hub-item-meta">${o.origen || ""} · ${fmtFecha(o.creado_en)}</div>
+              <div class="hub-item-title data">${escHtml(o.codigo)}</div>
+              <div class="hub-item-meta">${escHtml(o.origen || "")} · ${fmtFecha(o.creado_en)}</div>
             </div>
-            <span class="hub-pill hub-pill-${o.estado}">${HUB_ESTADO_LABEL[o.estado] || o.estado}</span>
+            <span class="hub-pill hub-pill-${o.estado}">${escHtml(HUB_ESTADO_LABEL[o.estado] || o.estado)}</span>
           </div>
         </a>
       `).join("");

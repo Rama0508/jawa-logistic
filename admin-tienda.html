@@ -313,7 +313,7 @@ try {
         <div class="item-card">
           <div class="item-card-head">
             <div>
-              <div class="nombre">${p.nombre} ${p.activo ? "" : '<span class="estado-pill estado-cancelado">inactivo</span>'}</div>
+              <div class="nombre">${escHtml(p.nombre)} ${p.activo ? "" : '<span class="estado-pill estado-cancelado">inactivo</span>'}</div>
               <div class="meta">${fmt(p.precio_centavos)} · stock ${p.stock ?? "—"} · ${p.peso_gramos ?? "—"}g</div>
             </div>
             <div class="item-actions">
@@ -337,7 +337,7 @@ try {
           document.getElementById("producto-peso").value = p.peso_gramos ?? "";
           document.getElementById("producto-activo").value = String(p.activo);
           document.getElementById("producto-descripcion").value = p.descripcion || "";
-          document.getElementById("producto-fotos-thumbs").innerHTML = (p.imagenes || []).map((u) => `<img src="${u}" />`).join("");
+          document.getElementById("producto-fotos-thumbs").innerHTML = (p.imagenes || []).map((u) => `<img src="${escHtml(u)}" />`).join("");
           document.getElementById("producto-form-titulo").textContent = "Editar producto";
           document.getElementById("producto-form-card").style.display = "block";
         });
@@ -428,7 +428,7 @@ try {
         <div class="item-card">
           <div class="item-card-head">
             <div>
-              <div class="nombre">${c.nombre} ${c.activo ? "" : '<span class="estado-pill estado-cancelado">inactivo</span>'}</div>
+              <div class="nombre">${escHtml(c.nombre)} ${c.activo ? "" : '<span class="estado-pill estado-cancelado">inactivo</span>'}</div>
               <div class="meta">${fmt(c.precio_centavos)}</div>
             </div>
             <div class="item-actions">
@@ -452,7 +452,7 @@ try {
           document.getElementById("curso-precio").value = (c.precio_centavos / 100).toFixed(2);
           document.getElementById("curso-activo").value = String(c.activo);
           document.getElementById("curso-descripcion").value = c.descripcion || "";
-          document.getElementById("curso-fotos-thumbs").innerHTML = (c.imagenes || []).map((u) => `<img src="${u}" />`).join("");
+          document.getElementById("curso-fotos-thumbs").innerHTML = (c.imagenes || []).map((u) => `<img src="${escHtml(u)}" />`).join("");
           document.getElementById("curso-form-titulo").textContent = "Editar curso";
           document.getElementById("curso-form-card").style.display = "block";
         });
@@ -485,7 +485,7 @@ try {
           <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);">
             ${(lecciones || []).map((l) => `
               <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--line); font-size:12.5px;">
-                <span>${l.orden}. ${l.titulo} <span class="meta">(${l.tipo})</span></span>
+                <span>${l.orden}. ${escHtml(l.titulo)} <span class="meta">(${escHtml(l.tipo)})</span></span>
                 <button class="btn-danger" data-borrar-leccion="${l.id}">Eliminar</button>
               </div>
             `).join("")}
@@ -576,8 +576,8 @@ try {
             <div>
               <div class="nombre data">#${p.id.slice(0, 8)} <span class="estado-pill estado-${p.estado}">${p.estado}</span></div>
               <div class="meta">${new Date(p.creado_en).toLocaleString("es-AR")} · ${fmt(p.total_centavos)}</div>
-              <div class="meta">${(p.pedido_items || []).map((it) => `${it.cantidad}× ${it.productos ? it.productos.nombre : "producto"}`).join(", ")}</div>
-              ${p.direccion_envio ? `<div class="meta">📦 ${p.direccion_envio.calle}, ${p.direccion_envio.ciudad}, ${p.direccion_envio.provincia} (${p.direccion_envio.cp}) — ${p.direccion_envio.telefono}</div>` : ""}
+              <div class="meta">${(p.pedido_items || []).map((it) => `${it.cantidad}× ${escHtml(it.productos ? it.productos.nombre : "producto")}`).join(", ")}</div>
+              ${p.direccion_envio ? `<div class="meta">📦 ${escHtml(p.direccion_envio.calle)}, ${escHtml(p.direccion_envio.ciudad)}, ${escHtml(p.direccion_envio.provincia)} (${escHtml(p.direccion_envio.cp)}) — ${escHtml(p.direccion_envio.telefono)}</div>` : ""}
             </div>
             <div class="item-actions">
               <select data-estado="${p.id}">

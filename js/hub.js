@@ -31,6 +31,9 @@ const HUB_TITULOS = {
   notificaciones: "Notificaciones",
 };
 
+// escHtml() vive en js/rates.js (se carga antes que este archivo en todas
+// las páginas del hub) para poder reusarla también en tienda/checkout/admin.
+
 function fmtCentavos(centavos) {
   return ((centavos || 0) / 100).toLocaleString("es-AR", {
     style: "currency",
@@ -110,10 +113,10 @@ function renderHubShell(tabActiva, session, contenidoPagina) {
 }
 
 function hubNotifItemHtml(n) {
-  const cuerpo = n.cuerpo ? `<div class="hub-bell-item-body">${n.cuerpo}</div>` : "";
+  const cuerpo = n.cuerpo ? `<div class="hub-bell-item-body">${escHtml(n.cuerpo)}</div>` : "";
   return `
-    <a href="#" class="hub-bell-item ${n.leida ? "" : "unread"}" data-notif-id="${n.id}" data-notif-link="${n.link || ""}">
-      <div class="hub-bell-item-title">${n.titulo}</div>
+    <a href="#" class="hub-bell-item ${n.leida ? "" : "unread"}" data-notif-id="${escHtml(n.id)}" data-notif-link="${escHtml(n.link || "")}">
+      <div class="hub-bell-item-title">${escHtml(n.titulo)}</div>
       ${cuerpo}
       <div class="hub-bell-item-body">${fmtFechaHora(n.creado_en)}</div>
     </a>

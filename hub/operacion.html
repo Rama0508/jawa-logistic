@@ -61,12 +61,12 @@ try {
       <div class="hub-card">
         <div class="hub-card-head">
           <div>
-            <h2 class="data" style="margin-bottom:4px;">${o.codigo}</h2>
-            <div class="hub-item-meta">${o.tipo}${o.origen ? " · " + o.origen : ""} · creada el ${fmtFecha(o.creado_en)}</div>
+            <h2 class="data" style="margin-bottom:4px;">${escHtml(o.codigo)}</h2>
+            <div class="hub-item-meta">${escHtml(o.tipo)}${o.origen ? " · " + escHtml(o.origen) : ""} · creada el ${fmtFecha(o.creado_en)}</div>
           </div>
-          <span class="hub-pill hub-pill-${o.estado}">${HUB_ESTADO_LABEL[o.estado] || o.estado}</span>
+          <span class="hub-pill hub-pill-${o.estado}">${escHtml(HUB_ESTADO_LABEL[o.estado] || o.estado)}</span>
         </div>
-        ${o.descripcion ? `<p style="font-size:13px; color:var(--muted);">${o.descripcion}</p>` : ""}
+        ${o.descripcion ? `<p style="font-size:13px; color:var(--muted);">${escHtml(o.descripcion)}</p>` : ""}
         ${o.total_estimado_centavos ? `<div class="hub-stat" style="margin-top:6px;"><div class="hub-stat-label">Total estimado</div><div class="hub-stat-value">${fmtCentavos(o.total_estimado_centavos)}</div></div>` : ""}
       </div>
 
@@ -75,9 +75,9 @@ try {
         <ul class="hub-timeline">
           ${timeline.map((ev) => `
             <li>
-              <div class="estado">${HUB_ESTADO_LABEL[ev.estado] || ev.estado}</div>
+              <div class="estado">${escHtml(HUB_ESTADO_LABEL[ev.estado] || ev.estado)}</div>
               <div class="fecha">${fmtFechaHora(ev.creado_en)}</div>
-              ${ev.nota ? `<div class="hub-item-meta" style="margin-top:4px;">${ev.nota}</div>` : ""}
+              ${ev.nota ? `<div class="hub-item-meta" style="margin-top:4px;">${escHtml(ev.nota)}</div>` : ""}
             </li>
           `).join("")}
         </ul>

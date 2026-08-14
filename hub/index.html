@@ -81,10 +81,10 @@ try {
         <div class="hub-item">
           <div class="hub-item-head">
             <div>
-              <div class="hub-item-title data">${o.codigo}</div>
-              <div class="hub-item-meta">${o.tipo} · ${fmtFecha(o.creado_en)}</div>
+              <div class="hub-item-title data">${escHtml(o.codigo)}</div>
+              <div class="hub-item-meta">${escHtml(o.tipo)} · ${fmtFecha(o.creado_en)}</div>
             </div>
-            <span class="hub-pill hub-pill-${o.estado}">${HUB_ESTADO_LABEL[o.estado] || o.estado}</span>
+            <span class="hub-pill hub-pill-${o.estado}">${escHtml(HUB_ESTADO_LABEL[o.estado] || o.estado)}</span>
           </div>
         </div>
       `).join("");
@@ -104,7 +104,7 @@ try {
         <div class="hub-item">
           <div class="hub-item-head">
             <div>
-              <div class="hub-item-title">${c.modo} ${c.origen ? "· " + c.origen : ""}</div>
+              <div class="hub-item-title">${escHtml(c.modo)} ${c.origen ? "· " + escHtml(c.origen) : ""}</div>
               <div class="hub-item-meta">${fmtFecha(c.creado_en)}</div>
             </div>
             <span class="data">${c.total_estimado_usd != null ? "USD " + Number(c.total_estimado_usd).toLocaleString("es-AR", { maximumFractionDigits: 2 }) : "—"}</span>

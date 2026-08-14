@@ -70,15 +70,15 @@ try {
         return;
       }
       cont.innerHTML = filtradas.map((o) => `
-        <a class="hub-item" href="/hub/operacion.html?id=${o.id}" style="display:block; text-decoration:none; color:inherit;">
+        <a class="hub-item" href="/hub/operacion.html?id=${encodeURIComponent(o.id)}" style="display:block; text-decoration:none; color:inherit;">
           <div class="hub-item-head">
             <div>
-              <div class="hub-item-title data">${o.codigo}</div>
-              <div class="hub-item-meta">${o.tipo}${o.origen ? " · " + o.origen : ""} · ${fmtFecha(o.creado_en)}</div>
-              ${o.descripcion ? `<div class="hub-item-meta">${o.descripcion}</div>` : ""}
+              <div class="hub-item-title data">${escHtml(o.codigo)}</div>
+              <div class="hub-item-meta">${escHtml(o.tipo)}${o.origen ? " · " + escHtml(o.origen) : ""} · ${fmtFecha(o.creado_en)}</div>
+              ${o.descripcion ? `<div class="hub-item-meta">${escHtml(o.descripcion)}</div>` : ""}
             </div>
             <div style="text-align:right;">
-              <span class="hub-pill hub-pill-${o.estado}">${HUB_ESTADO_LABEL[o.estado] || o.estado}</span>
+              <span class="hub-pill hub-pill-${o.estado}">${escHtml(HUB_ESTADO_LABEL[o.estado] || o.estado)}</span>
               ${o.total_estimado_centavos ? `<div class="hub-item-meta" style="margin-top:6px;">${fmtCentavos(o.total_estimado_centavos)}</div>` : ""}
             </div>
           </div>

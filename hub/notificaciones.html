@@ -51,13 +51,13 @@ try {
         <div class="hub-item" style="${n.leida ? "" : "border-color:var(--coral);"}">
           <div class="hub-item-head">
             <div>
-              <div class="hub-item-title">${n.titulo}</div>
-              ${n.cuerpo ? `<div class="hub-item-meta">${n.cuerpo}</div>` : ""}
+              <div class="hub-item-title">${escHtml(n.titulo)}</div>
+              ${n.cuerpo ? `<div class="hub-item-meta">${escHtml(n.cuerpo)}</div>` : ""}
               <div class="hub-item-meta">${fmtFechaHora(n.creado_en)}</div>
             </div>
             <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
               ${!n.leida ? `<span class="hub-pill hub-pill-cotizado">Sin leer</span>` : ""}
-              ${n.link ? `<a class="hub-btn-ghost" href="${n.link}" data-marcar="${n.id}">Ver →</a>` : ""}
+              ${n.link ? `<a class="hub-btn-ghost" href="${escHtml(n.link)}" data-marcar="${escHtml(n.id)}">Ver →</a>` : ""}
             </div>
           </div>
         </div>

@@ -130,7 +130,7 @@ try {
         .from("curso_contenido").select("*").eq("producto_id", curso.id).order("orden", { ascending: true });
 
       const cont = document.getElementById("curso-lecciones");
-      cont.innerHTML = (lecciones || []).map((l) => `<div class="leccion-item" data-leccion="${l.id}">${l.orden}. ${l.titulo}</div>`).join("")
+      cont.innerHTML = (lecciones || []).map((l) => `<div class="leccion-item" data-leccion="${l.id}">${l.orden}. ${escHtml(l.titulo)}</div>`).join("")
         || `<p style="color:var(--muted);">Este curso todavía no tiene contenido cargado — escribinos si tenés dudas.</p>`;
 
       cont.querySelectorAll("[data-leccion]").forEach((el, i) => {
@@ -148,7 +148,7 @@ try {
       document.getElementById("curso-descripcion").textContent = curso.descripcion || "";
       const imgs = Array.isArray(curso.imagenes) ? curso.imagenes : [];
       document.getElementById("curso-imgs").innerHTML = imgs.length
-        ? imgs.map((url, i) => `<img src="${url}" alt="${curso.nombre}" loading="lazy" class="${i === 0 ? "principal" : ""}" />`).join("")
+        ? imgs.map((url, i) => `<img src="${escHtml(url)}" alt="${escHtml(curso.nombre)}" loading="lazy" class="${i === 0 ? "principal" : ""}" />`).join("")
         : `<div class="catalogo-img-vacio" style="height:320px;">Sin imagen</div>`;
 
       document.getElementById("curso-comprar-btn").addEventListener("click", () => {

@@ -6,6 +6,19 @@
 // Requiere que antes de este archivo se cargue el cliente de Supabase:
 // <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+// Escapa texto que viene de la base (nombre de producto, descripción,
+// dirección de envío, etc.) antes de meterlo en un template de innerHTML —
+// sin esto, un dato cargado por staff (o, en el carrito/checkout, texto que
+// terminó en la orden) con HTML/JS adentro se ejecuta en la sesión de quien
+// lo lee. Vive acá (no en un archivo de tienda/hub puntual) porque rates.js
+// es el único script que cargan todas las páginas del sitio.
+function escHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
 const SUPABASE_URL = "https://hthyehsqfrfwdqkbqrwj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_Dlh15glcRPYtVKmvkytcbw_LGfPqN7F"; // key pública, segura para el navegador
 
