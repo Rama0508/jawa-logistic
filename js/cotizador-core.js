@@ -66,7 +66,7 @@ function avisoLimiteRegimen(pesoKg, fobTotal, unidades) {
     motivos.push(`la cantidad (${unidades} unidades) supera el máximo de ${COURIER_REGIMEN.maxUnidadesMismaEspecie} unidades de la misma especie`);
   }
   if (!motivos.length) return "";
-  return `<div class="fc-result-row warn">⚠️ Este pedido no entra en el régimen simplificado: ${motivos.join("; ")}. Pasa a trámite formal con despachante de aduana — <a href="#contacto">escribinos</a> antes de confirmar para coordinarlo.</div>`;
+  return `<div class="fc-result-row warn">⚠️ Este pedido no entra en el régimen simplificado: ${motivos.join("; ")}. Pasa a trámite formal con despachante de aduana — <a href="/contacto.html">escribinos</a> antes de confirmar para coordinarlo.</div>`;
 }
 
 // Excede el régimen simplificado (misma regla que avisoLimiteRegimen, pero
