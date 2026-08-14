@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Dashboard — Portal de cliente — Jawa Logistic</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../css/hub.css" />
+</head>
+<body>
+
+<div id="hub-shell">
+  <div id="hub-page">
+    <p class="hub-page-lead">Un vistazo rápido a tus importaciones, tu cuenta corriente y tu actividad reciente.</p>
+
+    <div class="hub-grid">
+      <div class="hub-stat">
+        <div class="hub-stat-label">Operaciones activas</div>
+        <div class="hub-stat-value" id="stat-operaciones-activas">—</div>
+      </div>
+      <div class="hub-stat">
+        <div class="hub-stat-label">Saldo de cuenta corriente</div>
+        <div class="hub-stat-value coral" id="stat-saldo">—</div>
+      </div>
+      <div class="hub-stat">
+        <div class="hub-stat-label">Notificaciones sin leer</div>
+        <div class="hub-stat-value" id="stat-notificaciones">—</div>
+      </div>
+    </div>
+
+    <div class="hub-card">
+      <div class="hub-card-head">
+        <div class="hub-card-title">Últimas operaciones</div>
+        <a href="/hub/operaciones.html" class="hub-btn-ghost">Ver todas</a>
+      </div>
+      <div id="dashboard-operaciones"><p class="hub-empty">Cargando…</p></div>
+    </div>
+
+    <div class="hub-card">
+      <div class="hub-card-head">
+        <div class="hub-card-title">Últimas cotizaciones</div>
+        <a href="/hub/cotizador.html" class="hub-btn-ghost">Nueva cotización</a>
+      </div>
+      <div id="dashboard-cotizaciones"><p class="hub-empty">Cargando…</p></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/rates.js"></script>
+<script src="../js/cuenta.js"></script>
+<script src="../js/hub.js"></script>
+<script>
+try {
+  (async function () {
+    await SUPABASE_READY;
+    const session = await iniciarHub("dashboard");
+    if (!session) return;
+    const clienteId = session.user.id;
+
+    const [{ data: operaciones }, { data: saldo }, { count: notifNoLeidas }] = await Promise.all([
+      supabaseClient.from("operaciones").select("id, codigo, tipo, estado, creado_en").eq("cliente_id", clienteId).order("creado_en", { ascending: false }),
+      supabaseClient.from("cuenta_corriente_saldos").select("saldo_centavos").eq("cliente_id", clienteId).maybeSingle(),
+      supabaseClient.from("notificaciones").select("id", { count: "exact", head: true }).eq("cliente_id", clienteId).eq("leida", false),
+    ]);
+
+    const activas = (operaciones || []).filter((o) => !["entregado", "cancelado"].includes(o.estado));
+    document.getElementById("stat-operaciones-activas").textContent = String(activas.length);
+    document.getElementById("stat-saldo").textContent = fmtCentavos(saldo ? saldo.saldo_centavos : 0);
+    document.getElementById("stat-notificaciones").textContent = String(notifNoLeidas || 0);
+
+    const contOperaciones = document.getElementById("dashboard-operaciones");
+    if (!operaciones || !operaciones.length) {
+      contOperaciones.innerHTML = `<p class="hub-empty">Todavía no tenés operaciones. Empezá con una cotización.</p>`;
+    } else {
+      contOperaciones.innerHTML = operaciones.slice(0, 5).map((o) => `
+        <div class="hub-item">
+          <div class="hub-item-head">
+            <div>
+              <div class="hub-item-title data">${o.codigo}</div>
+              <div class="hub-item-meta">${o.tipo} · ${fmtFecha(o.creado_en)}</div>
+            </div>
+            <span class="hub-pill hub-pill-${o.estado}">${HUB_ESTADO_LABEL[o.estado] || o.estado}</span>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    const { data: cotizaciones } = await supabaseClient
+      .from("cotizaciones_cliente")
+      .select("id, modo, origen, total_estimado_usd, creado_en")
+      .eq("cliente_id", clienteId)
+      .order("creado_en", { ascending: false })
+      .limit(5);
+    const contCotizaciones = document.getElementById("dashboard-cotizaciones");
+    if (!cotizaciones || !cotizaciones.length) {
+      contCotizaciones.innerHTML = `<p class="hub-empty">Todavía no hiciste ninguna cotización desde tu cuenta.</p>`;
+    } else {
+      contCotizaciones.innerHTML = cotizaciones.map((c) => `
+        <div class="hub-item">
+          <div class="hub-item-head">
+            <div>
+              <div class="hub-item-title">${c.modo} ${c.origen ? "· " + c.origen : ""}</div>
+              <div class="hub-item-meta">${fmtFecha(c.creado_en)}</div>
+            </div>
+            <span class="data">${c.total_estimado_usd != null ? "USD " + Number(c.total_estimado_usd).toLocaleString("es-AR", { maximumFractionDigits: 2 }) : "—"}</span>
+          </div>
+        </div>
+      `).join("");
+    }
+  })();
+} catch (e) { console.error("dashboard hub:", e); }
+</script>
+</body>
+</html>

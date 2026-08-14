@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Cotizador — Portal de cliente — Jawa Logistic</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<!-- styles.css: reusa las clases fc-* (tabs, campos, resultado) del cotizador
+     público de index.html — misma UI probada, no la reinventamos acá. -->
+<link rel="stylesheet" href="../css/styles.css" />
+<link rel="stylesheet" href="../css/hub.css" />
+</head>
+<body>
+
+<div id="hub-shell">
+  <div id="hub-page">
+    <p class="hub-page-lead">Cotizá tu importación con tu cuenta — queda guardada en tu historial y nuestro equipo puede convertirla en una operación real.</p>
+
+    <div class="hub-card">
+      <div class="freight-calc" style="padding:0;">
+        <div class="fc-tabs">
+          <button class="fc-tab active" id="fc-tab-air" type="button">✈️ Aéreo</button>
+          <button class="fc-tab" id="fc-tab-sea" type="button">🚢 Marítimo (LCL)</button>
+        </div>
+
+        <div class="fc-panel" id="fc-panel-sea" style="display:none;">
+          <div class="fc-origin-row">
+            <span class="fc-origin-label">Origen</span>
+            <div class="fc-origin-options" id="fc-origin-sea">
+              <button class="fc-origin-btn active" data-origin="china" type="button">🇨🇳 China</button>
+              <button class="fc-origin-btn" data-origin="miami" type="button">🇺🇸 Miami</button>
+            </div>
+          </div>
+          <div class="fc-subtitle">Caja o bulto a enviar</div>
+          <div class="fc-field-grid">
+            <div class="fc-field"><label>Largo (cm)</label><input type="text" inputmode="decimal" id="sea-l" placeholder="0" /></div>
+            <div class="fc-field"><label>Ancho (cm)</label><input type="text" inputmode="decimal" id="sea-w" placeholder="0" /></div>
+            <div class="fc-field"><label>Alto (cm)</label><input type="text" inputmode="decimal" id="sea-h" placeholder="0" /></div>
+            <div class="fc-field"><label>Bultos</label><input type="text" inputmode="decimal" id="sea-qty" placeholder="1" /></div>
+          </div>
+          <div class="fc-field-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="fc-field"><label>Peso total (kg)</label><input type="text" inputmode="decimal" id="sea-weight" placeholder="0" /></div>
+            <div class="fc-field"><label>Valor FOB total (USD)</label><input type="text" inputmode="decimal" id="sea-fob" placeholder="0.00" /></div>
+          </div>
+
+          <div class="fc-subtitle">Tu producto <span>(opcional — para ver el costo por unidad)</span></div>
+          <div class="fc-field-grid">
+            <div class="fc-field"><label>Largo prod. (cm)</label><input type="text" inputmode="decimal" id="sea-pl" placeholder="0" /></div>
+            <div class="fc-field"><label>Ancho prod. (cm)</label><input type="text" inputmode="decimal" id="sea-pw" placeholder="0" /></div>
+            <div class="fc-field"><label>Alto prod. (cm)</label><input type="text" inputmode="decimal" id="sea-ph" placeholder="0" /></div>
+            <div class="fc-field"><label>Unid. por caja</label><input type="text" inputmode="decimal" id="sea-punits" placeholder="Auto" /></div>
+          </div>
+          <div class="fc-hint">Cobramos por metro cúbico (CBM) o por peso, lo que sea mayor — con un mínimo a consolidar de <strong>0.5 CBM</strong> por envío.</div>
+          <button class="fc-btn" id="fc-calc-sea" type="button">Calcular y guardar</button>
+          <div class="fc-result" id="fc-result-sea"></div>
+        </div>
+
+        <div class="fc-panel" id="fc-panel-air">
+          <div class="fc-origin-row">
+            <span class="fc-origin-label">Origen</span>
+            <div class="fc-origin-options" id="fc-origin-air">
+              <button class="fc-origin-btn active" data-origin="china" type="button">🇨🇳 China</button>
+              <button class="fc-origin-btn" data-origin="miami" type="button">🇺🇸 Miami</button>
+            </div>
+          </div>
+          <div class="fc-field-grid air-grid">
+            <div class="fc-field"><label>Largo (cm)</label><input type="text" inputmode="decimal" id="air-l" placeholder="0" /></div>
+            <div class="fc-field"><label>Ancho (cm)</label><input type="text" inputmode="decimal" id="air-w" placeholder="0" /></div>
+            <div class="fc-field"><label>Alto (cm)</label><input type="text" inputmode="decimal" id="air-h" placeholder="0" /></div>
+          </div>
+          <div class="fc-field-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+            <div class="fc-field"><label>Bultos</label><input type="text" inputmode="decimal" id="air-qty" placeholder="1" /></div>
+            <div class="fc-field"><label>Peso real total (kg)</label><input type="text" inputmode="decimal" id="air-weight" placeholder="0" /></div>
+            <div class="fc-field"><label>Valor FOB (USD)</label><input type="text" inputmode="decimal" id="air-fob" placeholder="0.00" /></div>
+          </div>
+
+          <div class="fc-subtitle">Tu producto <span>(opcional — para ver el costo por unidad)</span></div>
+          <div class="fc-field-grid">
+            <div class="fc-field"><label>Largo prod. (cm)</label><input type="text" inputmode="decimal" id="air-pl" placeholder="0" /></div>
+            <div class="fc-field"><label>Ancho prod. (cm)</label><input type="text" inputmode="decimal" id="air-pw" placeholder="0" /></div>
+            <div class="fc-field"><label>Alto prod. (cm)</label><input type="text" inputmode="decimal" id="air-ph" placeholder="0" /></div>
+            <div class="fc-field"><label>Unid. por caja</label><input type="text" inputmode="decimal" id="air-punits" placeholder="Auto" /></div>
+          </div>
+          <div class="fc-hint">Aéreo se cobra por peso — el real o el <strong>peso volumétrico</strong> (Largo×Ancho×Alto ÷ 6000), el que sea mayor.</div>
+          <button class="fc-btn" id="fc-calc-air" type="button">Calcular y guardar</button>
+          <div class="fc-result" id="fc-result-air"></div>
+        </div>
+
+        <div class="fc-note">Cada cálculo queda guardado en tu historial. Es una estimación automática — la confirmamos siempre antes de cerrar tu operación.</div>
+      </div>
+    </div>
+
+    <div class="hub-card">
+      <div class="hub-card-title">Historial de cotizaciones</div>
+      <div id="cotizador-historial"><p class="hub-empty">Cargando…</p></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/rates.js"></script>
+<script src="../js/cuenta.js"></script>
+<script src="../js/cotizador-core.js"></script>
+<script src="../js/hub.js"></script>
+<script>
+try {
+  (async function () {
+    await SUPABASE_READY;
+    const session = await iniciarHub("cotizador");
+    if (!session) return;
+    const clienteId = session.user.id;
+
+    // ---------- Tabs ----------
+    const tabSea = document.getElementById("fc-tab-sea");
+    const tabAir = document.getElementById("fc-tab-air");
+    const panelSea = document.getElementById("fc-panel-sea");
+    const panelAir = document.getElementById("fc-panel-air");
+    tabSea.addEventListener("click", () => {
+      tabSea.classList.add("active"); tabAir.classList.remove("active");
+      panelSea.style.display = "block"; panelAir.style.display = "none";
+    });
+    tabAir.addEventListener("click", () => {
+      tabAir.classList.add("active"); tabSea.classList.remove("active");
+      panelAir.style.display = "block"; panelSea.style.display = "none";
+    });
+
+    let origenSea = "china";
+    let origenAir = "china";
+    document.querySelectorAll("#fc-origin-sea .fc-origin-btn").forEach((b) => {
+      b.addEventListener("click", () => {
+        document.querySelectorAll("#fc-origin-sea .fc-origin-btn").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        origenSea = b.getAttribute("data-origin");
+      });
+    });
+    document.querySelectorAll("#fc-origin-air .fc-origin-btn").forEach((b) => {
+      b.addEventListener("click", () => {
+        document.querySelectorAll("#fc-origin-air .fc-origin-btn").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        origenAir = b.getAttribute("data-origin");
+      });
+    });
+
+    const pNum = (id) => {
+      const el = document.getElementById(id);
+      const n = parseFloat(String(el && el.value || "").trim().replace(",", "."));
+      return isNaN(n) ? 0 : n;
+    };
+    const fmt = (n) => (n || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const origenLabel = (o) => (o === "miami" ? "🇺🇸 Miami" : "🇨🇳 China");
+
+    async function guardarCotizacion(payload) {
+      const { error } = await supabaseClient.from("cotizaciones_cliente").insert({ cliente_id: clienteId, ...payload });
+      if (error) console.error("No se pudo guardar la cotización:", error);
+      cargarHistorial();
+    }
+
+    // ---------- Marítimo ----------
+    document.getElementById("fc-calc-sea").addEventListener("click", () => {
+      const l = pNum("sea-l"), w = pNum("sea-w"), h = pNum("sea-h");
+      const qty = pNum("sea-qty") || 1;
+      const pesoKg = pNum("sea-weight");
+      const fob = pNum("sea-fob");
+      const pl = pNum("sea-pl"), pw = pNum("sea-pw"), ph = pNum("sea-ph");
+      const unidadesManual = pNum("sea-punits");
+      if (!l || !w || !h) { alert("Cargá largo, ancho y alto de cada bulto."); return; }
+
+      const cbmPorBulto = (l * w * h) / 1000000;
+      const cbmTotal = cbmPorBulto * qty;
+      const toneladas = pesoKg / 1000;
+      const cbmCobrable = cbmCobrableMaritimo(cbmTotal, pesoKg);
+      const rate = FLETE_RATES.sea[origenSea];
+      const costoFlete = cbmCobrable * rate;
+      const total = costoFlete + fob;
+
+      let unidadesPorCaja = 0, empaque = null;
+      if (unidadesManual > 0) unidadesPorCaja = Math.floor(unidadesManual);
+      else if (pl > 0 && pw > 0 && ph > 0) { empaque = mejorEmpaque(l, w, h, pl, pw, ph); unidadesPorCaja = empaque ? empaque.total : 0; }
+      const unidadesTotales = unidadesPorCaja * qty;
+
+      const sinTarifa = !rate;
+      let html = `
+        <div class="fc-result-row math">${l}cm × ${w}cm × ${h}cm = ${(l*w*h).toLocaleString("es-AR")}cm³ ÷ 1.000.000 = ${cbmPorBulto.toFixed(3)} m³ por bulto</div>
+        <div class="fc-result-row"><span>CBM real del envío (${qty} bulto${qty === 1 ? "" : "s"})</span><span class="v">${cbmTotal.toFixed(3)} m³</span></div>
+        <div class="fc-result-row"><span>Equivalente en peso</span><span class="v">${toneladas.toFixed(3)} ton</span></div>
+        <div class="fc-result-row"><span>CBM a cobrar (mínimo ${CBM_MINIMO})</span><span class="v">${cbmCobrable.toFixed(3)} m³</span></div>
+        <div class="fc-result-row math">${cbmCobrable.toFixed(3)} m³ × $${fmt(rate)}/m³ (${origenLabel(origenSea)}) = $${fmt(costoFlete)}</div>
+        ${sinTarifa ? `<div class="fc-result-row warn">⚠️ Tarifa no configurada todavía para este origen</div>` : ""}
+        ${avisoLimiteRegimen(pesoKg, fob, unidadesTotales)}
+        <div class="fc-result-total"><span class="lbl">Total estimado (flete + FOB)</span><span class="val">$${fmt(total)}</span></div>
+      `;
+      if (unidadesTotales > 0) {
+        html += `<div class="fc-result-row"><span>Unidades totales (${qty} caja${qty === 1 ? "" : "s"})</span><span class="v">${unidadesTotales}</span></div>`;
+      } else if (pl > 0 && pw > 0 && ph > 0) {
+        html += `<div class="fc-result-row warn">⚠️ El producto no entra en la caja con esas medidas — revisá los datos.</div>`;
+      }
+      document.getElementById("fc-result-sea").innerHTML = html;
+      document.getElementById("fc-result-sea").classList.add("show");
+
+      guardarCotizacion({
+        modo: "maritimo", origen: origenSea, fob_usd: fob, peso_kg: pesoKg, cbm: cbmCobrable, total_estimado_usd: total,
+        detalle: { l, w, h, qty, pesoKg, fob, pl, pw, ph, unidadesManual, cbmCobrable, rate, costoFlete, total, unidadesPorCaja, unidadesTotales },
+      });
+    });
+
+    // ---------- Aéreo ----------
+    document.getElementById("fc-calc-air").addEventListener("click", () => {
+      const l = pNum("air-l"), w = pNum("air-w"), h = pNum("air-h");
+      const qty = pNum("air-qty") || 1;
+      const pesoReal = pNum("air-weight");
+      const fob = pNum("air-fob");
+      const pl = pNum("air-pl"), pw = pNum("air-pw"), ph = pNum("air-ph");
+      const unidadesManual = pNum("air-punits");
+      if (!pesoReal && (!l || !w || !h)) { alert("Cargá el peso real o las dimensiones del bulto."); return; }
+
+      const pesoVolPorBulto = (l * w * h) / DIVISOR_VOLUMETRICO_AEREO;
+      const pesoVolTotal = pesoVolPorBulto * qty;
+      const pesoCobrable = pesoCobrableAereo(pesoVolTotal, pesoReal);
+      const rate = FLETE_RATES.air[origenAir];
+      const costoFlete = pesoCobrable * rate;
+      const total = costoFlete + fob;
+
+      let unidadesPorCaja = 0, empaque = null;
+      if (unidadesManual > 0) unidadesPorCaja = Math.floor(unidadesManual);
+      else if (pl > 0 && pw > 0 && ph > 0) { empaque = mejorEmpaque(l, w, h, pl, pw, ph); unidadesPorCaja = empaque ? empaque.total : 0; }
+      const unidadesTotales = unidadesPorCaja * qty;
+
+      const sinTarifa = !rate;
+      let html = `
+        <div class="fc-result-row"><span>Peso real</span><span class="v">${pesoReal.toFixed(2)} kg</span></div>
+        <div class="fc-result-row"><span>Peso volumétrico</span><span class="v">${pesoVolTotal.toFixed(2)} kg</span></div>
+        <div class="fc-result-row"><span>Peso a cobrar (el mayor)</span><span class="v">${pesoCobrable.toFixed(2)} kg</span></div>
+        <div class="fc-result-row"><span>Tarifa (${origenLabel(origenAir)})</span><span class="v">$${fmt(rate)} / kg</span></div>
+        ${sinTarifa ? `<div class="fc-result-row warn">⚠️ Tarifa no configurada todavía para este origen</div>` : ""}
+        ${avisoLimiteRegimen(pesoCobrable, fob, qty)}
+        <div class="fc-result-total"><span class="lbl">Total estimado (flete + FOB)</span><span class="val">$${fmt(total)}</span></div>
+      `;
+      if (unidadesTotales > 0) {
+        html += `<div class="fc-result-row"><span>Unidades totales (${qty} caja${qty === 1 ? "" : "s"})</span><span class="v">${unidadesTotales}</span></div>`;
+      } else if (pl > 0 && pw > 0 && ph > 0) {
+        html += `<div class="fc-result-row warn">⚠️ El producto no entra en la caja con esas medidas — revisá los datos.</div>`;
+      }
+      document.getElementById("fc-result-air").innerHTML = html;
+      document.getElementById("fc-result-air").classList.add("show");
+
+      guardarCotizacion({
+        modo: "aereo", origen: origenAir, fob_usd: fob, peso_kg: pesoCobrable, total_estimado_usd: total,
+        detalle: { l, w, h, qty, pesoReal, fob, pl, pw, ph, unidadesManual, pesoCobrable, rate, costoFlete, total, unidadesPorCaja, unidadesTotales },
+      });
+    });
+
+    // ---------- Historial ----------
+    async function cargarHistorial() {
+      const cont = document.getElementById("cotizador-historial");
+      const { data, error } = await supabaseClient
+        .from("cotizaciones_cliente")
+        .select("id, modo, origen, total_estimado_usd, convertida_en_operacion_id, creado_en")
+        .eq("cliente_id", clienteId)
+        .order("creado_en", { ascending: false })
+        .limit(20);
+      if (error) { cont.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
+      if (!data || !data.length) { cont.innerHTML = `<p class="hub-empty">Todavía no hiciste ninguna cotización.</p>`; return; }
+      cont.innerHTML = data.map((c) => `
+        <div class="hub-item">
+          <div class="hub-item-head">
+            <div>
+              <div class="hub-item-title">${c.modo === "maritimo" ? "🚢 Marítimo" : c.modo === "aereo" ? "✈️ Aéreo" : "📦 Courier"} ${c.origen ? "· " + (c.origen === "miami" ? "Miami" : "China") : ""}</div>
+              <div class="hub-item-meta">${fmtFechaHora(c.creado_en)}</div>
+            </div>
+            <div style="text-align:right;">
+              <span class="data">${c.total_estimado_usd != null ? "USD " + Number(c.total_estimado_usd).toLocaleString("es-AR", { maximumFractionDigits: 2 }) : "—"}</span>
+              ${c.convertida_en_operacion_id ? `<div class="hub-pill hub-pill-liberado" style="margin-top:6px;">Convertida en operación</div>` : ""}
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+    cargarHistorial();
+  })();
+} catch (e) { console.error("cotizador hub:", e); }
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Courier — Portal de cliente — Jawa Logistic</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../css/styles.css" />
+<link rel="stylesheet" href="../css/hub.css" />
+</head>
+<body>
+
+<div id="hub-shell">
+  <div id="hub-page">
+    <p class="hub-page-lead">Envíos chicos y rápidos por el régimen simplificado de courier — sin trámite formal de aduana, dentro de los topes permitidos.</p>
+
+    <div class="hub-card">
+      <div class="freight-calc" style="padding:0;">
+        <div class="fc-origin-row">
+          <span class="fc-origin-label">Origen</span>
+          <div class="fc-origin-options" id="courier-origin">
+            <button class="fc-origin-btn active" data-origin="china" type="button">🇨🇳 China</button>
+            <button class="fc-origin-btn" data-origin="miami" type="button">🇺🇸 Miami</button>
+          </div>
+        </div>
+        <div class="fc-field-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+          <div class="fc-field"><label>Peso total (kg)</label><input type="text" inputmode="decimal" id="courier-peso" placeholder="0" /></div>
+          <div class="fc-field"><label>Valor FOB total (USD)</label><input type="text" inputmode="decimal" id="courier-fob" placeholder="0.00" /></div>
+          <div class="fc-field"><label>Unidades (misma especie)</label><input type="text" inputmode="decimal" id="courier-unidades" placeholder="1" /></div>
+        </div>
+        <div class="fc-hint">Courier se cobra por kilo, sin mínimo de volumen — la forma más rápida de traer pedidos chicos.</div>
+        <button class="fc-btn" id="courier-calcular-btn" type="button">Calcular y guardar</button>
+        <div class="fc-result" id="courier-resultado"></div>
+      </div>
+    </div>
+
+    <div class="hub-card">
+      <div class="hub-card-title">Tus envíos courier</div>
+      <div id="courier-operaciones"><p class="hub-empty">Cargando…</p></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/rates.js"></script>
+<script src="../js/cuenta.js"></script>
+<script src="../js/cotizador-core.js"></script>
+<script src="../js/hub.js"></script>
+<script>
+try {
+  (async function () {
+    await SUPABASE_READY;
+    const session = await iniciarHub("courier");
+    if (!session) return;
+    const clienteId = session.user.id;
+
+    let origen = "china";
+    document.querySelectorAll("#courier-origin .fc-origin-btn").forEach((b) => {
+      b.addEventListener("click", () => {
+        document.querySelectorAll("#courier-origin .fc-origin-btn").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        origen = b.getAttribute("data-origin");
+      });
+    });
+
+    const pNum = (id) => {
+      const el = document.getElementById(id);
+      const n = parseFloat(String(el && el.value || "").trim().replace(",", "."));
+      return isNaN(n) ? 0 : n;
+    };
+    const fmt = (n) => (n || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    document.getElementById("courier-calcular-btn").addEventListener("click", async () => {
+      const pesoKg = pNum("courier-peso");
+      const fob = pNum("courier-fob");
+      const unidades = pNum("courier-unidades") || 1;
+      if (!pesoKg) { alert("Cargá el peso total."); return; }
+
+      const costoFlete = pesoKg * RATE_COURIER_USD_KG;
+      const total = costoFlete + fob;
+      const sinTarifa = !RATE_COURIER_USD_KG;
+
+      document.getElementById("courier-resultado").innerHTML = `
+        <div class="fc-result-row"><span>Peso a cobrar</span><span class="v">${pesoKg.toFixed(2)} kg</span></div>
+        <div class="fc-result-row"><span>Tarifa courier</span><span class="v">$${fmt(RATE_COURIER_USD_KG)} / kg</span></div>
+        ${sinTarifa ? `<div class="fc-result-row warn">⚠️ Tarifa no configurada todavía</div>` : ""}
+        ${avisoLimiteRegimen(pesoKg, fob, unidades)}
+        <div class="fc-result-total"><span class="lbl">Total estimado (flete + FOB)</span><span class="val">$${fmt(total)}</span></div>
+      `;
+      document.getElementById("courier-resultado").classList.add("show");
+
+      await supabaseClient.from("cotizaciones_cliente").insert({
+        cliente_id: clienteId, modo: "courier", origen, fob_usd: fob, peso_kg: pesoKg, total_estimado_usd: total,
+        detalle: { pesoKg, fob, unidades, rate: RATE_COURIER_USD_KG, costoFlete, total, excedeRegimen: excedeRegimenSimplificado(pesoKg, fob, unidades) },
+      });
+    });
+
+    async function cargarOperacionesCourier() {
+      const cont = document.getElementById("courier-operaciones");
+      const { data, error } = await supabaseClient
+        .from("operaciones")
+        .select("id, codigo, origen, estado, descripcion, total_estimado_centavos, creado_en")
+        .eq("cliente_id", clienteId)
+        .eq("tipo", "courier")
+        .order("creado_en", { ascending: false });
+      if (error) { cont.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
+      if (!data || !data.length) { cont.innerHTML = `<p class="hub-empty">Todavía no tenés envíos courier confirmados como operación.</p>`; return; }
+      cont.innerHTML = data.map((o) => `
+        <a class="hub-item" href="/hub/operacion.html?id=${o.id}" style="display:block; text-decoration:none; color:inherit;">
+          <div class="hub-item-head">
+            <div>
+              <div class="hub-item-title data">${o.codigo}</div>
+              <div class="hub-item-meta">${o.origen || ""} · ${fmtFecha(o.creado_en)}</div>
+            </div>
+            <span class="hub-pill hub-pill-${o.estado}">${HUB_ESTADO_LABEL[o.estado] || o.estado}</span>
+          </div>
+        </a>
+      `).join("");
+    }
+    cargarOperacionesCourier();
+  })();
+} catch (e) { console.error("courier hub:", e); }
+</script>
+</body>
+</html>

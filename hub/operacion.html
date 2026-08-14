@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Detalle de operación — Portal de cliente — Jawa Logistic</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../css/hub.css" />
+</head>
+<body>
+
+<div id="hub-shell">
+  <div id="hub-page">
+    <a href="/hub/operaciones.html" class="hub-btn-ghost" style="display:inline-block; margin-bottom:16px;">← Volver a mis operaciones</a>
+    <div id="operacion-contenido"><p class="hub-empty">Cargando…</p></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/rates.js"></script>
+<script src="../js/cuenta.js"></script>
+<script src="../js/hub.js"></script>
+<script>
+try {
+  (async function () {
+    await SUPABASE_READY;
+    const session = await iniciarHub("operacion-detalle");
+    if (!session) return;
+    const clienteId = session.user.id;
+    const cont = document.getElementById("operacion-contenido");
+
+    const id = new URLSearchParams(location.search).get("id");
+    if (!id) { cont.innerHTML = `<p class="hub-empty">Falta el id de la operación.</p>`; return; }
+
+    const { data: o, error } = await supabaseClient
+      .from("operaciones")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error || !o) {
+      cont.innerHTML = `<p class="hub-empty">No encontramos esa operación (o no te pertenece).</p>`;
+      return;
+    }
+
+    const { data: eventos } = await supabaseClient
+      .from("operacion_eventos")
+      .select("estado, nota, creado_en")
+      .eq("operacion_id", id)
+      .order("creado_en", { ascending: true });
+
+    // El primer estado ("cotizado") no genera fila en operacion_eventos —
+    // solo los cambios posteriores. Lo sintetizamos acá para que la
+    // timeline siempre arranque en la creación de la operación.
+    const timeline = [{ estado: "cotizado", creado_en: o.creado_en }, ...(eventos || [])];
+
+    cont.innerHTML = `
+      <div class="hub-card">
+        <div class="hub-card-head">
+          <div>
+            <h2 class="data" style="margin-bottom:4px;">${o.codigo}</h2>
+            <div class="hub-item-meta">${o.tipo}${o.origen ? " · " + o.origen : ""} · creada el ${fmtFecha(o.creado_en)}</div>
+          </div>
+          <span class="hub-pill hub-pill-${o.estado}">${HUB_ESTADO_LABEL[o.estado] || o.estado}</span>
+        </div>
+        ${o.descripcion ? `<p style="font-size:13px; color:var(--muted);">${o.descripcion}</p>` : ""}
+        ${o.total_estimado_centavos ? `<div class="hub-stat" style="margin-top:6px;"><div class="hub-stat-label">Total estimado</div><div class="hub-stat-value">${fmtCentavos(o.total_estimado_centavos)}</div></div>` : ""}
+      </div>
+
+      <div class="hub-card">
+        <div class="hub-card-title">Estado de la operación</div>
+        <ul class="hub-timeline">
+          ${timeline.map((ev) => `
+            <li>
+              <div class="estado">${HUB_ESTADO_LABEL[ev.estado] || ev.estado}</div>
+              <div class="fecha">${fmtFechaHora(ev.creado_en)}</div>
+              ${ev.nota ? `<div class="hub-item-meta" style="margin-top:4px;">${ev.nota}</div>` : ""}
+            </li>
+          `).join("")}
+        </ul>
+      </div>
+    `;
+  })();
+} catch (e) { console.error("operacion detalle hub:", e); }
+</script>
+</body>
+</html>

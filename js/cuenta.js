@@ -33,13 +33,17 @@ async function cerrarSesionCliente() {
   await supabaseClient.auth.signOut();
 }
 
-// Usar en páginas que requieren login (checkout, mi-cuenta): si no hay
-// sesión, manda a mi-cuenta.html y vuelve a esta misma página después.
+// Usar en páginas que requieren login (checkout, mi-cuenta, hub): si no hay
+// sesión, manda a /mi-cuenta.html y vuelve a esta misma página después. Ruta
+// ABSOLUTA a propósito (no "mi-cuenta.html" relativo): páginas del hub viven
+// en /hub/*.html, y una ruta relativa ahí resolvería a /hub/mi-cuenta.html
+// (404). El sitio siempre se sirve desde la raíz (ver nginx.conf), así que
+// "/mi-cuenta.html" es válido sin importar desde qué carpeta se llame esto.
 async function requerirSesion() {
   const session = await obtenerSesionActual();
   if (!session) {
     const volver = encodeURIComponent(location.pathname + location.search);
-    location.href = `mi-cuenta.html?volver=${volver}`;
+    location.href = `/mi-cuenta.html?volver=${volver}`;
     return null;
   }
   return session;

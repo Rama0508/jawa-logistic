@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Jawa Logistic — Portal de cliente (panel interno)</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="css/hub.css" />
+</head>
+<body>
+
+<header class="hub-admin-top">
+  <div class="hub-admin-top-inner">
+    <div style="display:flex; align-items:center; gap:14px;">
+      <a href="index.html" style="color:rgba(255,255,255,0.75); font-size:12.5px; font-weight:700; text-decoration:none;">← Volver al sitio</a>
+      <div class="hub-admin-brand">🧭 Jawa Logistic <span class="tag">Portal de cliente</span></div>
+    </div>
+    <div style="display:flex; align-items:center; gap:14px;">
+      <a href="admin-tienda.html" style="color:var(--gold-bright); font-size:12.5px; font-weight:700; text-decoration:none;">← Tienda y cursos</a>
+      <a href="admin.html" style="color:var(--gold-bright); font-size:12.5px; font-weight:700; text-decoration:none;">← Tarifas/informes</a>
+      <button class="hub-logout-btn" id="logout-btn" style="display:none;">Cerrar sesión</button>
+    </div>
+  </div>
+</header>
+
+<div class="hub-admin-wrap hub-login-screen" id="login-screen">
+  <div class="hub-card">
+    <div class="hub-card-title">Ingresar</div>
+    <p>Acceso solo para el equipo de Jawa Logistic.</p>
+    <div class="hub-field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="vos@jawalogistic.com" />
+    </div>
+    <div class="hub-field">
+      <label>Contraseña</label>
+      <input type="password" id="login-password" placeholder="••••••••" />
+    </div>
+    <button class="hub-btn-primary" id="login-btn" style="width:100%;">Ingresar</button>
+    <div class="hub-msg error" id="login-error"></div>
+  </div>
+</div>
+
+<div class="hub-admin-wrap" id="tool-content" style="display:none;">
+  <h1>Portal de cliente</h1>
+  <p class="hub-page-lead">Operaciones de importación, cuenta corriente, documentos y soporte de tus clientes.</p>
+
+  <div class="hub-tabs">
+    <button class="hub-tab-btn active" data-tab="operaciones">Operaciones</button>
+    <button class="hub-tab-btn" data-tab="cuenta-corriente">Cuenta corriente</button>
+    <button class="hub-tab-btn" data-tab="documentos">Documentos</button>
+    <button class="hub-tab-btn" data-tab="chat">Chat</button>
+  </div>
+
+  <!-- ---------- Operaciones ---------- -->
+  <div class="hub-tab-panel active" id="tab-operaciones">
+
+    <div id="cliente-elegido-box" class="hub-cliente-elegido" style="display:none;">
+      <div>
+        <strong id="cliente-elegido-nombre"></strong>
+        <div class="hub-item-meta" id="cliente-elegido-email"></div>
+      </div>
+      <button class="hub-btn-ghost" id="cliente-cambiar-btn" type="button">Cambiar</button>
+    </div>
+
+    <div class="hub-card" id="cliente-buscar-card">
+      <div class="hub-card-title">Buscar cliente por email</div>
+      <div class="hub-field-row">
+        <div class="hub-field span2"><label>Email</label><input type="email" id="cliente-buscar-input" placeholder="cliente@ejemplo.com" /></div>
+        <div class="hub-field" style="align-self:end;"><button class="hub-btn-primary" id="cliente-buscar-btn" type="button" style="width:100%;">Buscar</button></div>
+      </div>
+      <div id="cliente-resultados"></div>
+      <p class="hub-item-meta">Solo aparecen clientes que ya se registraron en /mi-cuenta.html.</p>
+    </div>
+
+    <div class="hub-card" id="operacion-form-card" style="display:none;">
+      <div class="hub-card-title">Nueva operación</div>
+      <div class="hub-field-row">
+        <div class="hub-field">
+          <label>Tipo</label>
+          <select id="operacion-tipo">
+            <option value="maritimo">Marítimo</option>
+            <option value="aereo">Aéreo</option>
+            <option value="courier">Courier</option>
+          </select>
+        </div>
+        <div class="hub-field span2"><label>Origen</label><input type="text" id="operacion-origen" placeholder="China, Miami, etc." /></div>
+        <div class="hub-field"><label>Total estimado (ARS)</label><input type="text" inputmode="decimal" id="operacion-total" placeholder="0.00" /></div>
+        <div class="hub-field span4"><label>Descripción</label><textarea id="operacion-descripcion" placeholder="Qué se está importando, referencia interna, etc."></textarea></div>
+      </div>
+      <button class="hub-btn-primary" id="operacion-guardar-btn" type="button">Crear operación</button>
+      <div class="hub-msg" id="operacion-form-msg"></div>
+    </div>
+
+    <div class="hub-card">
+      <div class="hub-card-title">Todas las operaciones</div>
+      <div id="operaciones-lista-admin"><p class="hub-empty">Cargando…</p></div>
+    </div>
+
+    <div class="hub-card">
+      <div class="hub-card-title">Cotizaciones de clientes (desde el hub)</div>
+      <p class="hub-item-meta" style="margin-bottom:12px;">Cotizaciones que los clientes calcularon desde su cuenta. "Convertir en operación" precarga el formulario de arriba — vos completás el total en ARS y guardás.</p>
+      <div id="cotizaciones-lista-admin"><p class="hub-empty">Cargando…</p></div>
+    </div>
+  </div>
+
+  <!-- ---------- Cuenta corriente ---------- -->
+  <div class="hub-tab-panel" id="tab-cuenta-corriente">
+    <div id="cc-cliente-elegido-box" class="hub-cliente-elegido" style="display:none;">
+      <div>
+        <strong id="cc-cliente-elegido-nombre"></strong>
+        <div class="hub-item-meta" id="cc-cliente-elegido-email"></div>
+      </div>
+      <button class="hub-btn-ghost" id="cc-cliente-cambiar-btn" type="button">Cambiar</button>
+    </div>
+
+    <div class="hub-card" id="cc-cliente-buscar-card">
+      <div class="hub-card-title">Buscar cliente por email</div>
+      <div class="hub-field-row">
+        <div class="hub-field span2"><label>Email</label><input type="email" id="cc-cliente-buscar-input" placeholder="cliente@ejemplo.com" /></div>
+        <div class="hub-field" style="align-self:end;"><button class="hub-btn-primary" id="cc-cliente-buscar-btn" type="button" style="width:100%;">Buscar</button></div>
+      </div>
+      <div id="cc-cliente-resultados"></div>
+    </div>
+
+    <div class="hub-card" id="cc-form-card" style="display:none;">
+      <div class="hub-card-title">Nuevo movimiento</div>
+      <div class="hub-field-row">
+        <div class="hub-field">
+          <label>Tipo</label>
+          <select id="cc-tipo">
+            <option value="cargo">Cargo (aumenta lo que debe)</option>
+            <option value="pago">Pago (reduce lo que debe)</option>
+          </select>
+        </div>
+        <div class="hub-field"><label>Monto (ARS)</label><input type="text" inputmode="decimal" id="cc-monto" placeholder="0.00" /></div>
+        <div class="hub-field span2"><label>Concepto</label><input type="text" id="cc-concepto" placeholder="Ej: Flete operación JWA-2026-00001" /></div>
+      </div>
+      <button class="hub-btn-primary" id="cc-guardar-btn" type="button">Registrar movimiento</button>
+      <div class="hub-msg" id="cc-form-msg"></div>
+    </div>
+
+    <div class="hub-card">
+      <div class="hub-card-title">Todos los movimientos</div>
+      <div id="cc-lista-admin"><p class="hub-empty">Cargando…</p></div>
+    </div>
+  </div>
+
+  <!-- ---------- Documentos ---------- -->
+  <div class="hub-tab-panel" id="tab-documentos">
+    <div id="doc-cliente-elegido-box" class="hub-cliente-elegido" style="display:none;">
+      <div>
+        <strong id="doc-cliente-elegido-nombre"></strong>
+        <div class="hub-item-meta" id="doc-cliente-elegido-email"></div>
+      </div>
+      <button class="hub-btn-ghost" id="doc-cliente-cambiar-btn" type="button">Cambiar</button>
+    </div>
+
+    <div class="hub-card" id="doc-cliente-buscar-card">
+      <div class="hub-card-title">Buscar cliente por email</div>
+      <div class="hub-field-row">
+        <div class="hub-field span2"><label>Email</label><input type="email" id="doc-cliente-buscar-input" placeholder="cliente@ejemplo.com" /></div>
+        <div class="hub-field" style="align-self:end;"><button class="hub-btn-primary" id="doc-cliente-buscar-btn" type="button" style="width:100%;">Buscar</button></div>
+      </div>
+      <div id="doc-cliente-resultados"></div>
+    </div>
+
+    <div class="hub-card" id="doc-form-card" style="display:none;">
+      <div class="hub-card-title">Subir documento</div>
+      <div class="hub-field-row">
+        <div class="hub-field">
+          <label>Tipo</label>
+          <select id="doc-tipo">
+            <option value="factura">Factura</option>
+            <option value="packing_list">Packing list</option>
+            <option value="aduana">Documentación aduanera</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="hub-field span2"><label>Archivo</label><input type="file" id="doc-archivo" /></div>
+      </div>
+      <button class="hub-btn-primary" id="doc-subir-btn" type="button">Subir documento</button>
+      <div class="hub-msg" id="doc-form-msg"></div>
+    </div>
+
+    <div class="hub-card">
+      <div class="hub-card-title">Todos los documentos</div>
+      <div id="doc-lista-admin"><p class="hub-empty">Cargando…</p></div>
+    </div>
+  </div>
+
+  <!-- ---------- Chat ---------- -->
+  <div class="hub-tab-panel" id="tab-chat">
+    <div class="hub-card">
+      <div style="display:grid; grid-template-columns: 280px 1fr; gap:20px;">
+        <div>
+          <div class="hub-card-title">Conversaciones</div>
+          <div id="chat-hilos-lista"><p class="hub-empty">Cargando…</p></div>
+        </div>
+        <div>
+          <div class="hub-card-title" id="chat-hilo-titulo">Elegí una conversación</div>
+          <div id="chat-admin-box" class="hub-chat-box"><p class="hub-empty">Elegí un cliente de la izquierda.</p></div>
+          <div class="hub-chat-input-row">
+            <textarea id="chat-admin-input" placeholder="Escribí tu respuesta…" disabled></textarea>
+            <button class="hub-btn-primary" id="chat-admin-enviar-btn" type="button" disabled>Enviar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/rates.js"></script>
+<script src="js/hub.js"></script>
+<script>
+let sesionStaffActual = null;
+let clienteSeleccionado = null;
+let cotizacionAConvertir = null; // id de cotizaciones_cliente en curso de conversión, o null
+
+// ---------- Login (mismo criterio que admin-tienda.html: valida rol staff) ----------
+(function () {
+  const loginScreen = document.getElementById("login-screen");
+  const toolContent = document.getElementById("tool-content");
+  const logoutBtn = document.getElementById("logout-btn");
+  const loginBtn = document.getElementById("login-btn");
+  const loginError = document.getElementById("login-error");
+
+  async function mostrarSegunSesion(session) {
+    if (!session) {
+      loginScreen.style.display = "block";
+      toolContent.style.display = "none";
+      logoutBtn.style.display = "none";
+      return;
+    }
+    const { data: perfil } = await supabaseClient.from("perfiles").select("rol").eq("id", session.user.id).maybeSingle();
+    const esStaff = perfil && perfil.rol === "staff";
+    if (!esStaff) {
+      loginScreen.style.display = "block";
+      toolContent.style.display = "none";
+      logoutBtn.style.display = "inline-block";
+      loginError.textContent = "Esta cuenta no tiene acceso al panel interno.";
+      loginError.classList.add("show");
+      return;
+    }
+    sesionStaffActual = session;
+    loginScreen.style.display = "none";
+    toolContent.style.display = "block";
+    logoutBtn.style.display = "inline-block";
+    window.dispatchEvent(new Event("staff-listo"));
+  }
+
+  supabaseClient.auth.getSession().then(({ data }) => mostrarSegunSesion(data.session));
+  supabaseClient.auth.onAuthStateChange((_event, session) => mostrarSegunSesion(session));
+
+  loginBtn.addEventListener("click", async () => {
+    loginError.classList.remove("show");
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value;
+    if (!email || !password) return;
+    loginBtn.disabled = true;
+    loginBtn.textContent = "Ingresando…";
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    loginBtn.disabled = false;
+    loginBtn.textContent = "Ingresar";
+    if (error) {
+      loginError.textContent = "No pudimos ingresar: " + error.message;
+      loginError.classList.add("show");
+    }
+  });
+
+  logoutBtn.addEventListener("click", () => supabaseClient.auth.signOut());
+})();
+
+// ---------- Tabs ----------
+document.querySelectorAll(".hub-tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".hub-tab-btn").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".hub-tab-panel").forEach((p) => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+  });
+});
+
+const pesosACentavos = (str) => Math.round(parseFloat(String(str || "0").replace(",", ".")) * 100) || 0;
+
+// Buscador de cliente por email, reutilizado por las tabs Operaciones,
+// Cuenta corriente y Documentos (cada una necesita elegir un cliente antes
+// de poder cargar algo, pero cada tab mantiene su propio cliente elegido —
+// no hay un cliente "global" del panel, a propósito: son acciones
+// independientes que pueden apuntar a clientes distintos en paralelo).
+function initBuscadorCliente({ inputId, btnId, resultadosId, onElegir }) {
+  document.getElementById(btnId).addEventListener("click", async () => {
+    const buscar = document.getElementById(inputId).value.trim();
+    const cont = document.getElementById(resultadosId);
+    if (!buscar) { cont.innerHTML = ""; return; }
+    cont.innerHTML = `<p class="hub-empty">Buscando…</p>`;
+    const { data, error } = await supabaseClient.rpc("buscar_cliente_por_email", { buscar });
+    if (error) { cont.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
+    if (!data || !data.length) { cont.innerHTML = `<p class="hub-empty">Sin resultados.</p>`; return; }
+    cont.innerHTML = data.map((c) => `
+      <div class="hub-item" data-elegir="${c.id}" style="cursor:pointer;">
+        <div class="hub-item-title">${c.nombre || "(sin nombre cargado)"}</div>
+        <div class="hub-item-meta">${c.email}${c.telefono ? " · " + c.telefono : ""}</div>
+      </div>
+    `).join("");
+    cont.querySelectorAll("[data-elegir]").forEach((el) => {
+      el.addEventListener("click", () => {
+        const c = data.find((x) => x.id === el.dataset.elegir);
+        if (c) onElegir(c);
+      });
+    });
+  });
+}
+
+// ---------- Operaciones ----------
+try {
+  (function () {
+    function elegirCliente(cliente) {
+      clienteSeleccionado = cliente;
+      document.getElementById("cliente-elegido-nombre").textContent = cliente.nombre || "(sin nombre cargado)";
+      document.getElementById("cliente-elegido-email").textContent = cliente.email;
+      document.getElementById("cliente-elegido-box").style.display = "flex";
+      document.getElementById("cliente-buscar-card").style.display = "none";
+      document.getElementById("operacion-form-card").style.display = "block";
+    }
+
+    document.getElementById("cliente-cambiar-btn").addEventListener("click", () => {
+      clienteSeleccionado = null;
+      cotizacionAConvertir = null;
+      document.getElementById("cliente-elegido-box").style.display = "none";
+      document.getElementById("cliente-buscar-card").style.display = "block";
+      document.getElementById("operacion-form-card").style.display = "none";
+    });
+
+    initBuscadorCliente({
+      inputId: "cliente-buscar-input", btnId: "cliente-buscar-btn", resultadosId: "cliente-resultados",
+      onElegir: elegirCliente,
+    });
+
+    document.getElementById("operacion-guardar-btn").addEventListener("click", async () => {
+      const msg = document.getElementById("operacion-form-msg");
+      msg.className = "hub-msg";
+      if (!clienteSeleccionado) { msg.textContent = "Elegí un cliente primero."; msg.classList.add("show", "error"); return; }
+
+      const payload = {
+        cliente_id: clienteSeleccionado.id,
+        tipo: document.getElementById("operacion-tipo").value,
+        origen: document.getElementById("operacion-origen").value.trim() || null,
+        descripcion: document.getElementById("operacion-descripcion").value.trim() || null,
+        total_estimado_centavos: pesosACentavos(document.getElementById("operacion-total").value) || null,
+        creado_por: sesionStaffActual.user.id,
+        cotizacion_id: cotizacionAConvertir,
+      };
+      const { data: nuevaOperacion, error } = await supabaseClient.from("operaciones").insert(payload).select().single();
+      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("show", "error"); return; }
+
+      if (cotizacionAConvertir) {
+        await supabaseClient.from("cotizaciones_cliente")
+          .update({ convertida_en_operacion_id: nuevaOperacion.id })
+          .eq("id", cotizacionAConvertir);
+        cotizacionAConvertir = null;
+      }
+
+      msg.textContent = "Operación creada ✓"; msg.classList.add("show", "ok");
+      document.getElementById("operacion-origen").value = "";
+      document.getElementById("operacion-descripcion").value = "";
+      document.getElementById("operacion-total").value = "";
+      cargarOperaciones();
+      cargarCotizaciones();
+    });
+
+    async function cargarOperaciones() {
+      const cont = document.getElementById("operaciones-lista-admin");
+      const { data, error } = await supabaseClient.rpc("operaciones_admin_listar");
+      if (error) { cont.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
+      if (!data || !data.length) { cont.innerHTML = `<p class="hub-empty">Todavía no hay operaciones.</p>`; return; }
+
+      cont.innerHTML = data.map((o) => `
+        <div class="hub-item">
+          <div class="hub-item-head">
+            <div>
+              <div class="hub-item-title data">${o.codigo}</div>
+              <div class="hub-item-meta">${o.cliente_nombre || o.cliente_email} · ${o.tipo}${o.origen ? " · " + o.origen : ""}</div>
+              <div class="hub-item-meta">${fmtFecha(o.creado_en)}${o.total_estimado_centavos ? " · " + fmtCentavos(o.total_estimado_centavos) : ""}</div>
+              ${o.descripcion ? `<div class="hub-item-meta">${o.descripcion}</div>` : ""}
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <select data-estado="${o.id}">
+                ${Object.keys(HUB_ESTADO_LABEL).map((e) => `<option value="${e}" ${e === o.estado ? "selected" : ""}>${HUB_ESTADO_LABEL[e]}</option>`).join("")}
+              </select>
+              <button class="hub-btn-ghost" data-guardar-estado="${o.id}">Guardar</button>
+            </div>
+          </div>
+        </div>
+      `).join("");
+
+      cont.querySelectorAll("[data-guardar-estado]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const select = cont.querySelector(`[data-estado="${btn.dataset.guardarEstado}"]`);
+          await supabaseClient.from("operaciones").update({ estado: select.value }).eq("id", btn.dataset.guardarEstado);
+          cargarOperaciones();
+        });
+      });
+    }
+
+    async function cargarCotizaciones() {
+      const cont = document.getElementById("cotizaciones-lista-admin");
+      const { data, error } = await supabaseClient.rpc("cotizaciones_cliente_admin_listar");
+      if (error) { cont.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
+      if (!data || !data.length) { cont.innerHTML = `<p class="hub-empty">Todavía no hay cotizaciones de clientes.</p>`; return; }
+
+      cont.innerHTML = data.map((c) => `
+        <div class="hub-item">
+          <div class="hub-item-head">
+            <div>
+              <div class="hub-item-title">${c.cliente_nombre || c.cliente_email} · ${c.modo}${c.origen ? " · " + c.origen : ""}</div>
+              <div class="hub-item-meta">${fmtFecha(c.creado_en)} · USD ${c.total_estimado_usd != null ? Number(c.total_estimado_usd).toFixed(2) : "—"}</div>
+            </div>
+            ${c.convertida_en_operacion_id
+              ? `<span class="hub-pill hub-pill-liberado">Ya convertida</span>`
+              : `<button class="hub-btn-ghost" data-convertir="${c.id}">Convertir en operación</button>`}
+          </div>
+        </div>
+      `).join("");
+
+      cont.querySelectorAll("[data-convertir]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const c = data.find((x) => x.id === btn.dataset.convertir);
+          if (!c) return;
+          clienteSeleccionado = { id: c.cliente_id, email: c.cliente_email, nombre: c.cliente_nombre };
+          cotizacionAConvertir = c.id;
+          document.getElementById("cliente-elegido-nombre").textContent = c.cliente_nombre || "(sin nombre cargado)";
+          document.getElementById("cliente-elegido-email").textContent = c.cliente_email;
+          document.getElementById("cliente-elegido-box").style.display = "flex";
+          document.getElementById("cliente-buscar-card").style.display = "none";
+          document.getElementById("operacion-form-card").style.display = "block";
+          document.getElementById("operacion-tipo").value = c.modo;
+          document.getElementById("operacion-origen").value = c.origen || "";
+          document.getElementById("operacion-descripcion").value =
+            `Convertida desde cotización del hub — total estimado USD ${c.total_estimado_usd != null ? Number(c.total_estimado_usd).toFixed(2) : "—"}. Completá el total real en ARS abajo.`;
+          document.getElementById("operacion-form-card").scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
+    }
+
+    window.addEventListener("staff-listo", cargarOperaciones, { once: false });
+    window.addEventListener("staff-listo", cargarCotizaciones, { once: false });
+  })();
+} catch (e) { console.error("admin operaciones:", e); }
+
+// ---------- Cuenta corriente ----------
+try {
+  (function () {
+    let ccClienteSeleccionado = null;
+
+    function elegirClienteCC(cliente) {
+      ccClienteSeleccionado = cliente;
+      document.getElementById("cc-cliente-elegido-nombre").textContent = cliente.nombre || "(sin nombre cargado)";
+      document.getElementById("cc-cliente-elegido-email").textContent = cliente.email;
+      document.getElementById("cc-cliente-elegido-box").style.display = "flex";
+      document.getElementById("cc-cliente-buscar-card").style.display = "none";
+      document.getElementById("cc-form-card").style.display = "block";
+    }
+
+    document.getElementById("cc-cliente-cambiar-btn").addEventListener("click", () => {
+      ccClienteSeleccionado = null;
+      document.getElementById("cc-cliente-elegido-box").style.display = "none";
+      document.getElementById("cc-cliente-buscar-card").style.display = "block";
+      document.getElementById("cc-form-card").style.display = "none";
+    });
+
+    initBuscadorCliente({
+      inputId: "cc-cliente-buscar-input", btnId: "cc-cliente-buscar-btn", resultadosId: "cc-cliente-resultados",
+      onElegir: elegirClienteCC,
+    });
+
+    document.getElementById("cc-guardar-btn").addEventListener("click", async () => {
+      const msg = document.getElementById("cc-form-msg");
+      msg.className = "hub-msg";
+      if (!ccClienteSeleccionado) { msg.textContent = "Elegí un cliente primero."; msg.classList.add("show", "error"); return; }
+      const monto = pesosACentavos(document.getElementById("cc-monto").value);
+      const concepto = document.getElementById("cc-concepto").value.trim();
+      if (!monto || !concepto) { msg.textContent = "Cargá el monto y el concepto."; msg.classList.add("show", "error"); return; }
+
+      const { error } = await supabaseClient.from("cuenta_corriente_movimientos").insert({
+        cliente_id: ccClienteSeleccionado.id,
+        tipo: document.getElementById("cc-tipo").value,
+        monto_centavos: monto,
+        concepto,
+        creado_por: sesionStaffActual.user.id,
+      });
+      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("show", "error"); return; }
+      msg.textContent = "Movimiento registrado ✓"; msg.classList.add("show", "ok");
+      document.getElementById("cc-monto").value = "";
+      document.getElementById("cc-concepto").value = "";
+      cargarMovimientos();
+    });
+
+    async function cargarMovimientos() {
+      const cont = document.getElementById("cc-lista-admin");
+      const { data, error } = await supabaseClient.rpc("cuenta_corriente_admin_listar");
+      if (error) { cont.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
+      if (!data || !data.length) { cont.innerHTML = `<p class="hub-empty">Todavía no hay movimientos.</p>`; return; }
+      cont.innerHTML = data.map((m) => `
+        <div class="hub-item">
+          <div class="hub-item-head">
+            <div>
+              <div class="hub-item-title">${m.cliente_nombre || m.cliente_email} · ${m.concepto}</div>
+              <div class="hub-item-meta">${fmtFecha(m.creado_en)}</div>
+            </div>
+            <div style="text-align:right;">
+              <span class="hub-pill hub-pill-${m.tipo}">${m.tipo === "cargo" ? "Cargo" : "Pago"}</span>
+              <div class="data" style="margin-top:6px;">${fmtCentavos(m.monto_centavos)}</div>
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+    window.addEventListener("staff-listo", cargarMovimientos, { once: false });
+  })();
+} catch (e) { console.error("admin cuenta corriente:", e); }
+
+// ---------- Documentos ----------
+try {
+  (function () {
+    let docClienteSeleccionado = null;
+
+    function elegirClienteDoc(cliente) {
+      docClienteSeleccionado = cliente;
+      document.getElementById("doc-cliente-elegido-nombre").textContent = cliente.nombre || "(sin nombre cargado)";
+      document.getElementById("doc-cliente-elegido-email").textContent = cliente.email;
+      document.getElementById("doc-cliente-elegido-box").style.display = "flex";
+      document.getElementById("doc-cliente-buscar-card").style.display = "none";
+      document.getElementById("doc-form-card").style.display = "block";
+    }
+
+    document.getElementById("doc-cliente-cambiar-btn").addEventListener("click", () => {
+      docClienteSeleccionado = null;
+      document.getElementById("doc-cliente-elegido-box").style.display = "none";
+      document.getElementById("doc-cliente-buscar-card").style.display = "block";
+      document.getElementById("doc-form-card").style.display = "none";
+    });
+
+    initBuscadorCliente({
+      inputId: "doc-cliente-buscar-input", btnId: "doc-cliente-buscar-btn", resultadosId: "doc-cliente-resultados",
+      onElegir: elegirClienteDoc,
+    });
+
+    document.getElementById("doc-subir-btn").addEventListener("click", async () => {
+      const msg = document.getElementById("doc-form-msg");
+      msg.className = "hub-msg";
+      if (!docClienteSeleccionado) { msg.textContent = "Elegí un cliente primero."; msg.classList.add("show", "error"); return; }
+      const archivoInput = document.getElementById("doc-archivo");
+      const file = archivoInput.files[0];
+      if (!file) { msg.textContent = "Elegí un archivo."; msg.classList.add("show", "error"); return; }
+
+      const docId = crypto.randomUUID();
+      // Convención de ruta obligatoria: {cliente_id}/... — es lo que la
+      // policy de storage.objects usa para decidir si el cliente puede
+      // leer este archivo (ver 0005_hub_cliente.sql).
+      const path = `${docClienteSeleccionado.id}/${docId}-${file.name}`.replace(/\s+/g, "_");
+      const { error: upError } = await supabaseClient.storage.from("documentos-cliente").upload(path, file);
+      if (upError) { msg.textContent = "Error subiendo el archivo: " + upError.message; msg.classList.add("show", "error"); return; }
+
+      const { error } = await supabaseClient.from("documentos").insert({
+        id: docId,
+        cliente_id: docClienteSeleccionado.id,
+        tipo: document.getElementById("doc-tipo").value,
+        nombre_archivo: file.name,
+        storage_path: path,
+        subido_por: sesionStaffActual.user.id,
+      });
+      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("show", "error"); return; }
+      msg.textContent = "Documento subido ✓"; msg.classList.add("show", "ok");
+      archivoInput.value = "";
+      cargarDocumentos();
+    });
+
+    async function cargarDocumentos() {
+      const cont = document.getElementById("doc-lista-admin");
+      const { data, error } = await supabaseClient.rpc("documentos_admin_listar");
+      if (error) { cont.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
+      if (!data || !data.length) { cont.innerHTML = `<p class="hub-empty">Todavía no hay documentos.</p>`; return; }
+      cont.innerHTML = data.map((d) => `
+        <div class="hub-item">
+          <div class="hub-item-head">
+            <div>
+              <div class="hub-item-title">${d.nombre_archivo}</div>
+              <div class="hub-item-meta">${d.cliente_nombre || d.cliente_email} · ${d.tipo} · ${fmtFecha(d.creado_en)}</div>
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+    window.addEventListener("staff-listo", cargarDocumentos, { once: false });
+  })();
+} catch (e) { console.error("admin documentos:", e); }
+
+// ---------- Chat ----------
+try {
+  (function () {
+    let hiloActivo = null;
+    let canalRealtime = null;
+
+    function renderMensajeAdmin(m) {
+      const box = document.getElementById("chat-admin-box");
+      const div = document.createElement("div");
+      div.className = "hub-chat-msg " + (m.autor_rol === "staff" ? "propio" : "ajeno");
+      div.innerHTML = `<div class="autor">${m.autor_rol === "staff" ? "Vos" : "Cliente"}</div><div>${m.mensaje}</div><div class="hora">${fmtFechaHora(m.creado_en)}</div>`;
+      box.appendChild(div);
+    }
+
+    async function cargarHilos() {
+      const cont = document.getElementById("chat-hilos-lista");
+      const { data, error } = await supabaseClient.rpc("chat_hilos_admin_listar");
+      if (error) { cont.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
+      if (!data || !data.length) { cont.innerHTML = `<p class="hub-empty">Todavía no hay conversaciones.</p>`; return; }
+      cont.innerHTML = data.map((h) => `
+        <div class="hub-item hub-chat-hilo ${h.cliente_id === hiloActivo ? "active" : ""}" data-hilo="${h.cliente_id}" data-email="${h.cliente_email}" data-nombre="${h.cliente_nombre || ""}">
+          <div class="hub-item-title">${h.cliente_nombre || h.cliente_email}</div>
+          <div class="hub-item-meta">${h.ultimo_autor_rol === "staff" ? "Vos: " : ""}${(h.ultimo_mensaje || "").slice(0, 60)}</div>
+          <div class="hub-item-meta">${fmtFechaHora(h.ultimo_creado_en)}</div>
+        </div>
+      `).join("");
+      cont.querySelectorAll("[data-hilo]").forEach((el) => {
+        el.addEventListener("click", () => abrirHilo(el.dataset.hilo, el.dataset.email, el.dataset.nombre));
+      });
+    }
+
+    async function abrirHilo(clienteId, email, nombre) {
+      hiloActivo = clienteId;
+      document.getElementById("chat-hilo-titulo").textContent = nombre || email;
+      document.getElementById("chat-admin-input").disabled = false;
+      document.getElementById("chat-admin-enviar-btn").disabled = false;
+      cargarHilos();
+
+      const box = document.getElementById("chat-admin-box");
+      box.innerHTML = `<p class="hub-empty">Cargando…</p>`;
+      const { data, error } = await supabaseClient
+        .from("chat_mensajes").select("id, autor_rol, mensaje, creado_en")
+        .eq("cliente_id", clienteId).order("creado_en", { ascending: true });
+      box.innerHTML = "";
+      if (error) { box.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
+      (data || []).forEach(renderMensajeAdmin);
+      box.scrollTop = box.scrollHeight;
+
+      if (canalRealtime) supabaseClient.removeChannel(canalRealtime);
+      canalRealtime = supabaseClient.channel(`admin-chat-${clienteId}`).on("postgres_changes", {
+        event: "INSERT", schema: "public", table: "chat_mensajes", filter: `cliente_id=eq.${clienteId}`,
+      }, (payload) => {
+        renderMensajeAdmin(payload.new);
+        box.scrollTop = box.scrollHeight;
+      }).subscribe();
+    }
+
+    async function enviar() {
+      if (!hiloActivo) return;
+      const input = document.getElementById("chat-admin-input");
+      const mensaje = input.value.trim();
+      if (!mensaje) return;
+      input.value = "";
+      const { error } = await supabaseClient.from("chat_mensajes").insert({
+        cliente_id: hiloActivo, autor_id: sesionStaffActual.user.id, autor_rol: "staff", mensaje,
+      });
+      if (error) { alert("No se pudo enviar: " + error.message); return; }
+      cargarHilos();
+    }
+    document.getElementById("chat-admin-enviar-btn").addEventListener("click", enviar);
+    document.getElementById("chat-admin-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(); }
+    });
+
+    window.addEventListener("staff-listo", cargarHilos, { once: false });
+  })();
+} catch (e) { console.error("admin chat:", e); }
+</script>
+</body>
+</html>

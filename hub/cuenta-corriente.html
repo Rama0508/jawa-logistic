@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Cuenta corriente — Portal de cliente — Jawa Logistic</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../css/hub.css" />
+</head>
+<body>
+
+<div id="hub-shell">
+  <div id="hub-page">
+    <p class="hub-page-lead">Saldo y movimientos de tu cuenta con Jawa Logistic.</p>
+
+    <div class="hub-grid" style="grid-template-columns: 1fr;">
+      <div class="hub-stat">
+        <div class="hub-stat-label">Saldo actual</div>
+        <div class="hub-stat-value coral" id="cc-saldo">—</div>
+        <p class="hub-item-meta" style="margin-top:8px;">Un saldo positivo es lo que todavía nos debés; si es $0 o no aparece, no tenés cargos pendientes.</p>
+      </div>
+    </div>
+
+    <div class="hub-card">
+      <div class="hub-card-title">Movimientos</div>
+      <div id="cc-movimientos"><p class="hub-empty">Cargando…</p></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/rates.js"></script>
+<script src="../js/cuenta.js"></script>
+<script src="../js/hub.js"></script>
+<script>
+try {
+  (async function () {
+    await SUPABASE_READY;
+    const session = await iniciarHub("cuenta-corriente");
+    if (!session) return;
+    const clienteId = session.user.id;
+
+    const [{ data: saldo }, { data: movimientos, error }] = await Promise.all([
+      supabaseClient.from("cuenta_corriente_saldos").select("saldo_centavos").eq("cliente_id", clienteId).maybeSingle(),
+      supabaseClient.from("cuenta_corriente_movimientos").select("id, tipo, monto_centavos, concepto, creado_en").eq("cliente_id", clienteId).order("creado_en", { ascending: false }),
+    ]);
+
+    document.getElementById("cc-saldo").textContent = fmtCentavos(saldo ? saldo.saldo_centavos : 0);
+
+    const cont = document.getElementById("cc-movimientos");
+    if (error) { cont.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
+    if (!movimientos || !movimientos.length) { cont.innerHTML = `<p class="hub-empty">Todavía no tenés movimientos.</p>`; return; }
+    cont.innerHTML = movimientos.map((m) => `
+      <div class="hub-item">
+        <div class="hub-item-head">
+          <div>
+            <div class="hub-item-title">${m.concepto}</div>
+            <div class="hub-item-meta">${fmtFecha(m.creado_en)}</div>
+          </div>
+          <div style="text-align:right;">
+            <span class="hub-pill hub-pill-${m.tipo}">${m.tipo === "cargo" ? "Cargo" : "Pago"}</span>
+            <div class="data" style="margin-top:6px;">${m.tipo === "cargo" ? "+" : "−"}${fmtCentavos(m.monto_centavos)}</div>
+          </div>
+        </div>
+      </div>
+    `).join("");
+  })();
+} catch (e) { console.error("cuenta corriente hub:", e); }
+</script>
+</body>
+</html>

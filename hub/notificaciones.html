@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Notificaciones — Portal de cliente — Jawa Logistic</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../css/hub.css" />
+</head>
+<body>
+
+<div id="hub-shell">
+  <div id="hub-page">
+    <div class="hub-card">
+      <div class="hub-card-head">
+        <div class="hub-card-title">Todas tus notificaciones</div>
+        <button class="hub-btn-ghost" id="marcar-todas-btn" type="button">Marcar todas como leídas</button>
+      </div>
+      <div id="notificaciones-lista"><p class="hub-empty">Cargando…</p></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/rates.js"></script>
+<script src="../js/cuenta.js"></script>
+<script src="../js/hub.js"></script>
+<script>
+try {
+  (async function () {
+    await SUPABASE_READY;
+    const session = await iniciarHub("notificaciones");
+    if (!session) return;
+    const clienteId = session.user.id;
+
+    async function cargar() {
+      const cont = document.getElementById("notificaciones-lista");
+      const { data, error } = await supabaseClient
+        .from("notificaciones")
+        .select("id, tipo, titulo, cuerpo, link, leida, creado_en")
+        .eq("cliente_id", clienteId)
+        .order("creado_en", { ascending: false });
+      if (error) { cont.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
+      if (!data || !data.length) { cont.innerHTML = `<p class="hub-empty">Todavía no tenés notificaciones.</p>`; return; }
+
+      cont.innerHTML = data.map((n) => `
+        <div class="hub-item" style="${n.leida ? "" : "border-color:var(--coral);"}">
+          <div class="hub-item-head">
+            <div>
+              <div class="hub-item-title">${n.titulo}</div>
+              ${n.cuerpo ? `<div class="hub-item-meta">${n.cuerpo}</div>` : ""}
+              <div class="hub-item-meta">${fmtFechaHora(n.creado_en)}</div>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+              ${!n.leida ? `<span class="hub-pill hub-pill-cotizado">Sin leer</span>` : ""}
+              ${n.link ? `<a class="hub-btn-ghost" href="${n.link}" data-marcar="${n.id}">Ver →</a>` : ""}
+            </div>
+          </div>
+        </div>
+      `).join("");
+
+      cont.querySelectorAll("[data-marcar]").forEach((el) => {
+        el.addEventListener("click", () => {
+          supabaseClient.from("notificaciones").update({ leida: true }).eq("id", el.dataset.marcar);
+        });
+      });
+    }
+
+    document.getElementById("marcar-todas-btn").addEventListener("click", async () => {
+      await supabaseClient.from("notificaciones").update({ leida: true }).eq("cliente_id", clienteId).eq("leida", false);
+      cargar();
+    });
+
+    cargar();
+  })();
+} catch (e) { console.error("notificaciones hub:", e); }
+</script>
+</body>
+</html>

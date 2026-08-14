@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Mis operaciones — Portal de cliente — Jawa Logistic</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../css/hub.css" />
+</head>
+<body>
+
+<div id="hub-shell">
+  <div id="hub-page">
+    <p class="hub-page-lead">Todas tus operaciones de importación, con su estado actual.</p>
+
+    <div class="hub-card">
+      <div class="hub-field-row" style="margin-bottom:0;">
+        <div class="hub-field">
+          <label>Tipo</label>
+          <select id="filtro-tipo">
+            <option value="">Todos</option>
+            <option value="maritimo">Marítimo</option>
+            <option value="aereo">Aéreo</option>
+            <option value="courier">Courier</option>
+          </select>
+        </div>
+        <div class="hub-field">
+          <label>Estado</label>
+          <select id="filtro-estado">
+            <option value="">Todos</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div id="operaciones-lista"><p class="hub-empty">Cargando…</p></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/rates.js"></script>
+<script src="../js/cuenta.js"></script>
+<script src="../js/hub.js"></script>
+<script>
+try {
+  (async function () {
+    await SUPABASE_READY;
+    const session = await iniciarHub("operaciones");
+    if (!session) return;
+    const clienteId = session.user.id;
+
+    document.getElementById("filtro-estado").innerHTML += Object.keys(HUB_ESTADO_LABEL)
+      .map((e) => `<option value="${e}">${HUB_ESTADO_LABEL[e]}</option>`).join("");
+
+    let operaciones = [];
+
+    function render() {
+      const tipo = document.getElementById("filtro-tipo").value;
+      const estado = document.getElementById("filtro-estado").value;
+      const filtradas = operaciones.filter((o) =>
+        (!tipo || o.tipo === tipo) && (!estado || o.estado === estado)
+      );
+      const cont = document.getElementById("operaciones-lista");
+      if (!filtradas.length) {
+        cont.innerHTML = `<p class="hub-empty">${operaciones.length ? "No hay operaciones con ese filtro." : "Todavía no tenés operaciones. Empezá con una cotización."}</p>`;
+        return;
+      }
+      cont.innerHTML = filtradas.map((o) => `
+        <a class="hub-item" href="/hub/operacion.html?id=${o.id}" style="display:block; text-decoration:none; color:inherit;">
+          <div class="hub-item-head">
+            <div>
+              <div class="hub-item-title data">${o.codigo}</div>
+              <div class="hub-item-meta">${o.tipo}${o.origen ? " · " + o.origen : ""} · ${fmtFecha(o.creado_en)}</div>
+              ${o.descripcion ? `<div class="hub-item-meta">${o.descripcion}</div>` : ""}
+            </div>
+            <div style="text-align:right;">
+              <span class="hub-pill hub-pill-${o.estado}">${HUB_ESTADO_LABEL[o.estado] || o.estado}</span>
+              ${o.total_estimado_centavos ? `<div class="hub-item-meta" style="margin-top:6px;">${fmtCentavos(o.total_estimado_centavos)}</div>` : ""}
+            </div>
+          </div>
+        </a>
+      `).join("");
+    }
+
+    document.getElementById("filtro-tipo").addEventListener("change", render);
+    document.getElementById("filtro-estado").addEventListener("change", render);
+
+    const { data, error } = await supabaseClient
+      .from("operaciones")
+      .select("id, codigo, tipo, origen, estado, descripcion, total_estimado_centavos, creado_en")
+      .eq("cliente_id", clienteId)
+      .order("creado_en", { ascending: false });
+    if (error) { document.getElementById("operaciones-lista").innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
+    operaciones = data || [];
+    render();
+  })();
+} catch (e) { console.error("operaciones hub:", e); }
+</script>
+</body>
+</html>
