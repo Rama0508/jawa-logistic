@@ -17,6 +17,26 @@ try {
   })();
 } catch (e) { console.error("menu mobile:", e); }
 
+// ---------- Submenú "Conocenos" del nav (Nosotros, Cómo funciona, etc.) ----------
+try {
+  (function () {
+    document.querySelectorAll(".nav-dropdown-toggle").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const dropdown = btn.closest(".nav-dropdown");
+        const abierto = dropdown.classList.toggle("open");
+        btn.setAttribute("aria-expanded", abierto ? "true" : "false");
+      });
+    });
+    document.addEventListener("click", () => {
+      document.querySelectorAll(".nav-dropdown.open").forEach((d) => {
+        d.classList.remove("open");
+        d.querySelector(".nav-dropdown-toggle").setAttribute("aria-expanded", "false");
+      });
+    });
+  })();
+} catch (e) { console.error("submenú nav:", e); }
+
 // ---------- Botón flotante de WhatsApp ----------
 try {
   (function () {

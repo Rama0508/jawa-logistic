@@ -78,15 +78,38 @@
   .nav-user-label { display:none; }
   .nav-toggle { display:none; background:none; border:none; cursor:pointer; padding:6px; flex:none; }
   .nav-toggle svg { width:22px; height:22px; display:block; color: var(--navy); }
+  .nav-links a { white-space:nowrap; }
+
+  /* Agrupa las páginas institucionales (Nosotros, Cómo funciona, Servicios,
+     Proveedor, Por qué elegirnos, Testimonios) en un solo ítem con submenú,
+     para que el nav de arriba no se apriete con 11 links sueltos. */
+  .nav-dropdown { position:relative; }
+  .nav-dropdown-toggle { display:flex; align-items:center; gap:4px; font:inherit; font-size:13px; font-weight:600; color:var(--ink); opacity:.72; background:none; border:none; padding:0; cursor:pointer; white-space:nowrap; }
+  .nav-dropdown-toggle:hover, .nav-dropdown-toggle:focus-visible, .nav-dropdown.open .nav-dropdown-toggle, .nav-dropdown-toggle.active { opacity:1; }
+  .nav-dropdown-toggle svg { width:10px; height:10px; flex:none; transition: transform .2s ease; }
+  .nav-dropdown:hover .nav-dropdown-toggle svg, .nav-dropdown.open .nav-dropdown-toggle svg { transform: rotate(180deg); }
+  .nav-dropdown-menu { position:absolute; top:100%; left:50%; transform:translateX(-50%) translateY(6px); min-width:200px; background:var(--paper); border:1px solid var(--line); border-radius:10px; box-shadow:0 16px 28px -16px rgba(22,34,61,0.28); padding:6px; display:flex; flex-direction:column; opacity:0; visibility:hidden; pointer-events:none; transition: opacity .15s ease, transform .15s ease; z-index:50; }
+  .nav-dropdown:hover .nav-dropdown-menu, .nav-dropdown.open .nav-dropdown-menu { opacity:1; visibility:visible; pointer-events:auto; transform:translateX(-50%) translateY(0); }
+  .nav-dropdown-menu a { padding:9px 12px !important; border-radius:6px; opacity:.85 !important; }
+  .nav-dropdown-menu a:hover { opacity:1 !important; background:var(--paper-2); }
+
   @media (max-width: 720px) {
     .nav-toggle { display:block; }
     .nav-links { position:absolute; top:100%; left:0; right:0; background:var(--paper); flex-direction:column; align-items:stretch; gap:0; border-bottom:1px solid var(--line); max-height:0; overflow:hidden; transition:max-height .3s ease; box-shadow: 0 12px 20px -14px rgba(22,34,61,0.3); }
-    .nav-links.open { max-height:520px; }
+    .nav-links.open { max-height:80vh; overflow-y:auto; }
     .nav-links a:not(.nav-cta):not(.nav-cart):not(.nav-user) { display:block; opacity:1; padding:14px 20px; border-bottom:1px solid var(--line); }
     .nav-links .nav-cta { margin:14px 20px; text-align:center; }
     .nav-links .nav-cart { padding:14px 20px; border-bottom:1px solid var(--line); }
     .nav-links .nav-user { padding:14px 20px; border-bottom:1px solid var(--line); }
     .nav-user-label { display:inline; font-size:13px; font-weight:600; }
+
+    /* En mobile no hay hover ni espacio para flotar un submenú: el
+       dropdown se aplana y sus links quedan siempre visibles, indentados,
+       dentro del mismo listado vertical. */
+    .nav-dropdown { position:static; }
+    .nav-dropdown-toggle { width:100%; padding:14px 20px !important; border-bottom:1px solid var(--line); opacity:1; justify-content:space-between; }
+    .nav-dropdown-menu { position:static; opacity:1; visibility:visible; pointer-events:auto; transform:none; box-shadow:none; border:none; border-radius:0; padding:0; background:var(--paper-2); min-width:0; }
+    .nav-dropdown-menu a { padding:14px 20px 14px 34px !important; border-bottom:1px solid var(--line); border-radius:0; opacity:1 !important; }
   }
 
   /* ---------- Hero ---------- */
