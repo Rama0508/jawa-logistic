@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Calculadora de importación — Portal de cliente — Jawa Logistic</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../css/hub.css" />
+</head>
+<body>
+
+<div id="hub-shell">
+  <div id="hub-page">
+    <p class="hub-page-lead">Cargá lo que querés traer, clasificalo con IA y mirá el costo puesto en Argentina — flete, impuestos y recupero de IVA incluidos.</p>
+
+    <div class="hub-card">
+      <div id="wiz-steps"></div>
+      <div id="wiz-content"></div>
+      <div class="wiz-nav-row">
+        <button class="hub-btn-ghost" id="wiz-volver" type="button" style="visibility:hidden;">← Volver</button>
+        <button class="hub-btn-primary" id="wiz-continuar" type="button">Continuar →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/rates.js"></script>
+<script src="../js/cuenta.js"></script>
+<script src="../js/cotizador-core.js"></script>
+<script src="../js/hub.js"></script>
+<script>
+try {
+  (async function () {
+    await SUPABASE_READY;
+    const session = await iniciarHub("calculadora-importacion");
+    if (!session) return;
+    const clienteId = session.user.id;
+
+    // Mismo número que usa el cotizador público (js/main.js) — hub/*.html no
+    // carga ese archivo, así que se repite acá el contacto de WhatsApp de Jawa.
+    const TELEFONO_JAWA = "+54 9 381 331-2280";
+    const CLASIFICAR_PRODUCTO_URL = `${SUPABASE_URL}/functions/v1/clasificar-producto`;
+    const WIZ_KEY = "jawa_hub_calc_importacion_v1";
+
+    function pNum(v) {
+      const n = parseFloat(String(v || "").trim().replace(",", "."));
+      return isNaN(n) ? 0 : n;
+    }
+    function fmt(n) { return (n || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function uid() { return Math.random().toString(36).slice(2, 9); }
+
+    // ---------- Estado ----------
+    function nuevoProductoWiz() {
+      return {
+        id: uid(), nombre: "", descripcion: "", foto: "",
+        rubro: "", confianza: "", advertenciaIA: "",
+        alicuotas: { die: "", iva: "21", ivaAdicional: "20", ganancias: "6", iibb: "0", tasaEstadistica: "3" },
+        cantidad: "", fob: "", origen: "china",
+        pesoTotal: "", largo: "", ancho: "", alto: "", bultos: "1", cbmManual: "",
+      };
+    }
+
+    let productos = [];
+    try {
+      const saved = JSON.parse(localStorage.getItem(WIZ_KEY) || "null");
+      productos = Array.isArray(saved) && saved.length ? saved.map((p) => ({ ...nuevoProductoWiz(), ...p, alicuotas: { ...nuevoProductoWiz().alicuotas, ...(p.alicuotas || {}) } })) : [nuevoProductoWiz()];
+    } catch (e) { productos = [nuevoProductoWiz()]; }
+    function guardarWiz() { try { localStorage.setItem(WIZ_KEY, JSON.stringify(productos)); } catch (e) {} }
+
+    let paso = 1;
+    let productoActivoId = productos[0].id;
+    let licencia = "jawa"; // "propia" | "jawa"
+    let viaElegida = "aereo"; // "aereo" | "maritimo" | "courier"
+    let detalleAbierto = null;
+
+    function productoActivo() { return productos.find((p) => p.id === productoActivoId) || productos[0]; }
+
+    // ---------- Motor de cálculo ----------
+    // Reusa el motor compartido de js/cotizador-core.js (mejorEmpaque,
+    // cbmCobrableMaritimo, pesoCobrableAereo, avisoLimiteRegimen) y las
+    // tarifas en vivo de js/rates.js — no se reimplementa esa lógica acá.
+    function calcularProducto(p) {
+      const cantidad = pNum(p.cantidad) || 0;
+      const fobU = pNum(p.fob);
+      const fobTotal = fobU * cantidad;
+      const pesoTotal = pNum(p.pesoTotal);
+      const l = pNum(p.largo), w = pNum(p.ancho), h = pNum(p.alto);
+      const bultos = pNum(p.bultos) || (cantidad > 0 ? 1 : 0);
+      const m3PorCaja = (l * w * h) / 1000000;
+      const cbmAuto = m3PorCaja * bultos;
+      const cbm = p.cbmManual !== "" && p.cbmManual != null ? pNum(p.cbmManual) : cbmAuto;
+
+      const origen = p.origen === "miami" ? "miami" : "china";
+      const rateSea = FLETE_RATES.sea[origen] || 0;
+      const rateAir = FLETE_RATES.air[origen] || 0;
+
+      const cbmCobrable = cbmCobrableMaritimo(cbm, pesoTotal);
+      const fleteMaritimo = cbmCobrable * rateSea;
+
+      const pesoVolAereo = ((l * w * h) / DIVISOR_VOLUMETRICO_AEREO) * bultos;
+      const pesoCobrable = pesoCobrableAereo(pesoVolAereo, pesoTotal);
+      const fleteAereo = pesoCobrable * rateAir;
+
+      return { cantidad, fobU, fobTotal, pesoTotal, cbm, cbmAuto, cbmCobrable, fleteMaritimo, pesoCobrable, fleteAereo, origen, cajas: bultos };
+    }
+
+    // Cascada de impuestos del régimen general (aéreo/marítimo): DIE y tasa
+    // estadística sobre el CIF, después IVA/IVA adicional/Ganancias/IIBB
+    // sobre CIF+DIE+tasa — mismo orden que aplica la aduana argentina en la
+    // práctica. Las alícuotas vienen del paso 2 (estimadas por IA o a mano).
+    function calcularImpuestosCascada(alic, cif) {
+      const die = pNum(alic.die), iva = pNum(alic.iva), ivaAd = pNum(alic.ivaAdicional),
+            gan = pNum(alic.ganancias), iibb = pNum(alic.iibb), tasa = pNum(alic.tasaEstadistica);
+      const tasaMonto = (cif * tasa) / 100;
+      const dieMonto = (cif * die) / 100;
+      const baseIVA = cif + dieMonto + tasaMonto;
+      const ivaMonto = (baseIVA * iva) / 100;
+      const ivaAdMonto = (baseIVA * ivaAd) / 100;
+      const ganMonto = (baseIVA * gan) / 100;
+      const iibbMonto = (baseIVA * iibb) / 100;
+      const total = dieMonto + tasaMonto + ivaMonto + ivaAdMonto + ganMonto + iibbMonto;
+      return { esCourier: false, dieMonto, tasaMonto, baseIVA, ivaMonto, ivaAdMonto, ganMonto, iibbMonto, total, ivaRecuperable: ivaMonto + ivaAdMonto };
+    }
+
+    // Envío entero (todos los productos válidos), para la vía elegida en el
+    // paso 4. Courier usa el régimen simplificado ya vigente en todo el sitio
+    // (alícuota única sobre CIF, sin desglosar los 6 impuestos) — no una
+    // cascada nueva — para no divergir de cómo ya se calcula courier en
+    // admin.html/hub/courier.html.
+    function calcularEnvio(via) {
+      const validos = productos.filter((p) => p.nombre && pNum(p.cantidad) > 0);
+      let fobTotal = 0, fleteTotal = 0, impuestosTotal = 0, ivaRecuperableTotal = 0, pesoAcumulado = 0, unidadesAcumuladas = 0;
+      const detalle = validos.map((p) => {
+        const c = calcularProducto(p);
+        let flete, impuestos, cif;
+        if (via === "courier") {
+          flete = c.fleteAereo; // se aproxima con la tarifa aérea genérica como flete del courier
+          cif = c.fobTotal + flete;
+          const derechos = cif * COURIER_REGIMEN.alicuota;
+          impuestos = { esCourier: true, total: derechos, derechos, ivaRecuperable: 0, cif };
+        } else {
+          flete = via === "maritimo" ? c.fleteMaritimo : c.fleteAereo;
+          cif = c.fobTotal + flete;
+          impuestos = calcularImpuestosCascada(p.alicuotas, cif);
+          impuestos.cif = cif;
+        }
+        fobTotal += c.fobTotal;
+        fleteTotal += flete;
+        impuestosTotal += impuestos.total;
+        ivaRecuperableTotal += impuestos.ivaRecuperable || 0;
+        pesoAcumulado += c.pesoTotal;
+        unidadesAcumuladas += c.cantidad;
+        return { p, c, flete, impuestos, totalProducto: c.fobTotal + flete + impuestos.total };
+      });
+      const costosImportacion = fleteTotal + impuestosTotal;
+      const total = fobTotal + costosImportacion;
+      const costoReal = total - ivaRecuperableTotal;
+      return { detalle, fobTotal, fleteTotal, impuestosTotal, costosImportacion, total, ivaRecuperableTotal, costoReal, pesoAcumulado, unidadesAcumuladas };
+    }
+
+    // ---------- Render: stepper ----------
+    const PASOS = [
+      { n: 1, label: "Productos", sub: "qué traés" },
+      { n: 2, label: "Tributos", sub: "NCM e impuestos" },
+      { n: 3, label: "Logística", sub: "FOB y origen" },
+      { n: 4, label: "Resultado", sub: "flete y seguro" },
+    ];
+    function renderStepper() {
+      document.getElementById("wiz-steps").innerHTML = `
+        <div class="wiz-steps">
+          ${PASOS.map((s, i) => `
+            ${i > 0 ? `<div class="wiz-step-sep"></div>` : ""}
+            <div class="wiz-step ${s.n === paso ? "active" : s.n < paso ? "done" : ""}">
+              <div class="wiz-step-dot">${s.n < paso ? "✓" : s.n}</div>
+              <div class="wiz-step-label">${s.n}. ${s.label}<br/><span style="font-weight:400; text-transform:none;">${s.sub}</span></div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderChips() {
+      return `
+        <div class="wiz-chips">
+          ${productos.map((p, i) => `
+            <div class="wiz-chip ${p.id === productoActivoId ? "active" : ""}" data-action="elegir-producto" data-id="${p.id}">
+              <span>${i + 1} ${escHtml(p.nombre || "Producto " + (i + 1))}</span>
+              ${productos.length > 1 ? `<button type="button" data-action="quitar-producto" data-id="${p.id}">✕</button>` : ""}
+            </div>
+          `).join("")}
+          <div class="wiz-chip wiz-chip-add" data-action="sumar-producto">+ Sumar producto</div>
+        </div>
+      `;
+    }
+
+    // ---------- Render: paso 1 (Productos) ----------
+    function renderPaso1() {
+      const p = productoActivo();
+      return `
+        <div style="font-size:12.5px; color:var(--muted); margin-bottom:10px;">Paso 1 de 4. Describí el producto o subí una foto.</div>
+        ${renderChips()}
+        <div class="hub-card-title">Elegí cómo cargar este producto</div>
+        <div class="wiz-paths">
+          <div class="wiz-path-card">
+            <div class="wiz-path-label">Camino A</div>
+            <div class="wiz-path-title">No tengo los papeles</div>
+            <div class="wiz-path-sub">Describí el producto y la IA lo clasifica</div>
+            <div class="hub-field">
+              <input type="text" id="wiz-descripcion" placeholder="ej: parlantes bluetooth" value="${escHtml(p.descripcion || p.nombre)}" />
+            </div>
+            <button class="hub-btn-primary" id="wiz-analizar-ia" type="button" style="width:100%;">✨ Analizar con IA →</button>
+            <div style="text-align:center; margin:10px 0 4px; font-size:11px; color:var(--muted);">— o —</div>
+            <label class="hub-btn-ghost" style="display:block; text-align:center; cursor:pointer;">
+              📷 Subir una foto — la IA la describe por vos
+              <input type="file" accept="image/*" id="wiz-foto-input" style="display:none;" />
+            </label>
+            <div id="wiz-ia-estado" style="font-size:11.5px; color:var(--muted); margin-top:8px;"></div>
+          </div>
+          <div class="wiz-path-card disabled">
+            <div class="wiz-path-label">Camino B</div>
+            <div class="wiz-path-title">Ya tengo los documentos</div>
+            <div class="wiz-path-sub">Subir proforma y packing list — próximamente</div>
+            <div class="wiz-note">Por ahora esta opción no está disponible. Cargá los datos del producto a mano en los pasos siguientes mientras tanto.</div>
+          </div>
+        </div>
+        ${p.rubro ? `
+          <div class="wiz-note">✓ <b>${escHtml(p.nombre)}</b> ya tiene una clasificación cargada (rubro: ${escHtml(p.rubro)}). Podés continuar al paso 2 para revisarla, o volver a analizar.</div>
+        ` : ""}
+      `;
+    }
+
+    async function analizarConIA() {
+      const p = productoActivo();
+      const descripcion = document.getElementById("wiz-descripcion").value.trim();
+      const estado = document.getElementById("wiz-ia-estado");
+      if (!descripcion) { estado.textContent = "Escribí una descripción del producto primero."; return; }
+      const btn = document.getElementById("wiz-analizar-ia");
+      btn.disabled = true; btn.textContent = "Analizando…";
+      estado.textContent = "";
+      try {
+        const resp = await fetch(CLASIFICAR_PRODUCTO_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + SUPABASE_ANON_KEY },
+          body: JSON.stringify({ descripcion }),
+        });
+        const data = await resp.json();
+        if (!data.success) {
+          estado.textContent = "⚠️ " + (data.error || "No se pudo clasificar. Cargá los datos a mano en el paso 2.");
+          p.descripcion = descripcion;
+          if (!p.nombre) p.nombre = descripcion;
+        } else {
+          p.nombre = data.nombreProducto || descripcion;
+          p.descripcion = descripcion;
+          p.rubro = data.rubro || "";
+          p.confianza = data.confianza || "";
+          p.advertenciaIA = data.advertencia || "";
+          p.alicuotas = { ...p.alicuotas, ...data.alicuotas };
+          estado.textContent = "✓ Clasificado — revisá el rubro y las alícuotas en el paso 2.";
+        }
+        guardarWiz();
+        render();
+      } catch (e) {
+        estado.textContent = "⚠️ No se pudo conectar con el servicio de IA. Cargá los datos a mano.";
+      } finally {
+        if (document.getElementById("wiz-analizar-ia")) {
+          document.getElementById("wiz-analizar-ia").disabled = false;
+          document.getElementById("wiz-analizar-ia").textContent = "✨ Analizar con IA →";
+        }
+      }
+    }
+
+    async function analizarFoto(file) {
+      if (!file || !file.type || !file.type.startsWith("image/")) return;
+      const estado = document.getElementById("wiz-ia-estado");
+      estado.textContent = "Analizando la foto…";
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const dataUrl = String(ev.target.result || "");
+        const base64 = dataUrl.split(",")[1] || "";
+        try {
+          const resp = await fetch(CLASIFICAR_PRODUCTO_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + SUPABASE_ANON_KEY },
+            body: JSON.stringify({ imagenBase64: base64, imagenMediaType: file.type }),
+          });
+          const data = await resp.json();
+          const p = productoActivo();
+          if (!data.success) {
+            estado.textContent = "⚠️ " + (data.error || "No se pudo clasificar la foto. Cargá los datos a mano.");
+          } else {
+            p.foto = dataUrl;
+            p.nombre = data.nombreProducto || p.nombre;
+            p.rubro = data.rubro || "";
+            p.confianza = data.confianza || "";
+            p.advertenciaIA = data.advertencia || "";
+            p.alicuotas = { ...p.alicuotas, ...data.alicuotas };
+            estado.textContent = "✓ Clasificado desde la foto — revisá el paso 2.";
+          }
+          guardarWiz();
+          render();
+        } catch (e) {
+          estado.textContent = "⚠️ No se pudo conectar con el servicio de IA.";
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // ---------- Render: paso 2 (Tributos) ----------
+    const ALICUOTA_LABELS = { die: "DIE", iva: "IVA", ivaAdicional: "IVA adic.", ganancias: "Ganancias", iibb: "IIBB", tasaEstadistica: "Tasa estad." };
+    function renderPaso2() {
+      const p = productoActivo();
+      return `
+        <div style="font-size:12.5px; color:var(--muted); margin-bottom:10px;">Paso 2 de 4. Revisá la clasificación y los impuestos estimados.</div>
+        ${renderChips()}
+        ${p.rubro ? `<div class="wiz-note">✨ Clasificado por IA${p.confianza ? " · confianza " + escHtml(p.confianza) : ""} — <b>${escHtml(p.rubro)}</b></div>` : `<div class="wiz-note">Todavía no clasificaste este producto con IA — completá las alícuotas a mano o volvé al paso 1.</div>`}
+        <div class="hub-card-title" style="margin-top:14px;">Alícuotas estimadas — tocá un valor para ajustarlo</div>
+        <div class="wiz-alicuotas">
+          ${Object.keys(ALICUOTA_LABELS).map((k) => `
+            <div class="wiz-alicuota-box">
+              <label>${ALICUOTA_LABELS[k]}</label>
+              <div class="row">
+                <input type="text" inputmode="decimal" data-alic="${k}" value="${p.alicuotas[k]}" placeholder="0" />
+                <span class="pct">%</span>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+        <div class="wiz-note warn">⚠️ ${escHtml(p.advertenciaIA || "Alícuotas estimadas — no reemplazan la clasificación oficial NCM. Las percepciones (IVA adicional, IIBB, Ganancias) se recuperan si importás con tu CUIT como Responsable Inscripto.")}</div>
+      `;
+    }
+
+    // ---------- Render: paso 3 (Logística) ----------
+    function renderPaso3() {
+      const p = productoActivo();
+      const c = calcularProducto(p);
+      return `
+        <div style="font-size:12.5px; color:var(--muted); margin-bottom:10px;">Paso 3 de 4. Cantidad, FOB, origen y medidas del bulto.</div>
+        ${renderChips()}
+        <div class="hub-card-title">Comercial</div>
+        <div class="hub-field-row">
+          <div class="hub-field"><label>Cantidad</label><input type="text" inputmode="decimal" data-field="cantidad" value="${p.cantidad}" placeholder="100" /></div>
+          <div class="hub-field"><label>FOB unitario (USD)</label><input type="text" inputmode="decimal" data-field="fob" value="${p.fob}" placeholder="0.00" /></div>
+          <div class="hub-field"><label>Origen</label>
+            <select data-field="origen">
+              <option value="china" ${p.origen !== "miami" ? "selected" : ""}>🇨🇳 China</option>
+              <option value="miami" ${p.origen === "miami" ? "selected" : ""}>🇺🇸 Miami</option>
+            </select>
+          </div>
+          <div class="hub-field"><label>Peso total (kg)</label><input type="text" inputmode="decimal" data-field="pesoTotal" value="${p.pesoTotal}" placeholder="0" /></div>
+        </div>
+        <div class="hub-card-title" style="margin-top:10px;">Medidas del bulto</div>
+        <div class="hub-field-row">
+          <div class="hub-field"><label>Largo (cm)</label><input type="text" inputmode="decimal" data-field="largo" value="${p.largo}" placeholder="0" /></div>
+          <div class="hub-field"><label>Ancho (cm)</label><input type="text" inputmode="decimal" data-field="ancho" value="${p.ancho}" placeholder="0" /></div>
+          <div class="hub-field"><label>Alto (cm)</label><input type="text" inputmode="decimal" data-field="alto" value="${p.alto}" placeholder="0" /></div>
+          <div class="hub-field"><label>Bultos</label><input type="text" inputmode="decimal" data-field="bultos" value="${p.bultos}" placeholder="1" /></div>
+        </div>
+        <div class="wiz-note">
+          Volumen total (CBM): lo calculamos solo desde las medidas — <b>${fmt(c.cbmAuto)} m³</b>. O escribí el valor si ya lo conocés:
+          <div class="hub-field" style="margin-top:8px; max-width:200px;"><input type="text" inputmode="decimal" data-field="cbmManual" value="${p.cbmManual}" placeholder="${fmt(c.cbmAuto)}" /></div>
+        </div>
+        <div class="hub-field-row" style="margin-top:6px;">
+          <div class="hub-field"><label>Unidades</label><input type="text" disabled value="${c.cantidad}" /></div>
+          <div class="hub-field"><label>FOB</label><input type="text" disabled value="$${fmt(c.fobTotal)}" /></div>
+          <div class="hub-field"><label>Volumen</label><input type="text" disabled value="${fmt(c.cbm)} m³" /></div>
+          <div class="hub-field"><label>Peso</label><input type="text" disabled value="${fmt(c.pesoTotal)} kg" /></div>
+        </div>
+      `;
+    }
+
+    // ---------- Render: paso 4 (Resultado) ----------
+    function renderPaso4() {
+      const r = calcularEnvio(viaElegida);
+      const VIAS = [
+        { id: "maritimo", label: "🚢 Marítimo" },
+        { id: "aereo", label: "✈️ Aéreo" },
+        { id: "courier", label: "📦 Courier" },
+      ];
+      const avisoCourier = viaElegida === "courier"
+        ? avisoLimiteRegimen(r.pesoAcumulado, r.fobTotal, r.unidadesAcumuladas)
+        : "";
+      return `
+        <div style="font-size:12.5px; color:var(--muted); margin-bottom:6px;">Paso 4 de 4. Elegí licencia y modalidad de envío.</div>
+        <div style="font-size:13px; color:var(--navy); font-weight:700; margin-bottom:14px;">${VIAS.find((v) => v.id === viaElegida).label} · China/Miami → Argentina · ${r.detalle.length} producto${r.detalle.length === 1 ? "" : "s"}</div>
+
+        <div class="hub-card-title">¿Cómo vas a importar?</div>
+        <div class="wiz-license-row">
+          <div class="wiz-license-card ${licencia === "propia" ? "active" : ""}" data-action="licencia" data-val="propia">
+            <div class="title">Con mi licencia</div>
+            <div class="sub">Importás con tu CUIT y ves el detalle de tributos recuperables.</div>
+          </div>
+          <div class="wiz-license-card ${licencia === "jawa" ? "active" : ""}" data-action="licencia" data-val="jawa">
+            <div class="title">Con licencia Jawa</div>
+            <div class="sub">Jawa importa por vos y te factura ya nacionalizado.</div>
+          </div>
+        </div>
+
+        <div class="hub-card-title" style="margin-top:16px;">¿Cómo querés traer la mercadería?</div>
+        <div class="wiz-via-row">
+          ${VIAS.map((v) => `<button type="button" class="wiz-via-btn ${viaElegida === v.id ? "active" : ""}" data-action="via" data-val="${v.id}">${v.label}</button>`).join("")}
+        </div>
+        ${avisoCourier}
+
+        <div class="hub-card-title" style="margin-top:16px;">Precio de los productos</div>
+        <div class="wiz-breakdown-row"><span class="lbl">Costo de los productos (FOB)</span><span class="val">$${fmt(r.fobTotal)}</span></div>
+
+        <div class="hub-card-title" style="margin-top:16px;">Costos de importación</div>
+        <div class="wiz-breakdown-row"><span class="lbl">Flete internacional</span><span class="val">$${fmt(r.fleteTotal)}</span></div>
+        <div class="wiz-breakdown-row"><span class="lbl">${viaElegida === "courier" ? "Derechos (régimen simplificado)" : "Impuestos (DIE + IVA + percepciones)"}</span><span class="val">$${fmt(r.impuestosTotal)}</span></div>
+        <div class="wiz-breakdown-total"><span class="lbl">Total puesto en Argentina</span><span class="val">$${fmt(r.total)}</span></div>
+
+        ${licencia === "jawa" && r.ivaRecuperableTotal > 0 ? `
+          <div class="wiz-recupero">
+            <div class="title">CON LICENCIA JAWA — si sos Responsable Inscripto</div>
+            <div class="wiz-breakdown-row"><span class="lbl">IVA que recuperás</span><span class="val" style="color:var(--green);">$${fmt(r.ivaRecuperableTotal)}</span></div>
+            <div class="wiz-breakdown-row"><span class="lbl">Tu costo de importación real</span><span class="val" style="color:var(--green);">$${fmt(r.costoReal)}</span></div>
+            <div style="font-size:11.5px; color:var(--muted); margin-top:6px;">Comprás la mercadería ya nacionalizada con una sola factura de Jawa — la importación la paga y la recupera Jawa, no inmoviliza tu plata ni pasa por tu IVA.</div>
+          </div>
+        ` : ""}
+        ${licencia === "propia" ? `<div class="wiz-note">Con tu propia licencia gestionás vos la recuperación de IVA/percepciones directamente ante AFIP — el desglose de arriba es el mismo, cambia quién hace el trámite.</div>` : ""}
+
+        <div class="hub-card-title" style="margin-top:18px;">Tu mercadería, en detalle</div>
+        ${r.detalle.map(({ p, c, flete, impuestos, totalProducto }) => `
+          <div class="wiz-producto-detalle ${detalleAbierto === p.id ? "open" : ""}" data-action="toggle-detalle" data-id="${p.id}">
+            <div class="head">
+              <span>${escHtml(p.nombre)} <span style="color:var(--muted); font-weight:400;">· ${c.cantidad} u.</span></span>
+              <span class="data" style="font-weight:800;">$${fmt(totalProducto)}</span>
+            </div>
+            <div class="cuerpo">
+              <div class="wiz-breakdown-row"><span class="lbl">FOB</span><span class="val">$${fmt(c.fobTotal)}</span></div>
+              <div class="wiz-breakdown-row"><span class="lbl">Flete</span><span class="val">$${fmt(flete)}</span></div>
+              <div class="wiz-breakdown-row"><span class="lbl">CIF</span><span class="val">$${fmt(impuestos.cif)}</span></div>
+              <div class="wiz-breakdown-row"><span class="lbl">${impuestos.esCourier ? "Derechos" : "Impuestos"}</span><span class="val">$${fmt(impuestos.total)}</span></div>
+            </div>
+          </div>
+        `).join("") || `<p class="hub-empty">Cargá al menos un producto con nombre y cantidad en los pasos anteriores.</p>`}
+
+        <div class="wiz-actions">
+          <button class="hub-btn-primary" id="wiz-solicitar" type="button">Solicitar cotización y contactar Jawa</button>
+          <button class="hub-btn-ghost" id="wiz-sumar" type="button">Guardar como borrador</button>
+        </div>
+      `;
+    }
+
+    function datosCotizacion(r) {
+      return {
+        cliente_id: clienteId,
+        modo: viaElegida,
+        origen: productoActivo().origen || "china",
+        fob_usd: r.fobTotal,
+        peso_kg: r.pesoAcumulado,
+        total_estimado_usd: r.total,
+        detalle: {
+          licencia, via: viaElegida,
+          productos: r.detalle.map(({ p, c, flete, impuestos }) => ({
+            nombre: p.nombre, rubro: p.rubro, alicuotas: p.alicuotas,
+            cantidad: c.cantidad, fobTotal: c.fobTotal, flete, impuestos: impuestos.total, cif: impuestos.cif,
+          })),
+          fobTotal: r.fobTotal, fleteTotal: r.fleteTotal, impuestosTotal: r.impuestosTotal,
+          total: r.total, ivaRecuperableTotal: r.ivaRecuperableTotal, costoReal: r.costoReal,
+        },
+      };
+    }
+
+    async function solicitarCotizacion() {
+      const r = calcularEnvio(viaElegida);
+      if (!r.detalle.length) { alert("Cargá al menos un producto antes de solicitar la cotización."); return; }
+      const { error } = await supabaseClient.from("cotizaciones_cliente").insert(datosCotizacion(r));
+      if (error) console.error("No se pudo guardar la cotización:", error);
+
+      const lineas = r.detalle.map(({ p, c, totalProducto }) => `• ${p.nombre} — ${c.cantidad} u. — $${fmt(totalProducto)}`).join("\n");
+      const texto = `Hola! Quiero avanzar con esta importación desde mi cuenta de Jawa Logistic:\n\n${lineas}\n\nVía: ${viaElegida}\nTotal estimado: $${fmt(r.total)}${licencia === "jawa" ? `\nCon licencia Jawa — costo real estimado: $${fmt(r.costoReal)}` : ""}`;
+      const numero = TELEFONO_JAWA.replace(/[^\d]/g, "");
+      window.open(`https://wa.me/${numero}?text=${encodeURIComponent(texto)}`, "_blank");
+    }
+
+    async function sumarBorrador() {
+      const r = calcularEnvio(viaElegida);
+      if (!r.detalle.length) { alert("Cargá al menos un producto antes de guardar."); return; }
+      const payload = datosCotizacion(r);
+      payload.detalle.borrador = true;
+      const { error } = await supabaseClient.from("cotizaciones_cliente").insert(payload);
+      const btn = document.getElementById("wiz-sumar");
+      if (error) { console.error(error); if (btn) btn.textContent = "⚠️ No se pudo guardar"; return; }
+      if (btn) { btn.textContent = "✓ Guardado en tu historial"; setTimeout(() => { if (btn) btn.textContent = "Guardar como borrador"; }, 2500); }
+    }
+
+    // ---------- Render general + navegación ----------
+    function puedeAvanzar() {
+      if (paso === 1) return productos.some((p) => p.nombre);
+      if (paso === 2) return true;
+      if (paso === 3) return productos.some((p) => p.nombre && pNum(p.cantidad) > 0);
+      return false;
+    }
+
+    function render() {
+      renderStepper();
+      const cont = document.getElementById("wiz-content");
+      if (paso === 1) cont.innerHTML = renderPaso1();
+      else if (paso === 2) cont.innerHTML = renderPaso2();
+      else if (paso === 3) cont.innerHTML = renderPaso3();
+      else cont.innerHTML = renderPaso4();
+
+      const volverBtn = document.getElementById("wiz-volver");
+      const continuarBtn = document.getElementById("wiz-continuar");
+      volverBtn.style.visibility = paso > 1 ? "visible" : "hidden";
+      if (paso < 4) {
+        continuarBtn.style.display = "inline-block";
+        continuarBtn.disabled = !puedeAvanzar();
+        continuarBtn.textContent = "Continuar →";
+      } else {
+        continuarBtn.style.display = "none";
+      }
+    }
+
+    document.getElementById("wiz-volver").addEventListener("click", () => { paso = Math.max(1, paso - 1); render(); });
+    document.getElementById("wiz-continuar").addEventListener("click", () => { paso = Math.min(4, paso + 1); render(); });
+
+    document.getElementById("wiz-content").addEventListener("click", (e) => {
+      const action = e.target.closest("[data-action]") ? e.target.closest("[data-action]").getAttribute("data-action") : null;
+      if (!action) {
+        if (e.target.id === "wiz-analizar-ia") { analizarConIA(); }
+        if (e.target.id === "wiz-solicitar") { solicitarCotizacion(); }
+        if (e.target.id === "wiz-sumar") { sumarBorrador(); }
+        return;
+      }
+      const el = e.target.closest("[data-action]");
+      if (action === "elegir-producto") { productoActivoId = el.getAttribute("data-id"); render(); }
+      else if (action === "quitar-producto") {
+        const id = el.getAttribute("data-id");
+        if (productos.length > 1) {
+          productos = productos.filter((p) => p.id !== id);
+          if (productoActivoId === id) productoActivoId = productos[0].id;
+          guardarWiz(); render();
+        }
+      } else if (action === "sumar-producto") {
+        const nuevo = nuevoProductoWiz();
+        productos.push(nuevo);
+        productoActivoId = nuevo.id;
+        guardarWiz(); render();
+      } else if (action === "licencia") { licencia = el.getAttribute("data-val"); render(); }
+      else if (action === "via") { viaElegida = el.getAttribute("data-val"); render(); }
+      else if (action === "toggle-detalle") {
+        const id = el.getAttribute("data-id");
+        detalleAbierto = detalleAbierto === id ? null : id;
+        render();
+      }
+    });
+
+    document.getElementById("wiz-content").addEventListener("change", (e) => {
+      if (e.target.id === "wiz-foto-input") {
+        const file = e.target.files[0];
+        if (file) analizarFoto(file);
+      }
+    });
+
+    function actualizarCampoProducto(e) {
+      if (e.type === "input" && e.target.tagName === "SELECT") return; // el 'change' de abajo ya lo maneja
+      const p = productoActivo();
+      const field = e.target.getAttribute("data-field");
+      const alic = e.target.getAttribute("data-alic");
+      if (!field && !alic) return;
+      if (field) p[field] = e.target.value;
+      else p.alicuotas[alic] = e.target.value;
+      guardarWiz();
+      // El paso 3 muestra un resumen (CBM/FOB/peso) que depende de estos
+      // campos, así que hace falta re-renderizar — pero eso reemplaza el
+      // input y le hace perder el foco, así que lo recuperamos a mano
+      // (mismo patrón que ya usa admin.html para sus formularios de producto).
+      if (paso === 3 && field) {
+        render();
+        const sel = `[data-field="${field}"]`;
+        const el = document.querySelector(sel);
+        if (el && el.tagName === "INPUT") { el.focus(); const v = el.value; if (el.setSelectionRange) el.setSelectionRange(v.length, v.length); }
+      }
+    }
+    document.getElementById("wiz-content").addEventListener("input", actualizarCampoProducto);
+    document.getElementById("wiz-content").addEventListener("change", (e) => {
+      if (e.target.tagName === "SELECT") actualizarCampoProducto(e);
+    });
+
+    render();
+  })();
+} catch (e) { console.error("calculadora de importación:", e); }
+</script>
+</body>
+</html>

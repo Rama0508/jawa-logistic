@@ -27,12 +27,13 @@
             <button class="fc-origin-btn" data-origin="miami" type="button">🇺🇸 Miami</button>
           </div>
         </div>
-        <div class="fc-field-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+        <div class="fc-field-grid" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
           <div class="fc-field"><label>Peso total (kg)</label><input type="text" inputmode="decimal" id="courier-peso" placeholder="0" /></div>
           <div class="fc-field"><label>Valor FOB total (USD)</label><input type="text" inputmode="decimal" id="courier-fob" placeholder="0.00" /></div>
+          <div class="fc-field"><label>Seguro internacional (USD)</label><input type="text" inputmode="decimal" id="courier-seguro" placeholder="0" /></div>
           <div class="fc-field"><label>Unidades (misma especie)</label><input type="text" inputmode="decimal" id="courier-unidades" placeholder="1" /></div>
         </div>
-        <div class="fc-hint">Courier se cobra por kilo, sin mínimo de volumen — la forma más rápida de traer pedidos chicos.</div>
+        <div class="fc-hint">Courier se cobra por kilo, sin mínimo de volumen, más el régimen simplificado de derechos de importación sobre el valor CIF (FOB + flete + seguro) — la forma más rápida de traer pedidos chicos.</div>
         <button class="fc-btn" id="courier-calcular-btn" type="button">Calcular y guardar</button>
         <div class="fc-result" id="courier-resultado"></div>
       </div>
@@ -77,25 +78,34 @@ try {
     document.getElementById("courier-calcular-btn").addEventListener("click", async () => {
       const pesoKg = pNum("courier-peso");
       const fob = pNum("courier-fob");
+      const seguro = pNum("courier-seguro");
       const unidades = pNum("courier-unidades") || 1;
       if (!pesoKg) { alert("Cargá el peso total."); return; }
 
       const costoFlete = pesoKg * RATE_COURIER_USD_KG;
-      const total = costoFlete + fob;
+      // Régimen simplificado: además del flete, se paga una alícuota única
+      // sobre el valor CIF (FOB + flete + seguro) que reemplaza los demás
+      // impuestos de importación — no es solo "flete + FOB".
+      const cif = fob + costoFlete + seguro;
+      const derechos = cif * COURIER_REGIMEN.alicuota;
+      const total = cif + derechos;
       const sinTarifa = !RATE_COURIER_USD_KG;
 
       document.getElementById("courier-resultado").innerHTML = `
         <div class="fc-result-row"><span>Peso a cobrar</span><span class="v">${pesoKg.toFixed(2)} kg</span></div>
         <div class="fc-result-row"><span>Tarifa courier</span><span class="v">$${fmt(RATE_COURIER_USD_KG)} / kg</span></div>
+        <div class="fc-result-row"><span>Flete internacional</span><span class="v">$${fmt(costoFlete)}</span></div>
+        <div class="fc-result-row"><span>Valor CIF (FOB + flete + seguro)</span><span class="v">$${fmt(cif)}</span></div>
+        <div class="fc-result-row"><span>Derechos de importación (${(COURIER_REGIMEN.alicuota * 100).toFixed(0)}% del CIF)</span><span class="v">$${fmt(derechos)}</span></div>
         ${sinTarifa ? `<div class="fc-result-row warn">⚠️ Tarifa no configurada todavía</div>` : ""}
-        ${avisoLimiteRegimen(pesoKg, fob, unidades)}
-        <div class="fc-result-total"><span class="lbl">Total estimado (flete + FOB)</span><span class="val">$${fmt(total)}</span></div>
+        ${avisoLimiteRegimen(pesoKg, cif, unidades)}
+        <div class="fc-result-total"><span class="lbl">Total estimado (CIF + derechos)</span><span class="val">$${fmt(total)}</span></div>
       `;
       document.getElementById("courier-resultado").classList.add("show");
 
       await supabaseClient.from("cotizaciones_cliente").insert({
         cliente_id: clienteId, modo: "courier", origen, fob_usd: fob, peso_kg: pesoKg, total_estimado_usd: total,
-        detalle: { pesoKg, fob, unidades, rate: RATE_COURIER_USD_KG, costoFlete, total, excedeRegimen: excedeRegimenSimplificado(pesoKg, fob, unidades) },
+        detalle: { pesoKg, fob, seguro, unidades, rate: RATE_COURIER_USD_KG, costoFlete, cif, derechos, total, excedeRegimen: excedeRegimenSimplificado(pesoKg, cif, unidades) },
       });
     });
 

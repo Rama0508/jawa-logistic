@@ -102,6 +102,7 @@
   .elegibilidad { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; padding:5px 10px; border-radius:20px; }
   .elegibilidad.ok { background:var(--green-bg); color:var(--green); }
   .elegibilidad.no { background:#fdeceb; color:var(--coral-deep); }
+  .elegibilidad.warn { background:#fff4de; color:#7a5416; }
 
   table.metodos { width:100%; border-collapse:collapse; font-size:12.5px; margin:14px 0; }
   table.metodos th { text-align:left; padding:8px 6px; font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); border-bottom:1px solid var(--line); }
@@ -214,12 +215,19 @@
 
   <div class="card">
     <div class="card-title">Configuración general</div>
-    <div class="field-row" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="field-row" style="grid-template-columns: repeat(4, 1fr);">
       <div class="field">
         <label>Dólar blue hoy (ARS)</label>
         <div style="display:flex; gap:6px;">
           <input type="text" inputmode="decimal" id="cfg-blue" value="1550" style="flex:1;" />
           <button type="button" id="blue-actualizar" class="btn-ghost" style="padding:0 12px; font-size:11px; white-space:nowrap;">↻ actualizar</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Dólar MEP hoy (ARS)</label>
+        <div style="display:flex; gap:6px;">
+          <input type="text" inputmode="decimal" id="cfg-mep" value="1450" style="flex:1;" />
+          <button type="button" id="mep-actualizar" class="btn-ghost" style="padding:0 12px; font-size:11px; white-space:nowrap;">↻ actualizar</button>
         </div>
       </div>
       <div class="field">
@@ -235,6 +243,8 @@
       </div>
     </div>
     <div id="blue-estado" style="font-size:11px; color:var(--muted); margin-top:2px;"></div>
+    <div id="mep-estado" style="font-size:11px; color:var(--muted); margin-top:2px;"></div>
+    <div style="font-size:11px; color:var(--muted); margin-top:6px;">El blue convierte lo que se paga informal (producto, flete aéreo/marítimo/courier); el MEP convierte lo que se paga "en blanco" (derechos de importación de courier y pagos a agentes de carga) — así el total en pesos no queda pegado a un solo tipo de cambio.</div>
     <div style="display:flex; gap:10px; align-items:flex-end; max-width:320px; margin-top:12px;">
       <div class="field" style="flex:1;">
         <label>Convertir USD</label>
@@ -245,6 +255,17 @@
         <label>ARS</label>
         <input type="text" inputmode="decimal" id="conv-ars" placeholder="0" />
       </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🚚 Agentes de carga (cotizaciones externas por kg)</div>
+    <p class="sub" style="margin-bottom:12px;">Cargá acá las cotizaciones reales de transportistas (ej. Aerobox) que cobran por kilo con tramos de precio, para compararlas contra tus tarifas genéricas al elegir la vía de cada producto. Es dato compartido con el resto del equipo.</p>
+    <div id="agentes-admin"></div>
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+      <button class="add-btn" id="add-agente-admin" style="flex:1; min-width:200px;">+ Agregar agente</button>
+      <button class="btn-ghost" id="guardar-agentes-btn">Guardar agentes</button>
+      <span id="agentes-status" style="font-size:12px; color:var(--muted);"></span>
     </div>
   </div>
 
@@ -284,8 +305,9 @@
       <div class="stat-card"><div class="lbl">Volumen total</div><div class="val" id="stat-volumen">0 m³</div></div>
       <div class="stat-card"><div class="lbl">FOB total</div><div class="val" id="stat-fob">$0</div></div>
       <div class="stat-card"><div class="lbl">Flete a pagar</div><div class="val" id="stat-flete">$0</div></div>
+      <div class="stat-card"><div class="lbl">Impuestos (courier/agente)</div><div class="val" id="stat-impuestos">$0</div></div>
       <div class="stat-card"><div class="lbl">Costo total</div><div class="val" id="stat-costo">$0</div></div>
-      <div class="stat-card"><div class="lbl">Precio blue usado</div><div class="val" id="stat-blue">$0</div></div>
+      <div class="stat-card"><div class="lbl">Blue / MEP usados</div><div class="val" id="stat-blue">$0</div></div>
     </div>
 
     <div class="ganancia-card">
@@ -384,11 +406,13 @@ function uidA() { return Math.random().toString(36).slice(2, 9); }
 function nuevoProductoAdmin() {
   return {
     id: uidA(), nombre: "", cantidad: "", fob: "",
-    pesoModo: "total", peso: "", pesoTotalRef: "", pesoUnidad: "kg",
+    pesoModo: "total", peso: "", pesoTotalRef: "", pesoTotalRefCantidad: "", pesoUnidad: "kg",
     largo: "", ancho: "", alto: "", dimUnidad: "cm", unidadesPorCaja: "",
     margen: "", precioML: "", metodo: "auto",
     foto: "", descripcion: "",
     fleteCourierManual: "", seguroCourier: "",
+    agenteElegidoId: "", escenarioAgenteElegido: "actual",
+    cajasSimuladas: "", unidadesPorCajaSimuladas: "",
   };
 }
 
@@ -410,6 +434,7 @@ function fmtInt(n) {
 const PRODUCTOS_KEY = "jawa_admin_productos_v1";
 const PRESUPUESTOS_KEY = "jawa_admin_presupuestos_v1";
 const DOLAR_BLUE_KEY = "jawa_admin_dolar_blue_v1";
+const DOLAR_MEP_KEY = "jawa_admin_dolar_mep_v1";
 
 let productos = [];
 try {
@@ -437,6 +462,12 @@ function guardarPresupuestos() {
   try { localStorage.setItem(PRESUPUESTOS_KEY, JSON.stringify(presupuestos)); } catch (e) {}
 }
 
+// Agentes de carga (cotizaciones externas por kg, con tramos): a diferencia
+// de productos/presupuestos, es dato de equipo, no por-navegador — vive en
+// Supabase (tabla agentes_carga, 0006_agentes_carga.sql) y se carga una vez
+// que las tarifas están listas (ver SUPABASE_READY.then más abajo).
+let agentes = [];
+
 // Una vez que se generó el informe una vez, se mantiene sincronizado solo
 // con cada cambio de datos — no hace falta acordarse de volver a tocar
 // "Generar informe" cada vez que se corrige un número.
@@ -445,6 +476,10 @@ let informeGenerado = false;
 (function initDolarBlue() {
   const saved = localStorage.getItem(DOLAR_BLUE_KEY);
   if (saved) document.getElementById("cfg-blue").value = saved;
+})();
+(function initDolarMep() {
+  const saved = localStorage.getItem(DOLAR_MEP_KEY);
+  if (saved) document.getElementById("cfg-mep").value = saved;
 })();
 
 // ---------- Motor de cálculo ----------
@@ -457,7 +492,114 @@ function pesoTotalKgDe(p) {
   if (p.pesoModo === "unidad") {
     return pNumA(p.peso) * factor * cantidad;
   }
-  return pNumA(p.pesoTotalRef) * factor;
+  // Modo "total del lote": pesoTotalRefCantidad congela la cantidad que
+  // había cuando se cargó el peso del lote, así el peso por unidad no
+  // cambia si después se edita la cantidad — el total sí se recalcula,
+  // multiplicando ese peso por unidad fijo por la cantidad actual.
+  const cantidadRef = pNumA(p.pesoTotalRefCantidad) || cantidad;
+  const pesoKgPorUnidad = (pNumA(p.pesoTotalRef) * factor) / cantidadRef;
+  return pesoKgPorUnidad * cantidad;
+}
+
+// ---------- Agentes de carga (cotizaciones externas por kg, con tramos) ----------
+function tramoEstaAbierto(t) {
+  return t.hastaKg === "" || t.hastaKg === null || t.hastaKg === undefined;
+}
+// El tramo abierto ("en adelante") es siempre el más barato y va al final,
+// sin importar en qué orden se hayan cargado los tramos.
+function ordenarTramos(tramos) {
+  return [...(tramos || [])].sort((a, b) => {
+    const aAbierto = tramoEstaAbierto(a), bAbierto = tramoEstaAbierto(b);
+    if (aAbierto && bAbierto) return 0;
+    if (aAbierto) return 1;
+    if (bAbierto) return -1;
+    return pNumA(a.hastaKg) - pNumA(b.hastaKg);
+  });
+}
+function elegirTramoAgente(tramos, pesoTotal) {
+  const ordenados = ordenarTramos(tramos);
+  if (!ordenados.length) return null;
+  return ordenados.find((t) => !tramoEstaAbierto(t) && pesoTotal <= pNumA(t.hastaKg)) || ordenados[ordenados.length - 1];
+}
+
+// Cotización de un agente para un peso/FOB dados — mismo cálculo sirva para
+// el escenario "actual" del producto real, o para pesos/FOB simulados
+// (proyección de cantidad mínima, simulación por cajas).
+function calcularAgente(agente, pesoTotal, fobTotal) {
+  const tramos = ordenarTramos(agente.tramos);
+  const tramoAplicado = elegirTramoAgente(tramos, pesoTotal);
+  const tarifaAplicada = tramoAplicado ? pNumA(tramoAplicado.tarifaKg) : 0;
+  const flete = pesoTotal * tarifaAplicada;
+  const baseCalculo = agente.baseImpuestos === "cif" ? fobTotal + flete : fobTotal;
+  const impuestos = baseCalculo * (pNumA(agente.alicuotaImpuestos) / 100);
+  const handling = pNumA(agente.handling);
+  const total = fobTotal + flete + impuestos + handling;
+  const hayDatos = tramos.some((t) => pNumA(t.tarifaKg) > 0) && pesoTotal > 0;
+  return { tramoAplicado, tarifaAplicada, flete, baseCalculo, impuestos, handling, total, hayDatos };
+}
+
+// "¿Cuántas unidades necesito para entrar en el tramo más barato?" — solo
+// tiene sentido con 2+ tramos (si hay uno solo, ya estás en el único tramo
+// que existe). umbralKg es el límite del tramo anterior al más barato: la
+// primera cantidad entera que lo supera entra en el tramo abierto.
+function proyeccionAgente(agente, pesoUnitKg, fobUnit) {
+  const tramos = ordenarTramos(agente.tramos);
+  if (tramos.length < 2 || !pesoUnitKg) return null;
+  const tramoBarato = tramos[tramos.length - 1];
+  const umbralKg = pNumA(tramos[tramos.length - 2].hastaKg);
+  const cantidadMinima = Math.floor(umbralKg / pesoUnitKg) + 1;
+  const pesoProyectado = cantidadMinima * pesoUnitKg;
+  const fobProyectado = cantidadMinima * fobUnit;
+  const resultado = calcularAgente({ ...agente, tramos: [tramoBarato] }, pesoProyectado, fobProyectado);
+  return { cantidadMinima, pesoProyectado, fobProyectado, ...resultado, costoUnitProyectado: cantidadMinima > 0 ? resultado.total / cantidadMinima : 0 };
+}
+
+// "Qué pasaría si pido X cajas de Y unidades cada una" — mismo cálculo de
+// calcularAgente(), pero con la cantidad simulada en vez de la real del producto.
+function simulacionAgente(agente, cajasSimuladas, unidadesPorCajaSim, pesoUnitKg, fobUnit) {
+  const cantidadSimulada = pNumA(cajasSimuladas) * pNumA(unidadesPorCajaSim);
+  const pesoSimulado = cantidadSimulada * pesoUnitKg;
+  const fobSimulado = cantidadSimulada * fobUnit;
+  const resultado = calcularAgente(agente, pesoSimulado, fobSimulado);
+  return { cantidadSimulada, pesoSimulado, fobSimulado, ...resultado, costoUnitSimulado: cantidadSimulada > 0 ? resultado.total / cantidadSimulada : 0 };
+}
+
+// Info del agente+escenario que el producto tiene elegido — centraliza el
+// dispatch por escenario para que la tabla en vivo y el informe no
+// dupliquen esta lógica cada uno por su lado.
+function getAgenteElegidoInfo(p, rMin) {
+  const agente = agentes.find((a) => a.id === p.agenteElegidoId);
+  if (!agente) return null;
+  const pesoUnitKg = rMin.cantidad > 0 ? rMin.pesoTotal / rMin.cantidad : 0;
+  const fobUnit = rMin.fobU;
+  const escenario = p.escenarioAgenteElegido || "actual";
+
+  if (escenario === "proyeccion") {
+    const proy = proyeccionAgente(agente, pesoUnitKg, fobUnit);
+    if (!proy) return null;
+    return {
+      nombreAgente: agente.nombre, escenario, escenarioTxt: `Proyección — ${proy.cantidadMinima} u. para el tramo más barato`,
+      costoUnit: proy.costoUnitProyectado, totalEscenario: proy.total, unidadesEscenario: proy.cantidadMinima,
+      fobEscenario: proy.fobProyectado, fleteEscenario: proy.flete, impuestosEscenario: proy.impuestos + proy.handling,
+      hayDatos: proy.hayDatos,
+    };
+  }
+  if (escenario === "simulacion") {
+    const sim = simulacionAgente(agente, p.cajasSimuladas, p.unidadesPorCajaSimuladas, pesoUnitKg, fobUnit);
+    return {
+      nombreAgente: agente.nombre, escenario, escenarioTxt: `Simulación — ${sim.cantidadSimulada} u. (${pNumA(p.cajasSimuladas)} caja${pNumA(p.cajasSimuladas) === 1 ? "" : "s"})`,
+      costoUnit: sim.costoUnitSimulado, totalEscenario: sim.total, unidadesEscenario: sim.cantidadSimulada,
+      fobEscenario: sim.fobSimulado, fleteEscenario: sim.flete, impuestosEscenario: sim.impuestos + sim.handling,
+      hayDatos: sim.hayDatos,
+    };
+  }
+  const act = calcularAgente(agente, rMin.pesoTotal, fobUnit * rMin.cantidad);
+  return {
+    nombreAgente: agente.nombre, escenario: "actual", escenarioTxt: "Actual",
+    costoUnit: rMin.cantidad > 0 ? act.total / rMin.cantidad : 0, totalEscenario: act.total, unidadesEscenario: rMin.cantidad,
+    fobEscenario: fobUnit * rMin.cantidad, fleteEscenario: act.flete, impuestosEscenario: act.impuestos + act.handling,
+    hayDatos: act.hayDatos,
+  };
 }
 
 function calcularMetodos(p, origen) {
@@ -496,7 +638,8 @@ function calcularMetodos(p, origen) {
   const fobTotal = fobU * cantidad;
   const cifTotal = fobTotal + fleteCourierTotal + seguroCourierTotal;
   const impuestosCourierTotal = cifTotal * COURIER_REGIMEN.alicuota;
-  const courierElegible = pesoTotal > 0 && pesoTotal <= COURIER_REGIMEN.limitePesoKg && cifTotal <= COURIER_REGIMEN.limiteCifUsd;
+  const courierElegible = pesoTotal > 0 && pesoTotal <= COURIER_REGIMEN.limitePesoKg && cifTotal <= COURIER_REGIMEN.limiteCifUsd
+    && (!COURIER_REGIMEN.maxUnidadesMismaEspecie || cantidad <= COURIER_REGIMEN.maxUnidadesMismaEspecie);
 
   const metodos = {
     aereo: {
@@ -524,6 +667,54 @@ function calcularMetodos(p, origen) {
     },
   };
 
+  // Agentes de carga: se calculan todos en paralelo (escenario "actual"),
+  // igual que aéreo/marítimo/courier, para poder compararlos en la misma
+  // tabla — independiente de cuál esté elegido como vía real del producto.
+  const costoAvionGenerico = fobTotal + pesoTotal * rateAir;
+  const metodosAgentes = agentes.map((a) => {
+    const c = calcularAgente(a, pesoTotal, fobTotal);
+    return {
+      id: a.id, nombre: a.nombre,
+      label: `🚚 ${a.nombre}`,
+      medida: c.tramoAplicado ? `${pesoTotal.toFixed(2)}kg × $${fmtA(c.tarifaAplicada)}/kg` : "—",
+      fleteU: cantidad > 0 ? c.flete / cantidad : 0, impuestosU: cantidad > 0 ? (c.impuestos + c.handling) / cantidad : 0,
+      costoU: cantidad > 0 ? c.total / cantidad : 0, total: c.total, disponible: c.hayDatos,
+      // PDF 8.6: cuánto más barato/caro sale este agente contra la tarifa
+      // aérea genérica del usuario, con el mismo peso y FOB reales.
+      diferenciaVsAereoGenerico: costoAvionGenerico - c.total,
+    };
+  });
+
+  // Si el producto tiene un agente elegido como vía real, se calcula su
+  // escenario (actual/proyección/simulación) y se inyecta en `metodos` bajo
+  // la clave "agente" — así el resto del archivo (tablas, informe, pagos,
+  // totales) sigue resolviendo el costo elegido con metodos[elegido], sin
+  // tener que tratar agentes como un caso aparte en cada lugar.
+  if (p.metodo === "agente") {
+    const info = getAgenteElegidoInfo(p, { cantidad, fobU, pesoTotal });
+    if (info && info.hayDatos) {
+      metodos.agente = {
+        label: `🚚 ${info.nombreAgente}`, medida: info.escenarioTxt,
+        fleteU: info.unidadesEscenario > 0 ? info.fleteEscenario / info.unidadesEscenario : 0,
+        impuestosU: info.unidadesEscenario > 0 ? info.impuestosEscenario / info.unidadesEscenario : 0,
+        costoU: info.costoUnit, total: info.totalEscenario, disponible: true,
+      };
+    }
+  }
+
+  // "Mejor opción global" (PDF 9.2): compara aéreo/courier/agentes — deja
+  // afuera marítimo a propósito, igual que la auto-selección legada de
+  // abajo. Es solo informativa (badge 🏆), nunca reemplaza la elección real.
+  function getMejorOpcionGlobal() {
+    const candidatos = [];
+    if (metodos.aereo.disponible) candidatos.push({ tipo: "aereo", label: metodos.aereo.label, costoU: metodos.aereo.costoU });
+    if (metodos.courier.disponible) candidatos.push({ tipo: "courier", label: metodos.courier.label, costoU: metodos.courier.costoU });
+    metodosAgentes.forEach((a) => { if (a.disponible) candidatos.push({ tipo: "agente", label: a.label, costoU: a.costoU }); });
+    if (!candidatos.length) return null;
+    return candidatos.reduce((mejor, c) => (c.costoU < mejor.costoU ? c : mejor));
+  }
+  const mejorOpcionGlobal = getMejorOpcionGlobal();
+
   // Marítimo queda A PROPÓSITO afuera de la selección automática y del
   // "conviene más": en el papel casi siempre sale más barato, pero no es la
   // vía que se termina usando en la operatoria real — solo se usa si se
@@ -550,7 +741,7 @@ function calcularMetodos(p, origen) {
   return {
     cantidad, fobU, pesoTotal, cbm, toneladas, cifTotal, courierElegible, seguroCourierTotal,
     m3PorCaja, cajas, unidadesPorCaja,
-    metodos, elegido, masBarataKey,
+    metodos, elegido, masBarataKey, metodosAgentes, mejorOpcionGlobal,
   };
 }
 
@@ -576,16 +767,18 @@ function pagoAhoraYDespues(r) {
 // ---------- Comparativo en vivo por producto ----------
 function renderLiveResultado(p, rPrecalculado) {
   if (!p.nombre || pNumA(p.cantidad) <= 0) {
-    return `<div style="font-size:11.5px; color:var(--muted);">Cargá nombre y cantidad para ver el comparativo en vivo (aéreo / marítimo / courier).</div>`;
+    return `<div style="font-size:11.5px; color:var(--muted);">Cargá nombre y cantidad para ver el comparativo en vivo (aéreo / marítimo / courier / agentes).</div>`;
   }
   const origen = document.getElementById("cfg-origen").value;
   const margenGeneral = pNumA(document.getElementById("cfg-margen").value) || 0;
   const blue = pNumA(document.getElementById("cfg-blue").value) || 0;
+  const mep = pNumA(document.getElementById("cfg-mep").value) || blue;
   const r = rPrecalculado || calcularMetodos(p, origen);
   const margen = pNumA(p.margen) || margenGeneral;
   const seleccionado = r.metodos[r.elegido];
   const ventaU = seleccionado.costoU * (1 + margen / 100);
   const gananciaU = ventaU - seleccionado.costoU;
+  const tasaVia = (r.elegido === "courier" || r.elegido === "agente") ? mep : blue;
 
   const filas = ["aereo", "maritimo", "courier"].map((key) => {
     const met = r.metodos[key];
@@ -597,13 +790,34 @@ function renderLiveResultado(p, rPrecalculado) {
       <td class="num">${met.impuestosU > 0 ? "$" + fmtA(met.impuestosU) : "—"}</td>
       <td class="num">$${fmtA(met.costoU)}</td>
     </tr>`;
+  }).join("") + r.metodosAgentes.map((a) => {
+    // El agente elegido usa el costo de su escenario real (actual/proyección/
+    // simulación, vía metodos.agente); los demás agentes siempre se muestran
+    // en su escenario "actual" — es solo referencia comparativa.
+    const isSel = r.elegido === "agente" && p.agenteElegidoId === a.id;
+    const met = isSel && r.metodos.agente ? r.metodos.agente : a;
+    const vsAereo = a.disponible
+      ? `<br/><span style="font-size:9.5px; font-weight:400; color:var(--muted);">${a.diferenciaVsAereoGenerico >= 0 ? `$${fmtA(a.diferenciaVsAereoGenerico)} más barato` : `$${fmtA(Math.abs(a.diferenciaVsAereoGenerico))} más caro`} que tu aéreo genérico</span>`
+      : "";
+    return `<tr class="${isSel ? "selected" : ""}">
+      <td>${met.label}${isSel ? " ✓" : ""}${!a.disponible ? " (sin tramos con tarifa)" : ""}${vsAereo}</td>
+      <td class="num">${met.medida}</td>
+      <td class="num">$${fmtA(met.fleteU)}</td>
+      <td class="num">${met.impuestosU > 0 ? "$" + fmtA(met.impuestosU) : "—"}</td>
+      <td class="num">$${fmtA(met.costoU)}</td>
+    </tr>`;
   }).join("");
+
+  const trofeo = r.mejorOpcionGlobal
+    ? `<div style="font-size:11px; color:var(--muted); margin-top:6px;">🏆 Mejor opción global (aéreo/courier/agentes, sin marítimo): <b style="color:var(--navy);">${r.mejorOpcionGlobal.label}</b> a $${fmtA(r.mejorOpcionGlobal.costoU)}/u.</div>`
+    : "";
 
   return `
     <table class="metodos-mini">
       <thead><tr><th>Vía</th><th>Medida</th><th>Flete u.</th><th>Imp. u.</th><th>Costo u.</th></tr></thead>
       <tbody>${filas}</tbody>
     </table>
+    ${trofeo}
     <div class="riesgo-badge ${r.courierElegible ? "ok" : "no"}">
       ${r.courierElegible ? "🟢" : "🔴"} Courier: peso ${fmtA(r.pesoTotal)}/${COURIER_REGIMEN.limitePesoKg}kg · CIF $${fmtA(r.cifTotal)}/$${fmtInt(COURIER_REGIMEN.limiteCifUsd)}
     </div>
@@ -631,7 +845,7 @@ function renderLiveResultado(p, rPrecalculado) {
       <span>Venta u. (margen ${margen.toFixed(0)}%) <b style="color:var(--coral-deep);">$${fmtA(ventaU)}</b></span>
       <span>Ganancia u. <b style="color:var(--green);">$${fmtA(gananciaU)}</b></span>
     </div>
-    <div style="font-size:10.5px; color:var(--muted); margin-top:4px;">≈ $${fmtInt(ventaU * blue)} ARS venta u. al blue de hoy ($${fmtA(blue)})</div>
+    <div style="font-size:10.5px; color:var(--muted); margin-top:4px;">≈ $${fmtInt(ventaU * tasaVia)} ARS venta u. al ${r.elegido === "courier" || r.elegido === "agente" ? "MEP" : "blue"} de hoy ($${fmtA(tasaVia)})</div>
   `;
 }
 
@@ -642,11 +856,18 @@ function renderLiveResultado(p, rPrecalculado) {
 function renderAcumuladoCourier() {
   const cont = document.getElementById("acumulado-courier-container");
   const origen = document.getElementById("cfg-origen").value;
-  const conCourier = productos.filter((p) => p.nombre && pNumA(p.cantidad) > 0 && pNumA(p.fleteCourierManual) > 0);
+  // El régimen simplificado (y su tope de 50kg/USD 3.000) aplica al envío
+  // que efectivamente se despacha por courier — por eso se suma solo lo que
+  // el producto tiene elegido como vía real ("elegido"), no cualquier
+  // producto que tenga datos de courier cargados pero se vaya a mandar por
+  // otra vía.
+  const conCourier = productos
+    .filter((p) => p.nombre && pNumA(p.cantidad) > 0)
+    .map((p) => ({ p, r: calcularMetodos(p, origen) }))
+    .filter(({ r }) => r.elegido === "courier");
   if (!conCourier.length) { cont.innerHTML = ""; return; }
 
-  const totales = conCourier.reduce((acc, p) => {
-    const r = calcularMetodos(p, origen);
+  const totales = conCourier.reduce((acc, { r }) => {
     acc.peso += r.pesoTotal;
     acc.cif += r.cifTotal;
     return acc;
@@ -791,8 +1012,8 @@ function renderFormulario() {
           <input type="text" inputmode="decimal" data-field="margen" data-id="${p.id}" value="${p.margen}" placeholder="40" />
         </div>
         <div class="field">
-          <label>Precio ref. Mercado Libre (USD, opcional)</label>
-          <input type="text" inputmode="decimal" data-field="precioML" data-id="${p.id}" value="${p.precioML}" placeholder="0.00" />
+          <label>Precio ref. Mercado Libre (ARS, opcional)</label>
+          <input type="text" inputmode="decimal" data-field="precioML" data-id="${p.id}" value="${p.precioML}" placeholder="Ej: 45000" />
         </div>
         <div class="field" style="grid-column: span 2;">
           <label>Vía a usar</label>
@@ -801,9 +1022,54 @@ function renderFormulario() {
             <option value="aereo" ${p.metodo === "aereo" ? "selected" : ""}>✈️ Aéreo</option>
             <option value="maritimo" ${p.metodo === "maritimo" ? "selected" : ""}>🚢 Marítimo</option>
             <option value="courier" ${p.metodo === "courier" ? "selected" : ""}>📦 Courier</option>
+            <option value="agente" ${p.metodo === "agente" ? "selected" : ""}>🚚 Agente de carga</option>
           </select>
         </div>
       </div>
+
+      ${p.metodo === "agente" ? `
+      <div style="margin-top:10px; padding:12px; background:var(--paper); border-radius:8px; border:1px solid var(--gold);">
+        <div style="font-size:11px; font-weight:800; color:var(--navy); text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px;">🚚 Agente de carga elegido</div>
+        ${!agentes.length ? `<div style="font-size:12px; color:var(--muted);">Todavía no cargaste ningún agente — agregalo en la card "Agentes de carga" más arriba.</div>` : `
+        <div class="field-row" style="grid-template-columns: 1fr 1fr;">
+          <div class="field">
+            <label>Agente</label>
+            <select data-field="agenteElegidoId" data-id="${p.id}">
+              <option value="">Elegir agente…</option>
+              ${agentes.map((a) => `<option value="${a.id}" ${p.agenteElegidoId === a.id ? "selected" : ""}>${escHtml(a.nombre)}</option>`).join("")}
+            </select>
+          </div>
+          <div class="field">
+            <label>Escenario</label>
+            <select data-field="escenarioAgenteElegido" data-id="${p.id}">
+              <option value="actual" ${p.escenarioAgenteElegido !== "proyeccion" && p.escenarioAgenteElegido !== "simulacion" ? "selected" : ""}>Actual (cantidad real del producto)</option>
+              <option value="proyeccion" ${p.escenarioAgenteElegido === "proyeccion" ? "selected" : ""}>Proyección — cantidad mínima para el tramo más barato</option>
+              <option value="simulacion" ${p.escenarioAgenteElegido === "simulacion" ? "selected" : ""}>Simulación por cajas</option>
+            </select>
+          </div>
+        </div>
+        ${p.escenarioAgenteElegido === "simulacion" ? `
+        <div class="field-row" style="grid-template-columns: 1fr 1fr; margin-top:8px;">
+          <div class="field">
+            <label>Cajas simuladas</label>
+            <input type="text" inputmode="decimal" data-field="cajasSimuladas" data-id="${p.id}" value="${p.cajasSimuladas}" placeholder="Ej: 10" />
+          </div>
+          <div class="field">
+            <label>Unidades por caja (simulado)</label>
+            <input type="text" inputmode="decimal" data-field="unidadesPorCajaSimuladas" data-id="${p.id}" value="${p.unidadesPorCajaSimuladas}" placeholder="Ej: 50" />
+          </div>
+        </div>` : ""}
+        <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);">
+          <div style="font-size:10.5px; color:var(--muted); margin-bottom:6px;">¿Tenés un total de flete cotizado en vez de una tarifa por kg? Calculá la tarifa acá (con el peso real de este producto) y cargala en el tramo del agente, arriba en la card "Agentes de carga".</div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <input type="text" inputmode="decimal" id="reverso-flete-${p.id}" placeholder="Total cotizado (USD)" style="width:160px; background:var(--paper-2); border:1px solid var(--line); border-radius:6px; padding:8px 10px; font-size:12.5px; font-family:inherit;" />
+            <button type="button" data-reverso-calc="${p.id}" class="btn-ghost" style="padding:8px 12px; font-size:11.5px;">Calcular tarifa/kg</button>
+            <span id="reverso-resultado-${p.id}" style="font-size:12px; color:var(--navy); font-weight:700;"></span>
+          </div>
+        </div>
+        `}
+      </div>` : ""}
+
       <div class="live-resultado">${renderLiveResultado(p, c)}</div>
     `;
     cont.appendChild(div);
@@ -832,6 +1098,13 @@ document.getElementById("productos-admin").addEventListener("input", (e) => {
   const p = productos.find((x) => x.id === id);
   if (!p) return;
   p[field] = e.target.value;
+  if (field === "pesoTotalRef") {
+    if (!e.target.value) {
+      p.pesoTotalRefCantidad = "";
+    } else if (!p.pesoTotalRefCantidad && pNumA(p.cantidad) > 0) {
+      p.pesoTotalRefCantidad = p.cantidad;
+    }
+  }
   guardarProductos();
   renderFormulario();
   const sel = `[data-id="${id}"][data-field="${field}"]`;
@@ -850,6 +1123,8 @@ document.getElementById("productos-admin").addEventListener("change", (e) => {
   else if (field === "pesoUnidad") { p.pesoUnidad = e.target.value; guardarProductos(); renderFormulario(); }
   else if (field === "dimUnidad") { p.dimUnidad = e.target.value; guardarProductos(); renderFormulario(); }
   else if (field === "metodo") { p.metodo = e.target.value; guardarProductos(); renderFormulario(); }
+  else if (field === "agenteElegidoId") { p.agenteElegidoId = e.target.value; guardarProductos(); renderFormulario(); }
+  else if (field === "escenarioAgenteElegido") { p.escenarioAgenteElegido = e.target.value; guardarProductos(); renderFormulario(); }
   else if (field === "foto-input") {
     const file = e.target.files[0];
     if (file) aplicarFotoProducto(id, file);
@@ -869,6 +1144,23 @@ document.getElementById("productos-admin").addEventListener("click", (e) => {
     guardarProductos();
     renderFormulario();
     renderPresupuestos();
+    return;
+  }
+  // PDF 8.3: ningún transportista cotiza directo en USD/kg, siempre dan un
+  // total para un envío puntual — esto solo hace la cuenta inversa con el
+  // peso real de este producto, no persiste nada (la tarifa resultante se
+  // carga a mano en el tramo del agente).
+  const reversoId = e.target.getAttribute("data-reverso-calc");
+  if (reversoId) {
+    const p = productos.find((x) => x.id === reversoId);
+    if (!p) return;
+    const origenActual = document.getElementById("cfg-origen").value;
+    const pesoTotal = calcularMetodos(p, origenActual).pesoTotal;
+    const fleteTotalCotizado = pNumA(document.getElementById(`reverso-flete-${reversoId}`).value);
+    const out = document.getElementById(`reverso-resultado-${reversoId}`);
+    if (!pesoTotal) { out.textContent = "Cargá el peso del producto arriba primero."; return; }
+    if (!fleteTotalCotizado) { out.textContent = "Cargá el total cotizado."; return; }
+    out.textContent = `≈ $${fmtA(fleteTotalCotizado / pesoTotal)} / kg (con ${fmtA(pesoTotal)} kg)`;
   }
 });
 
@@ -974,6 +1266,36 @@ document.getElementById("blue-actualizar").addEventListener("click", async () =>
     if (data && data.venta) {
       document.getElementById("cfg-blue").value = data.venta;
       localStorage.setItem(DOLAR_BLUE_KEY, String(data.venta));
+      estado.textContent = `Actualizado — venta $${fmtA(data.venta)} (compra $${fmtA(data.compra)})`;
+      renderFormulario();
+    } else {
+      throw new Error("sin datos");
+    }
+  } catch (err) {
+    estado.textContent = "No se pudo actualizar (sin internet o API caída). Podés cargarlo a mano.";
+  }
+  btn.textContent = original;
+});
+
+// ---------- Dólar MEP ----------
+// Convierte los pagos "en blanco" (derechos de importación de courier,
+// pagos a agentes de carga) — distinto del blue, que convierte lo que se
+// paga informal (producto, flete). Mismo patrón que el bloque de blue.
+document.getElementById("cfg-mep").addEventListener("input", () => {
+  localStorage.setItem(DOLAR_MEP_KEY, document.getElementById("cfg-mep").value);
+  renderFormulario();
+});
+document.getElementById("mep-actualizar").addEventListener("click", async () => {
+  const btn = document.getElementById("mep-actualizar");
+  const estado = document.getElementById("mep-estado");
+  const original = btn.textContent;
+  btn.textContent = "…";
+  try {
+    const res = await fetch("https://dolarapi.com/v1/dolares/bolsa");
+    const data = await res.json();
+    if (data && data.venta) {
+      document.getElementById("cfg-mep").value = data.venta;
+      localStorage.setItem(DOLAR_MEP_KEY, String(data.venta));
       estado.textContent = `Actualizado — venta $${fmtA(data.venta)} (compra $${fmtA(data.compra)})`;
       renderFormulario();
     } else {
@@ -1299,6 +1621,166 @@ try {
   });
 } catch (e) { console.error("editar tarifas:", e); }
 
+// ---------- Agentes de carga (CRUD) ----------
+function nuevoAgenteLocal() {
+  return { id: null, nombre: "", tramos: [{ hastaKg: "", tarifaKg: "" }], alicuotaImpuestos: 50, baseImpuestos: "fob", handling: "" };
+}
+
+try {
+  SUPABASE_READY.then(async () => {
+    const { data, error } = await supabaseClient.from("agentes_carga").select("*").order("creado_en");
+    if (!error && data) {
+      agentes = data.map((a) => ({
+        id: a.id, nombre: a.nombre || "",
+        tramos: (Array.isArray(a.tramos) && a.tramos.length ? a.tramos : [{ hastaKg: null, tarifaKg: "" }])
+          .map((t) => ({ hastaKg: t.hastaKg === null || t.hastaKg === undefined ? "" : t.hastaKg, tarifaKg: t.tarifaKg })),
+        alicuotaImpuestos: a.alicuota_impuestos, baseImpuestos: a.base_impuestos || "fob",
+        handling: a.handling || "",
+      }));
+    } else if (error) {
+      console.error("No se pudieron cargar los agentes de carga:", error);
+    }
+    renderAgentesAdmin();
+    renderFormulario();
+  });
+} catch (e) { console.error("cargar agentes de carga:", e); }
+
+function renderAgentesAdmin() {
+  const cont = document.getElementById("agentes-admin");
+  if (!cont) return;
+  if (!agentes.length) {
+    cont.innerHTML = `<div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Todavía no cargaste ningún agente.</div>`;
+    return;
+  }
+  cont.innerHTML = agentes.map((a, ai) => `
+    <div class="producto-card">
+      <button class="del" data-agente-del="${ai}" title="Eliminar agente">✕</button>
+      <div class="field-row" style="grid-template-columns: 2fr 1fr 1fr 1fr;">
+        <div class="field">
+          <label>Nombre del agente</label>
+          <input type="text" data-agente-field="nombre" data-agente-idx="${ai}" value="${escHtml(a.nombre)}" placeholder="Ej: Aerobox" />
+        </div>
+        <div class="field">
+          <label>Alícuota impuestos (%)</label>
+          <input type="text" inputmode="decimal" data-agente-field="alicuotaImpuestos" data-agente-idx="${ai}" value="${a.alicuotaImpuestos}" placeholder="50" />
+        </div>
+        <div class="field">
+          <label>Base del impuesto</label>
+          <select data-agente-field="baseImpuestos" data-agente-idx="${ai}">
+            <option value="fob" ${a.baseImpuestos !== "cif" ? "selected" : ""}>Sobre FOB</option>
+            <option value="cif" ${a.baseImpuestos === "cif" ? "selected" : ""}>Sobre FOB + flete (CIF)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Handling fijo (USD)</label>
+          <input type="text" inputmode="decimal" data-agente-field="handling" data-agente-idx="${ai}" value="${a.handling}" placeholder="0" />
+        </div>
+      </div>
+      <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:10px 0 6px;">Tramos por kg — dejá "Hasta kg" vacío en el tramo que quede último para que sea el tramo abierto (siempre el más barato)</div>
+      ${a.tramos.map((t, ti) => `
+        <div class="presupuesto-item-row">
+          <input type="text" inputmode="decimal" placeholder="Hasta (kg) — vacío = en adelante" data-tramo-field="hastaKg" data-agente-idx="${ai}" data-tramo-idx="${ti}" value="${t.hastaKg}" style="flex:1;" />
+          <input type="text" inputmode="decimal" placeholder="USD/kg" data-tramo-field="tarifaKg" data-agente-idx="${ai}" data-tramo-idx="${ti}" value="${t.tarifaKg}" style="width:90px;" />
+          <button class="del-btn" data-tramo-del="${ai}::${ti}">✕</button>
+        </div>
+      `).join("")}
+      <button data-agente-addtramo="${ai}" style="background:transparent; border:1px dashed var(--line); border-radius:6px; color:var(--muted); font-size:11px; padding:5px 10px; cursor:pointer; font-family:inherit; margin-top:4px;">+ agregar tramo</button>
+    </div>
+  `).join("");
+}
+
+async function eliminarAgenteLocal(idx) {
+  const a = agentes[idx];
+  if (!a) return;
+  const status = document.getElementById("agentes-status");
+  if (a.id) {
+    status.textContent = "Eliminando…";
+    const { error } = await supabaseClient.from("agentes_carga").delete().eq("id", a.id);
+    if (error) { status.textContent = "⚠️ No se pudo eliminar: " + error.message; return; }
+  }
+  status.textContent = "";
+  agentes.splice(idx, 1);
+  renderAgentesAdmin();
+  renderFormulario();
+}
+
+document.getElementById("agentes-admin").addEventListener("input", (e) => {
+  const idx = e.target.getAttribute("data-agente-idx");
+  if (idx === null) return;
+  const a = agentes[idx];
+  if (!a) return;
+  const field = e.target.getAttribute("data-agente-field");
+  const tramoField = e.target.getAttribute("data-tramo-field");
+  const tramoIdx = e.target.getAttribute("data-tramo-idx");
+  if (field) {
+    a[field] = e.target.value;
+  } else if (tramoField && tramoIdx !== null) {
+    a.tramos[tramoIdx][tramoField] = e.target.value;
+  }
+  // No re-renderizamos agentes-admin acá (el DOM ya refleja lo que se tipeó)
+  // para no perder foco — solo se recalcula la comparativa de productos.
+  renderFormulario();
+});
+
+document.getElementById("agentes-admin").addEventListener("change", (e) => {
+  const idx = e.target.getAttribute("data-agente-idx");
+  const field = e.target.getAttribute("data-agente-field");
+  if (idx === null || !field) return;
+  const a = agentes[idx];
+  if (a) { a[field] = e.target.value; renderFormulario(); }
+});
+
+document.getElementById("agentes-admin").addEventListener("click", (e) => {
+  const del = e.target.getAttribute("data-agente-del");
+  if (del !== null) { eliminarAgenteLocal(Number(del)); return; }
+  const addTramo = e.target.getAttribute("data-agente-addtramo");
+  if (addTramo !== null) {
+    agentes[Number(addTramo)].tramos.push({ hastaKg: "", tarifaKg: "" });
+    renderAgentesAdmin();
+    return;
+  }
+  const tramoDel = e.target.getAttribute("data-tramo-del");
+  if (tramoDel) {
+    const [ai, ti] = tramoDel.split("::").map(Number);
+    if (agentes[ai].tramos.length > 1) agentes[ai].tramos.splice(ti, 1);
+    renderAgentesAdmin();
+    renderFormulario();
+  }
+});
+
+document.getElementById("add-agente-admin").addEventListener("click", () => {
+  agentes.push(nuevoAgenteLocal());
+  renderAgentesAdmin();
+});
+
+document.getElementById("guardar-agentes-btn").addEventListener("click", async () => {
+  const status = document.getElementById("agentes-status");
+  status.textContent = "Guardando…";
+  try {
+    for (const a of agentes) {
+      const payload = {
+        nombre: a.nombre || "(sin nombre)",
+        tramos: a.tramos.map((t) => ({ hastaKg: t.hastaKg === "" ? null : pNumA(t.hastaKg), tarifaKg: pNumA(t.tarifaKg) })),
+        alicuota_impuestos: pNumA(a.alicuotaImpuestos) || 0,
+        base_impuestos: a.baseImpuestos === "cif" ? "cif" : "fob",
+        handling: pNumA(a.handling) || 0,
+      };
+      if (a.id) {
+        const { error } = await supabaseClient.from("agentes_carga").update(payload).eq("id", a.id);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabaseClient.from("agentes_carga").insert(payload).select("id").single();
+        if (error) throw error;
+        a.id = data.id;
+      }
+    }
+    status.textContent = "✓ Guardado — ya se está usando en la comparativa de todos los productos.";
+    renderFormulario();
+  } catch (err) {
+    status.textContent = "⚠️ No se pudo guardar: " + (err.message || "revisá tu conexión.");
+  }
+});
+
 // ---------- Generar informe ----------
 esperarTarifasPara(document.getElementById("generar-informe"), "Cargando tarifas…");
 
@@ -1306,6 +1788,7 @@ function generarInforme(opts) {
   const scroll = !!(opts && opts.scroll);
   const origen = document.getElementById("cfg-origen").value;
   const blue = pNumA(document.getElementById("cfg-blue").value) || 1;
+  const mep = pNumA(document.getElementById("cfg-mep").value) || blue;
   const margenGeneral = pNumA(document.getElementById("cfg-margen").value) || 0;
 
   const validos = productos.filter((p) => p.nombre && pNumA(p.cantidad) > 0 && pNumA(p.fob) >= 0);
@@ -1320,20 +1803,32 @@ function generarInforme(opts) {
     const seleccionado = r.metodos[r.elegido];
     const ventaU = seleccionado.costoU * (1 + margen / 100);
     const gananciaTotal = (ventaU - seleccionado.costoU) * r.cantidad;
-    const precioML = pNumA(p.precioML);
-    return { p, r, margen, seleccionado, ventaU, gananciaTotal, precioML };
+    const precioMLars = pNumA(p.precioML);
+    const precioML = precioMLars > 0 ? precioMLars / blue : 0; // Mercado Libre lista en pesos — se convierte con el blue
+    return { p, r, margen, seleccionado, ventaU, gananciaTotal, precioML, precioMLars };
   });
 
+  // Conversión dual (PDF secciones 10/12): los productos que se van por
+  // courier o por un agente de carga mueven la plata "en blanco" (hay
+  // despacho formal/factura), así que ese producto entero convierte a ARS
+  // con el MEP; aéreo/marítimo genérico es el circuito informal de siempre,
+  // así que sigue convirtiendo con el blue.
   const totales = resultados.reduce((acc, x) => {
+    const tasaProducto = (x.r.elegido === "courier" || x.r.elegido === "agente") ? mep : blue;
+    const fobTotalX = x.r.fobU * x.r.cantidad;
+    const fleteTotalX = x.seleccionado.fleteU * x.r.cantidad;
     acc.unidades += x.r.cantidad;
     acc.peso += x.r.pesoTotal;
     acc.volumen += x.r.cbm;
-    acc.fob += x.r.fobU * x.r.cantidad;
-    acc.flete += x.seleccionado.fleteU * x.r.cantidad + x.seleccionado.impuestosU * x.r.cantidad + (x.r.elegido === "courier" ? x.r.seguroCourierTotal : 0);
+    acc.fob += fobTotalX;
+    acc.flete += fleteTotalX + (x.r.elegido === "courier" ? x.r.seguroCourierTotal : 0);
+    acc.impuestos += x.seleccionado.impuestosU * x.r.cantidad;
     acc.costo += x.seleccionado.costoU * x.r.cantidad;
     acc.ganancia += x.gananciaTotal;
+    acc.hoyARS += (fobTotalX + fleteTotalX) * tasaProducto;
+    acc.gananciaARS += x.gananciaTotal * tasaProducto;
     return acc;
-  }, { unidades: 0, peso: 0, volumen: 0, fob: 0, flete: 0, costo: 0, ganancia: 0 });
+  }, { unidades: 0, peso: 0, volumen: 0, fob: 0, flete: 0, impuestos: 0, costo: 0, ganancia: 0, hoyARS: 0, gananciaARS: 0 });
 
   document.getElementById("rep-fecha").textContent = new Date().toLocaleDateString("es-AR");
   document.getElementById("stat-productos").textContent = resultados.length;
@@ -1342,10 +1837,11 @@ function generarInforme(opts) {
   document.getElementById("stat-volumen").textContent = totales.volumen.toFixed(3) + " m³";
   document.getElementById("stat-fob").textContent = "$" + fmtA(totales.fob);
   document.getElementById("stat-flete").textContent = "$" + fmtA(totales.flete);
+  document.getElementById("stat-impuestos").textContent = "$" + fmtA(totales.impuestos);
   document.getElementById("stat-costo").textContent = "$" + fmtA(totales.costo);
-  document.getElementById("stat-blue").textContent = "$" + fmtA(blue);
+  document.getElementById("stat-blue").textContent = `$${fmtA(blue)} / $${fmtA(mep)}`;
   document.getElementById("stat-ganancia").textContent = "$" + fmtA(totales.ganancia);
-  document.getElementById("stat-ganancia-ars").textContent = `≈ $${fmtInt(totales.ganancia * blue)} ARS al blue de hoy ($${fmtA(blue)})`;
+  document.getElementById("stat-ganancia-ars").textContent = `≈ $${fmtInt(totales.gananciaARS)} ARS — blue $${fmtA(blue)} para aéreo/marítimo, MEP $${fmtA(mep)} para courier/agente`;
 
   drawPie("chart-pie", [
     { label: "FOB", value: totales.fob, color: "#a9865a" },
@@ -1376,11 +1872,27 @@ function generarInforme(opts) {
         <td class="num">$${fmtA(met.costoU)}</td>
         <td class="num">$${fmtA(met.total)}</td>
       </tr>`;
+    }).join("") + x.r.metodosAgentes.map((a) => {
+      const isSel = x.r.elegido === "agente" && x.p.agenteElegidoId === a.id;
+      const met = isSel && m.agente ? m.agente : a;
+      const vsAereo = a.disponible
+        ? `<br/><span style="font-size:9.5px; font-weight:400; color:var(--muted);">${a.diferenciaVsAereoGenerico >= 0 ? `$${fmtA(a.diferenciaVsAereoGenerico)} más barato` : `$${fmtA(Math.abs(a.diferenciaVsAereoGenerico))} más caro`} que tu aéreo genérico</span>`
+        : "";
+      return `<tr class="${isSel ? "selected" : ""}">
+        <td>${met.label}${isSel ? " ✓" : ""}${!a.disponible ? " (sin tramos con tarifa)" : ""}${vsAereo}</td>
+        <td class="num">${met.medida}</td>
+        <td class="num">$${fmtA(met.fleteU)}</td>
+        <td class="num">${met.impuestosU > 0 ? "$" + fmtA(met.impuestosU) : "—"}</td>
+        <td class="num">$${fmtA(met.costoU)}</td>
+        <td class="num">$${fmtA(met.total)}</td>
+      </tr>`;
     }).join("");
 
     const masBarataLabel = x.r.masBarataKey ? m[x.r.masBarataKey].label : "—";
     const convieneNota = x.r.masBarataKey && x.r.masBarataKey !== x.r.elegido
       ? `<div style="font-size:11.5px; color:var(--coral-deep); margin-top:4px;">${masBarataLabel} conviene más</div>` : "";
+    const trofeoNota = x.r.mejorOpcionGlobal
+      ? `<div style="font-size:11.5px; color:var(--muted); margin-top:4px;">🏆 Mejor opción global (aéreo/courier/agentes): <b>${x.r.mejorOpcionGlobal.label}</b> a $${fmtA(x.r.mejorOpcionGlobal.costoU)}/u.</div>` : "";
 
     let mlBlock = "";
     if (x.precioML > 0) {
@@ -1391,14 +1903,26 @@ function generarInforme(opts) {
         .filter((k) => m[k].disponible)
         .map((k) => `<span>${m[k].label}: <b>$${fmtA(x.precioML - m[k].costoU)}</b> (${(((x.precioML - m[k].costoU) / x.precioML) * 100).toFixed(2)}%)${k === x.r.elegido ? " 👈" : ""}</span>`)
         .join("");
+
+      // Semáforo de viabilidad: no importa el margen que te hayas propuesto
+      // vos, sino si ese producto da ganancia real contra lo que paga hoy el
+      // mercado, y con cuánto colchón — <20% de margen real es "ajustado"
+      // aunque no esté perdiendo plata.
+      const viabilidad = gananciaML <= 0
+        ? { clase: "no", texto: "⚠️ No viable — venderlo al precio de ML da pérdida" }
+        : margenReal < 20
+          ? { clase: "warn", texto: `⚠️ Ajustado — solo ${margenReal.toFixed(1)}% de margen real contra ML` }
+          : { clase: "ok", texto: `✅ Viable — ${margenReal.toFixed(1)}% de margen real contra ML` };
+
       mlBlock = `
         <div class="ml-box">
           <div class="card-title">Margen aplicado vs. margen real contra Mercado Libre</div>
           <div class="ml-grid">
-            <div><div class="lbl">Precio ref. ML</div><div class="val">$${fmtA(x.precioML)} USD</div></div>
+            <div><div class="lbl">Precio ref. ML</div><div class="val">$${fmtInt(x.precioMLars)} ARS <span style="font-weight:400; color:var(--muted);">(≈ $${fmtA(x.precioML)} USD)</span></div></div>
             <div><div class="lbl">Costo puesto en Arg.</div><div class="val">$${fmtA(x.seleccionado.costoU)} USD</div></div>
             <div><div class="lbl">Ganancia si vendés a ML</div><div class="val">$${fmtA(gananciaML)} USD</div></div>
           </div>
+          <div class="elegibilidad ${viabilidad.clase}" style="margin-bottom:8px;">${viabilidad.texto}</div>
           <div style="font-size:11.5px; color:var(--muted);">Margen aplicado por vos: <b>${x.margen.toFixed(2)}%</b> &nbsp;·&nbsp; Margen real vs. ML: <b>${margenReal.toFixed(2)}%</b></div>
           <div class="ml-note ${diff >= 0 ? "up" : "down"}">
             ${diff >= 0
@@ -1430,6 +1954,7 @@ function generarInforme(opts) {
           <tbody>${filas}</tbody>
         </table>
         ${convieneNota}
+        ${trofeoNota}
 
         ${(() => {
           const pago = pagoAhoraYDespues(x.r);
