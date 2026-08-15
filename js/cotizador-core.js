@@ -79,3 +79,28 @@ function excedeRegimenSimplificado(pesoKg, fobTotal, unidades) {
     (unidades && unidades > COURIER_REGIMEN.maxUnidadesMismaEspecie)
   );
 }
+
+// Cascada de impuestos del régimen general de importación (aéreo/marítimo,
+// no courier): DIE y tasa estadística se calculan sobre el CIF, después
+// IVA/IVA adicional/Ganancias/IIBB se calculan sobre CIF+DIE+tasa — mismo
+// orden que aplica la aduana argentina en la práctica. La usan tanto
+// hub/calculadora-importacion.html (para cotizar) como
+// hub/calculadora-margenes.html (para reconstruir el desglose de una
+// cotización ya guardada, a partir de sus alícuotas y su CIF persistidos).
+function calcularImpuestosCascada(alic, cif) {
+  const pNumCascada = (v) => {
+    const n = parseFloat(String(v || "").trim().replace(",", "."));
+    return isNaN(n) ? 0 : n;
+  };
+  const die = pNumCascada(alic.die), iva = pNumCascada(alic.iva), ivaAd = pNumCascada(alic.ivaAdicional),
+        gan = pNumCascada(alic.ganancias), iibb = pNumCascada(alic.iibb), tasa = pNumCascada(alic.tasaEstadistica);
+  const tasaMonto = (cif * tasa) / 100;
+  const dieMonto = (cif * die) / 100;
+  const baseIVA = cif + dieMonto + tasaMonto;
+  const ivaMonto = (baseIVA * iva) / 100;
+  const ivaAdMonto = (baseIVA * ivaAd) / 100;
+  const ganMonto = (baseIVA * gan) / 100;
+  const iibbMonto = (baseIVA * iibb) / 100;
+  const total = dieMonto + tasaMonto + ivaMonto + ivaAdMonto + ganMonto + iibbMonto;
+  return { esCourier: false, dieMonto, tasaMonto, baseIVA, ivaMonto, ivaAdMonto, ganMonto, iibbMonto, total, ivaRecuperable: ivaMonto + ivaAdMonto };
+}

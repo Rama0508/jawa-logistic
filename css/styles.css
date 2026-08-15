@@ -147,6 +147,24 @@
   .model-strip-arrow { align-self:center; color: var(--gold-bright); font-size:20px; opacity:.6; }
   @media (max-width:760px) { .model-strip-arrow { display:none; } }
 
+  /* ---------- HUB de importación — teaser en home ---------- */
+  .hub-teaser { padding: 54px 0 10px; position:relative; z-index:2; }
+  .hub-teaser-card { background: linear-gradient(135deg, var(--navy-2), var(--navy) 80%); border-radius:20px; padding:40px 36px 36px; color:var(--white); position:relative; overflow:hidden; }
+  .hub-teaser-card::after { content:""; position:absolute; right:-80px; top:-80px; width:260px; height:260px; border-radius:50%; background: radial-gradient(circle, rgba(201,80,46,0.22), transparent 70%); pointer-events:none; }
+  .hub-teaser-head { max-width:640px; margin:0 auto 30px; text-align:center; position:relative; z-index:1; }
+  .hub-teaser-head h2 { font-size: clamp(23px, 3vw, 30px); font-weight:800; margin:8px 0 10px; color:var(--white); text-wrap:balance; }
+  .hub-teaser-head p { font-size:14px; line-height:1.6; color: rgba(255,255,255,0.78); margin:0; }
+  .hub-teaser-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; position:relative; z-index:1; margin-bottom:28px; }
+  @media (max-width:900px) { .hub-teaser-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width:560px) { .hub-teaser-grid { grid-template-columns: 1fr; } }
+  .hub-teaser-item { background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:18px 16px; transition: background .2s ease, border-color .2s ease, transform .2s ease; }
+  .hub-teaser-item:hover { background: rgba(255,255,255,0.1); border-color: rgba(215,182,134,0.4); transform: translateY(-2px); }
+  .hub-teaser-item .ic { font-size:20px; margin-bottom:10px; }
+  .hub-teaser-item .t { font-size:13.5px; font-weight:800; margin-bottom:5px; }
+  .hub-teaser-item .d { font-size:12px; line-height:1.55; color: rgba(255,255,255,0.68); }
+  .hub-teaser-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; position:relative; z-index:1; }
+  @media (max-width:700px) { .hub-teaser-card { padding:32px 22px 28px; } }
+
   .hero-inner { max-width:840px; margin:0 auto; padding: 54px 20px 0; text-align:center; position:relative; z-index:2; }
   .hero-kicker { font-size: clamp(14px, 1.8vw, 18px); font-weight:300; letter-spacing:.08em; text-transform:uppercase; margin: 14px 0 4px; color: var(--gold-bright); }
   .hero h1 { font-size: clamp(32px, 5.4vw, 56px); line-height:1.06; font-weight:800; letter-spacing:-.01em; text-transform:uppercase; margin: 0 0 20px; text-wrap: balance; text-shadow: 0 2px 24px rgba(0,0,0,0.55), 0 1px 2px rgba(0,0,0,0.6); }

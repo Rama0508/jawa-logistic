@@ -11,6 +11,8 @@
 const HUB_NAV_ITEMS = [
   { tab: "dashboard", href: "/hub/index.html", icon: "🏠", label: "Dashboard" },
   { tab: "calculadora-importacion", href: "/hub/calculadora-importacion.html", icon: "🧮", label: "Calculadora de importación" },
+  { tab: "calculadora-margenes", href: "/hub/calculadora-margenes.html", icon: "📈", label: "Calculadora de márgenes" },
+  { tab: "despachante-virtual", href: "/hub/despachante-virtual.html", icon: "🧑‍💼", label: "Despachante virtual" },
   { tab: "cotizador", href: "/hub/cotizador.html", icon: "📦", label: "Cotizador" },
   { tab: "operaciones", href: "/hub/operaciones.html", icon: "🚢", label: "Operaciones" },
   { tab: "cuenta-corriente", href: "/hub/cuenta-corriente.html", icon: "💳", label: "Cuenta corriente" },
@@ -23,6 +25,8 @@ const HUB_NAV_ITEMS = [
 const HUB_TITULOS = {
   dashboard: "Dashboard",
   "calculadora-importacion": "Calculadora de importación",
+  "calculadora-margenes": "Calculadora de márgenes",
+  "despachante-virtual": "Despachante virtual",
   cotizador: "Cotizador",
   operaciones: "Mis operaciones",
   "operacion-detalle": "Detalle de operación",

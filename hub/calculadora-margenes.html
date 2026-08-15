@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Calculadora de márgenes — Portal de cliente — Jawa Logistic</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../css/hub.css" />
+</head>
+<body>
+
+<div id="hub-shell">
+  <div id="hub-page">
+    <p class="hub-page-lead">Cuánto ganás de verdad en cada canal de venta, después de comisiones e impuestos.</p>
+    <div id="marg-content"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/rates.js"></script>
+<script src="../js/cuenta.js"></script>
+<script src="../js/cotizador-core.js"></script>
+<script src="../js/hub.js"></script>
+<script>
+try {
+  (async function () {
+    await SUPABASE_READY;
+    const session = await iniciarHub("calculadora-margenes");
+    if (!session) return;
+    const clienteId = session.user.id;
+
+    function pNum(v) {
+      const n = parseFloat(String(v || "").trim().replace(",", "."));
+      return isNaN(n) ? 0 : n;
+    }
+    function fmt(n) { return (n || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function fmtInt(n) { return Math.round(n || 0).toLocaleString("es-AR"); }
+
+    // ---------- Config de canales/IIBB/Ganancias ----------
+    // Ajustes propios de cada cliente (su comisión real negociada, su
+    // jurisdicción) — no una tarifa global de Jawa, por eso viven en
+    // localStorage del navegador (mismo criterio que el dólar blue de
+    // admin.html) y no en Supabase.
+    const CONFIG_KEY = "jawa_hub_margenes_config_v1";
+    const CANALES_DEFAULT = [
+      { id: "mayorista", nombre: "Mayorista", sub: "Transferencia / directo", comisionPct: 0 },
+      { id: "tn1", nombre: "Tienda Nube", sub: "1 pago", comisionPct: 4 },
+      { id: "tn3", nombre: "Tienda Nube", sub: "3 cuotas TDC", comisionPct: 13 },
+      { id: "meli1", nombre: "MELI", sub: "1 pago", comisionPct: 16 },
+      { id: "meli3", nombre: "MELI", sub: "3 cuotas s/interés", comisionPct: 25 },
+    ];
+    const IIBB_DEFAULT = { CABA: 3, "Buenos Aires": 3.5, "Córdoba": 3, "Santa Fe": 3.5, Mendoza: 3, Otra: 3 };
+    const TASA_GANANCIAS_DEFAULT = 30;
+
+    function cargarConfig() {
+      let cfg = null;
+      try { cfg = JSON.parse(localStorage.getItem(CONFIG_KEY) || "null"); } catch (e) {}
+      cfg = cfg || {};
+      return {
+        canales: (Array.isArray(cfg.canales) && cfg.canales.length ? cfg.canales : CANALES_DEFAULT.map((c) => ({ ...c }))),
+        iibbPorProvincia: { ...IIBB_DEFAULT, ...(cfg.iibbPorProvincia || {}) },
+        tasaGanancias: cfg.tasaGanancias != null && cfg.tasaGanancias !== "" ? cfg.tasaGanancias : TASA_GANANCIAS_DEFAULT,
+      };
+    }
+    let config = cargarConfig();
+    function guardarConfig() { try { localStorage.setItem(CONFIG_KEY, JSON.stringify(config)); } catch (e) {} }
+
+    // ---------- Estado ----------
+    let paso = 0; // 0 = landing, 1..3 = wizard
+    let tabImportacion = "manual"; // "manual" | "biblioteca"
+    let estado = {
+      costoMercaderia: "", unidades: "",
+      ivaAlImportar: "", adelantoIIBB: "", adelantoGanancias: "",
+      provincia: "CABA",
+      modo: "margen", // "margen" | "precio_fijo"
+      margenPct: 50,
+      precioFijo: "",
+    };
+    let cotizacionesGuardadas = [];
+    let cotizacionElegidaId = "";
+    let tipoCambio = "";
+    let configAbierta = false;
+    let canalAbierto = null;
+    let simulacionesGuardadas = [];
+
+    // ---------- Motor de cálculo ----------
+    // Reusa calcularImpuestosCascada de js/cotizador-core.js para
+    // reconstruir el desglose IVA/IIBB/Ganancias de una cotización guardada
+    // por hub/calculadora-importacion.html a partir de sus alícuotas y CIF.
+    function totalesDesdeEstado() {
+      const unidades = pNum(estado.unidades) || 1;
+      const impuestosTotal = pNum(estado.ivaAlImportar) + pNum(estado.adelantoIIBB) + pNum(estado.adelantoGanancias);
+      const desembolsoTotal = pNum(estado.costoMercaderia) + impuestosTotal;
+      return {
+        unidades,
+        costoUnit: desembolsoTotal / unidades,
+        ivaCreditoUnit: pNum(estado.ivaAlImportar) / unidades,
+        iibbCreditoUnit: pNum(estado.adelantoIIBB) / unidades,
+        gananciasCreditoUnit: pNum(estado.adelantoGanancias) / unidades,
+        desembolsoTotal, impuestosTotal,
+      };
+    }
+
+    // Resuelve el precio (modo margen) o parte de uno fijo (modo precio
+    // fijo) para un canal, y devuelve el desglose completo de esa
+    // operación por unidad. Ver plan: fórmula cerrada sin circularidad,
+    // Ganancias estimada sobre la ganancia bruta antes de IVA/IIBB neto.
+    function calcularCanal(t, comisionPct) {
+      const iibbRatePct = pNum(config.iibbPorProvincia[estado.provincia]);
+      const tasaGananciasPct = pNum(config.tasaGanancias);
+      const A = 1 - comisionPct / 100;
+      let pNeto;
+      if (estado.modo === "precio_fijo") {
+        pNeto = pNum(estado.precioFijo) / 1.21;
+      } else {
+        const target = t.costoUnit * (pNum(estado.margenPct) / 100);
+        const denom = A * (1 - tasaGananciasPct / 100) - 0.21 - iibbRatePct / 100;
+        pNeto = denom ? (target + t.costoUnit * (1 - tasaGananciasPct / 100) - (t.ivaCreditoUnit + t.iibbCreditoUnit + t.gananciasCreditoUnit)) / denom : 0;
+      }
+      pNeto = Math.max(0, pNeto);
+      const pConIva = pNeto * 1.21;
+      const comisionUnit = pNeto * (comisionPct / 100);
+      const ivaVentaUnit = pNeto * 0.21;
+      const ivaNetoUnit = ivaVentaUnit - t.ivaCreditoUnit;
+      const iibbVentaUnit = pNeto * (iibbRatePct / 100);
+      const iibbNetoUnit = iibbVentaUnit - t.iibbCreditoUnit;
+      const gananciaBrutaUnit = pNeto * A - t.costoUnit;
+      const gananciasProyectadoUnit = gananciaBrutaUnit * (tasaGananciasPct / 100);
+      const gananciasNetoUnit = gananciasProyectadoUnit - t.gananciasCreditoUnit;
+      const teQuedaUnit = pNeto - comisionUnit - t.costoUnit - ivaNetoUnit - iibbNetoUnit - gananciasNetoUnit;
+      const margenSobrePrecio = pConIva > 0 ? (teQuedaUnit / pConIva) * 100 : 0;
+      return { pNeto, pConIva, comisionUnit, ivaVentaUnit, ivaNetoUnit, iibbVentaUnit, iibbNetoUnit, gananciaBrutaUnit, gananciasProyectadoUnit, gananciasNetoUnit, teQuedaUnit, margenSobrePrecio };
+    }
+
+    function calcularTodosLosCanales() {
+      const t = totalesDesdeEstado();
+      const filas = config.canales.map((c) => ({ canal: c, r: calcularCanal(t, pNum(c.comisionPct)) }));
+      filas.sort((a, b) => b.r.margenSobrePrecio - a.r.margenSobrePrecio);
+      return { t, filas };
+    }
+
+    // ---------- "Desde mi biblioteca" ----------
+    async function cargarCotizacionesGuardadas() {
+      const { data, error } = await supabaseClient
+        .from("cotizaciones_cliente")
+        .select("id, modo, origen, total_estimado_usd, detalle, creado_en")
+        .eq("cliente_id", clienteId)
+        .order("creado_en", { ascending: false })
+        .limit(30);
+      if (!error) cotizacionesGuardadas = data || [];
+    }
+
+    function aplicarCotizacionElegida() {
+      const cot = cotizacionesGuardadas.find((c) => c.id === cotizacionElegidaId);
+      if (!cot || !tipoCambio) return;
+      const tc = pNum(tipoCambio);
+      const d = cot.detalle || {};
+      const productos = d.productos || [];
+      let unidadesTotal = 0, costoArs = 0, ivaArs = 0, iibbArs = 0, ganArs = 0;
+      productos.forEach((p) => {
+        const cant = pNum(p.cantidad);
+        unidadesTotal += cant;
+        const fobUsd = pNum(p.fobTotal), fleteUsd = pNum(p.flete);
+        if (p.alicuotas && cot.modo !== "courier") {
+          const cif = pNum(p.cif);
+          const casc = calcularImpuestosCascada(p.alicuotas, cif);
+          costoArs += (fobUsd + fleteUsd + casc.dieMonto + casc.tasaMonto) * tc;
+          ivaArs += (casc.ivaMonto + casc.ivaAdMonto) * tc;
+          iibbArs += casc.iibbMonto * tc;
+          ganArs += casc.ganMonto * tc;
+        } else {
+          // Courier usa el régimen simplificado (alícuota única) — no hay
+          // desglose por tipo de impuesto, así que el total va como "IVA".
+          costoArs += (fobUsd + fleteUsd) * tc;
+          ivaArs += pNum(p.impuestos) * tc;
+        }
+      });
+      estado.costoMercaderia = fmt(costoArs).replace(/\./g, "").replace(",", ".");
+      estado.unidades = String(unidadesTotal);
+      estado.ivaAlImportar = fmt(ivaArs).replace(/\./g, "").replace(",", ".");
+      estado.adelantoIIBB = fmt(iibbArs).replace(/\./g, "").replace(",", ".");
+      estado.adelantoGanancias = fmt(ganArs).replace(/\./g, "").replace(",", ".");
+    }
+
+    async function actualizarDolarOficial() {
+      const estadoEl = document.getElementById("marg-dolar-estado");
+      try {
+        const res = await fetch("https://dolarapi.com/v1/dolares/oficial");
+        const data = await res.json();
+        if (data && data.venta) {
+          tipoCambio = String(data.venta);
+          if (estadoEl) estadoEl.textContent = `Dólar oficial: $${fmt(data.venta)}`;
+          render();
+        }
+      } catch (e) {
+        if (estadoEl) estadoEl.textContent = "No se pudo actualizar — cargalo a mano.";
+      }
+    }
+
+    // ---------- Render: landing (paso 0) ----------
+    async function cargarSimulacionesGuardadas() {
+      const { data, error } = await supabaseClient
+        .from("simulaciones_margen")
+        .select("id, nombre, unidades, resultado, creado_en")
+        .eq("cliente_id", clienteId)
+        .order("creado_en", { ascending: false })
+        .limit(20);
+      if (!error) simulacionesGuardadas = data || [];
+    }
+
+    function renderLanding() {
+      return `
+        <div class="wiz-landing-grid">
+          <div class="wiz-landing-card dark">
+            <div class="icon">📈</div>
+            <div class="title">Nueva simulación</div>
+            <div class="sub">Para cada canal de venta: cuánto cobrás, cuánto pagás de comisiones e impuestos y cuánto te queda limpio.</div>
+            <a class="link" href="#" data-action="nueva-simulacion">Empezar →</a>
+          </div>
+          <div class="wiz-landing-card light">
+            <div class="icon">📄</div>
+            <div class="title">Biblioteca de productos</div>
+            <div class="sub">Traé a la calculadora cualquier producto que ya cotizaste y guardaste con la Calculadora de importación.</div>
+            <a class="link" href="#" data-action="desde-biblioteca">Ver biblioteca →</a>
+          </div>
+        </div>
+        <div class="hub-card-head">
+          <div class="hub-card-title" style="margin-bottom:0;">Mis simulaciones guardadas (${simulacionesGuardadas.length})</div>
+          <button class="hub-btn-primary" data-action="nueva-simulacion" type="button">+ Nueva</button>
+        </div>
+        ${!simulacionesGuardadas.length ? `
+          <div class="hub-card" style="text-align:center; padding:30px 20px;">
+            <div style="font-size:28px; margin-bottom:8px;">💾</div>
+            <div style="font-weight:700; margin-bottom:4px;">Todavía no guardaste simulaciones</div>
+            <div style="font-size:12.5px; color:var(--muted);">Abrí la calculadora, cargá tu importación y tocá Guardar. Cada escenario queda acá para compararlo cuando quieras.</div>
+          </div>
+        ` : simulacionesGuardadas.map((s) => {
+          const mejor = (s.resultado && s.resultado.filas && s.resultado.filas[0]) || null;
+          return `
+            <div class="hub-item">
+              <div class="hub-item-head">
+                <div>
+                  <div class="hub-item-title">${escHtml(s.nombre || "Simulación")}</div>
+                  <div class="hub-item-meta">${fmtFecha(s.creado_en)} · ${s.unidades} u.</div>
+                </div>
+                ${mejor ? `<span class="data">Mejor: ${escHtml(mejor.canal.nombre)} — $${fmtInt(mejor.r.teQuedaUnit * s.unidades)}</span>` : ""}
+              </div>
+            </div>
+          `;
+        }).join("")}
+      `;
+    }
+
+    // ---------- Render: stepper + paso 1/2/3 ----------
+    const PASOS = [
+      { n: 1, label: "Tu importación" },
+      { n: 2, label: "Tu precio" },
+      { n: 3, label: "Resultado" },
+    ];
+    function renderStepper() {
+      return `
+        <div class="wiz-steps">
+          ${PASOS.map((s, i) => `
+            ${i > 0 ? `<div class="wiz-step-sep"></div>` : ""}
+            <div class="wiz-step ${s.n === paso ? "active" : s.n < paso ? "done" : ""}">
+              <div class="wiz-step-dot">${s.n < paso ? "✓" : s.n}</div>
+              <div class="wiz-step-label">${s.n}. ${s.label}</div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderPaso1() {
+      return `
+        <div class="wiz-note">😊 Cargá cuánto te costó traer la mercadería y los impuestos que pagaste en aduana. Si ya cotizaste el producto, traelo de tu biblioteca y se completa solo.</div>
+        <div class="hub-tabs" style="margin-bottom:14px;">
+          <button class="hub-tab-btn ${tabImportacion === "manual" ? "active" : ""}" data-action="tab-importacion" data-val="manual" type="button">Carga manual</button>
+          <button class="hub-tab-btn ${tabImportacion === "biblioteca" ? "active" : ""}" data-action="tab-importacion" data-val="biblioteca" type="button">Desde mi biblioteca</button>
+        </div>
+        ${tabImportacion === "biblioteca" ? `
+          <div class="hub-field-row" style="margin-bottom:6px;">
+            <div class="hub-field span2">
+              <label>Operación guardada</label>
+              <select data-action="elegir-cotizacion">
+                <option value="">${cotizacionesGuardadas.length ? "Elegir…" : "No tenés productos guardados"}</option>
+                ${cotizacionesGuardadas.map((c) => `<option value="${c.id}" ${c.id === cotizacionElegidaId ? "selected" : ""}>${escHtml((c.detalle && c.detalle.productos && c.detalle.productos[0] && c.detalle.productos[0].nombre) || c.modo)} — ${fmtFecha(c.creado_en)}</option>`).join("")}
+              </select>
+            </div>
+            <div class="hub-field span2">
+              <label>Tipo de cambio (ARS/USD)</label>
+              <div style="display:flex; gap:6px;">
+                <input type="text" inputmode="decimal" data-field="tipoCambio" value="${tipoCambio}" placeholder="ej: 1200" style="flex:1;" />
+                <button class="hub-btn-ghost" data-action="actualizar-dolar" type="button" style="white-space:nowrap;">↻</button>
+              </div>
+              <div id="marg-dolar-estado" style="font-size:10.5px; color:var(--muted); margin-top:2px;">Dólar oficial automático</div>
+            </div>
+          </div>
+        ` : ""}
+        <div class="hub-field-row">
+          <div class="hub-field span2">
+            <label>¿Cuánto te costó la mercadería?</label>
+            <input type="text" inputmode="decimal" data-field="costoMercaderia" value="${estado.costoMercaderia}" placeholder="0" />
+            <div style="font-size:10.5px; color:var(--muted);">Producto + flete + seguro + aranceles (sin IVA ni percepciones)</div>
+          </div>
+          <div class="hub-field span2">
+            <label>¿Cuántas unidades trajiste?</label>
+            <input type="text" inputmode="decimal" data-field="unidades" value="${estado.unidades}" placeholder="0" />
+          </div>
+        </div>
+        <div class="hub-card-title" style="margin-top:6px;">🧾 Impuestos que pagaste en aduana <span style="font-weight:400; text-transform:none; color:var(--muted);">— no son un gasto perdido, los recuperás al vender</span></div>
+        <div class="hub-field-row">
+          <div class="hub-field">
+            <label>IVA al importar</label>
+            <input type="text" inputmode="decimal" data-field="ivaAlImportar" value="${estado.ivaAlImportar}" placeholder="0" />
+            <div style="font-size:10px; color:var(--muted);">IVA + IVA adicional</div>
+          </div>
+          <div class="hub-field">
+            <label>Adelanto IIBB</label>
+            <input type="text" inputmode="decimal" data-field="adelantoIIBB" value="${estado.adelantoIIBB}" placeholder="0" />
+            <div style="font-size:10px; color:var(--muted);">Percepción IIBB</div>
+          </div>
+          <div class="hub-field span2">
+            <label>Adelanto Ganancias</label>
+            <input type="text" inputmode="decimal" data-field="adelantoGanancias" value="${estado.adelantoGanancias}" placeholder="0" />
+            <div style="font-size:10px; color:var(--muted);">Percepción IIGG</div>
+          </div>
+        </div>
+        <div class="hub-field">
+          <label>¿En qué provincia estás?</label>
+          <select data-field="provincia">
+            ${Object.keys(config.iibbPorProvincia).map((p) => `<option value="${p}" ${estado.provincia === p ? "selected" : ""}>${p}</option>`).join("")}
+          </select>
+        </div>
+        <div style="font-size:10.5px; color:var(--muted); margin-top:10px;">Valores orientativos según normativa fiscal argentina vigente. Ante dudas, consultá con tu contador.</div>
+        ${renderResumenLote()}
+      `;
+    }
+
+    function renderResumenLote() {
+      const t = totalesDesdeEstado();
+      return `
+        <div class="wiz-note" style="margin-top:16px;">
+          <div style="display:flex; justify-content:space-between; padding:4px 0;"><span>Desembolso en mercadería</span><b>$${fmtInt(pNum(estado.costoMercaderia))}</b></div>
+          <div style="display:flex; justify-content:space-between; padding:4px 0;"><span>Crédito fiscal (lo recuperás)</span><b>$${fmtInt(t.impuestosTotal)}</b></div>
+          <div style="display:flex; justify-content:space-between; padding:4px 0; border-top:1px dashed var(--line); margin-top:4px; padding-top:8px;"><span>Costo por unidad</span><b style="font-size:16px; color:var(--navy);">$${fmt(t.costoUnit)}</b></div>
+          <div style="font-size:10.5px; color:var(--muted);">Desembolso total del lote: $${fmtInt(t.desembolsoTotal)}</div>
+        </div>
+      `;
+    }
+
+    function renderPaso2() {
+      const { filas } = calcularTodosLosCanales();
+      return `
+        <div class="wiz-note">Elegí cuánto querés ganar sobre tu costo y calculo el precio de venta en cada canal. Cada canal descuenta sus comisiones automáticamente.</div>
+        <div class="hub-tabs" style="margin-bottom:14px;">
+          <button class="hub-tab-btn ${estado.modo === "margen" ? "active" : ""}" data-action="modo" data-val="margen" type="button">Por margen %</button>
+          <button class="hub-tab-btn ${estado.modo === "precio_fijo" ? "active" : ""}" data-action="modo" data-val="precio_fijo" type="button">Por precio fijo</button>
+        </div>
+        ${estado.modo === "margen" ? `
+          <div style="text-align:center; font-size:13px; font-weight:700; margin-bottom:10px;">¿Cuánto querés ganar sobre tu costo?</div>
+          <div class="wiz-margin-stepper">
+            <button type="button" data-action="margen-menos">−</button>
+            <div class="val">${fmtInt(estado.margenPct)}%</div>
+            <button type="button" data-action="margen-mas">+</button>
+          </div>
+          <div style="font-size:11px; color:var(--muted); text-align:center; margin-top:8px;">Este margen se aplica a todos los canales — la misma ganancia neta por unidad en cada uno.</div>
+        ` : `
+          <div class="hub-field" style="max-width:260px; margin:0 auto;">
+            <label>Precio de venta (con IVA, ARS)</label>
+            <input type="text" inputmode="decimal" data-field="precioFijo" value="${estado.precioFijo}" placeholder="0" />
+          </div>
+        `}
+
+        <div class="hub-card-title" style="margin-top:20px;">Tu ganancia en cada canal ${estado.modo === "margen" ? "con este margen" : "con este precio"}</div>
+        <div class="wiz-canal-grid">
+          ${filas.map(({ canal, r }) => `
+            <div class="wiz-canal-card">
+              <div class="head">
+                <div><div class="nombre">${escHtml(canal.nombre)}</div><div class="sub">${escHtml(canal.sub)}</div></div>
+                <span class="badge">${fmt(r.margenSobrePrecio)}%</span>
+              </div>
+              <div class="te-queda">Te queda por unidad<br/><b>$${fmt(r.teQuedaUnit)}</b></div>
+            </div>
+          `).join("")}
+        </div>
+
+        <div class="wiz-config-panel">
+          <div class="hub-card-title" style="cursor:pointer;" data-action="toggle-config">⚙️ Configurar comisiones de plataformas ${configAbierta ? "▲" : "▼"}</div>
+          <div style="font-size:11.5px; color:var(--muted); margin-bottom:10px;">Ajustá el % que cobra cada plataforma si tus condiciones son distintas.</div>
+          ${configAbierta ? `
+            ${config.canales.map((c, i) => `
+              <div class="wiz-config-row">
+                <label>${escHtml(c.nombre)} — ${escHtml(c.sub)}</label>
+                <input type="text" inputmode="decimal" data-config-canal="${i}" value="${c.comisionPct}" placeholder="0" />
+              </div>
+            `).join("")}
+            <div class="wiz-config-row">
+              <label>IIBB en ${escHtml(estado.provincia)} (%)</label>
+              <input type="text" inputmode="decimal" data-config-iibb="1" value="${config.iibbPorProvincia[estado.provincia]}" placeholder="0" />
+            </div>
+            <div class="wiz-config-row">
+              <label>Tasa de Ganancias estimada (%)</label>
+              <input type="text" inputmode="decimal" data-config-ganancias="1" value="${config.tasaGanancias}" placeholder="30" />
+            </div>
+          ` : ""}
+        </div>
+      `;
+    }
+
+    function renderPaso3() {
+      const { t, filas } = calcularTodosLosCanales();
+      const mejor = filas[0];
+      return `
+        <div class="wiz-best-banner">
+          <div>
+            <div class="lbl">🏆 Tu mejor canal</div>
+            <div class="canal">${escHtml(mejor.canal.nombre)} · ${escHtml(mejor.canal.sub)}</div>
+          </div>
+          <div>
+            <div class="monto">$${fmtInt(mejor.r.teQuedaUnit * t.unidades)}</div>
+            <div class="monto-sub">te quedan limpios · por el lote · ${fmt(mejor.r.margenSobrePrecio)}% margen</div>
+          </div>
+        </div>
+        <div class="hub-card-title">Todos los canales, ordenados de mejor a peor</div>
+        ${filas.map(({ canal, r }, i) => `
+          <div class="wiz-canal-row ${i === 0 ? "top" : ""} ${canalAbierto === canal.id ? "open" : ""}" data-action="toggle-canal" data-id="${canal.id}">
+            <div class="head">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div class="rank">${i + 1}</div>
+                <div><div style="font-weight:800;">${escHtml(canal.nombre)}</div><div style="font-size:11px; color:var(--muted);">${escHtml(canal.sub)}</div></div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:10px; color:var(--muted);">Te queda en total</div>
+                <div style="font-weight:800; color:var(--green);">$${fmtInt(r.teQuedaUnit * t.unidades)}</div>
+                <span class="badge" style="background:var(--green-bg); color:var(--green); font-size:11px; font-weight:800; padding:1px 8px; border-radius:20px;">${fmt(r.margenSobrePrecio)}%</span>
+              </div>
+            </div>
+            <div class="cuerpo">
+              <div>
+                <div class="cuerpo-col-title">La operación, por unidad</div>
+                <div class="wiz-breakdown-row"><span class="lbl">Cobrás al cliente (con IVA)</span><span class="val" style="color:var(--green);">+$${fmt(r.pConIva)}</span></div>
+                <div class="wiz-breakdown-row"><span class="lbl">Valor en aduana + crédito fiscal</span><span class="val" style="color:var(--coral-deep);">−$${fmt(t.costoUnit)}</span></div>
+                <div class="wiz-breakdown-row"><span class="lbl">Comisión del canal</span><span class="val" style="color:var(--coral-deep);">−$${fmt(r.comisionUnit)}</span></div>
+                <div class="wiz-breakdown-row"><span class="lbl">IVA neto al fisco</span><span class="val" style="color:var(--coral-deep);">−$${fmt(r.ivaNetoUnit)}</span></div>
+                <div class="wiz-breakdown-row"><span class="lbl">IIBB neto</span><span class="val" style="color:var(--coral-deep);">−$${fmt(r.iibbNetoUnit)}</span></div>
+                <div class="wiz-breakdown-row"><span class="lbl">Ganancias (al cierre)</span><span class="val" style="color:var(--coral-deep);">−$${fmt(r.gananciasNetoUnit)}</span></div>
+                <div class="wiz-breakdown-total"><span class="lbl">Te queda</span><span class="val">$${fmt(r.teQuedaUnit)}</span></div>
+              </div>
+              <div>
+                <div class="cuerpo-col-title">Crédito vs débito por impuesto · por el lote</div>
+                <div class="impuesto-block">
+                  <div class="titulo">IVA 21%</div>
+                  <div class="wiz-breakdown-row"><span class="lbl">Pagaste en aduana</span><span class="val">$${fmtInt(pNum(estado.ivaAlImportar))}</span></div>
+                  <div class="wiz-breakdown-row"><span class="lbl">Cobrás al vender</span><span class="val">$${fmtInt(r.ivaVentaUnit * t.unidades)}</span></div>
+                  <div class="wiz-breakdown-row"><span class="lbl">Pagás al fisco</span><span class="val">$${fmtInt(r.ivaNetoUnit * t.unidades)}</span></div>
+                </div>
+                <div class="impuesto-block">
+                  <div class="titulo">Ingresos Brutos <span style="font-weight:400; color:var(--muted);">provincial</span></div>
+                  <div class="wiz-breakdown-row"><span class="lbl">Perc. en aduana</span><span class="val">$${fmtInt(pNum(estado.adelantoIIBB))}</span></div>
+                  <div class="wiz-breakdown-row"><span class="lbl">IIBB sobre venta</span><span class="val">$${fmtInt(r.iibbVentaUnit * t.unidades)}</span></div>
+                  <div class="wiz-breakdown-row"><span class="lbl">Pagás al fisco</span><span class="val">$${fmtInt(r.iibbNetoUnit * t.unidades)}</span></div>
+                </div>
+                <div class="impuesto-block">
+                  <div class="titulo">Ganancias <span style="font-weight:400; color:var(--muted);">anual</span></div>
+                  <div class="wiz-breakdown-row"><span class="lbl">Perc. en aduana</span><span class="val">$${fmtInt(pNum(estado.adelantoGanancias))}</span></div>
+                  <div class="wiz-breakdown-row"><span class="lbl">Proyectado</span><span class="val">$${fmtInt(r.gananciasProyectadoUnit * t.unidades)}</span></div>
+                  <div class="wiz-breakdown-row"><span class="lbl">Pagás al fisco</span><span class="val">$${fmtInt(r.gananciasNetoUnit * t.unidades)}</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join("")}
+        <div style="font-size:10.5px; color:var(--muted); margin:10px 0 16px;">Valores orientativos según normativa fiscal argentina vigente. Ante dudas, consultá con tu contador.</div>
+        <div class="wiz-actions">
+          <button class="hub-btn-primary" id="marg-guardar" type="button">💾 Guardar simulación</button>
+        </div>
+      `;
+    }
+
+    // ---------- Render general + navegación ----------
+    function render() {
+      const cont = document.getElementById("marg-content");
+      let cuerpo = "";
+      if (paso === 0) {
+        cuerpo = renderLanding();
+      } else {
+        cuerpo = `
+          <div class="hub-card">
+            ${renderStepper()}
+            ${paso === 1 ? renderPaso1() : paso === 2 ? renderPaso2() : renderPaso3()}
+            <div class="wiz-nav-row">
+              <button class="hub-btn-ghost" data-action="volver" type="button" style="${paso === 1 ? "visibility:hidden;" : ""}">← Atrás</button>
+              ${paso < 3 ? `<button class="hub-btn-primary" data-action="continuar" type="button">Continuar →</button>` : `<span></span>`}
+            </div>
+          </div>
+        `;
+      }
+      cont.innerHTML = cuerpo;
+    }
+
+    document.getElementById("marg-content").addEventListener("click", async (e) => {
+      const el = e.target.closest("[data-action]");
+      if (!el) {
+        if (e.target.id === "marg-guardar") guardarSimulacion();
+        return;
+      }
+      e.preventDefault();
+      const action = el.getAttribute("data-action");
+      if (action === "nueva-simulacion" || action === "desde-biblioteca") {
+        tabImportacion = action === "desde-biblioteca" ? "biblioteca" : "manual";
+        if (tabImportacion === "biblioteca" && !cotizacionesGuardadas.length) await cargarCotizacionesGuardadas();
+        paso = 1; render();
+      } else if (action === "volver") { paso = Math.max(paso === 1 ? 0 : 1, paso - 1); render(); }
+      else if (action === "continuar") { paso = Math.min(3, paso + 1); render(); }
+      else if (action === "tab-importacion") {
+        tabImportacion = el.getAttribute("data-val");
+        if (tabImportacion === "biblioteca" && !cotizacionesGuardadas.length) { await cargarCotizacionesGuardadas(); render(); }
+        else render();
+      } else if (action === "actualizar-dolar") { actualizarDolarOficial(); }
+      else if (action === "modo") { estado.modo = el.getAttribute("data-val"); render(); }
+      else if (action === "margen-menos") { estado.margenPct = Math.max(0, pNum(estado.margenPct) - 5); render(); }
+      else if (action === "margen-mas") { estado.margenPct = pNum(estado.margenPct) + 5; render(); }
+      else if (action === "toggle-config") { configAbierta = !configAbierta; render(); }
+      else if (action === "toggle-canal") {
+        const id = el.getAttribute("data-id");
+        canalAbierto = canalAbierto === id ? null : id;
+        render();
+      }
+    });
+
+    document.getElementById("marg-content").addEventListener("input", (e) => {
+      const field = e.target.getAttribute("data-field");
+      const canalIdx = e.target.getAttribute("data-config-canal");
+      if (field === "tipoCambio") { tipoCambio = e.target.value; return; }
+      if (field) { estado[field] = e.target.value; if (paso === 1) { const el = document.querySelector(`[data-field="${field}"]`); render(); const el2 = document.querySelector(`[data-field="${field}"]`); if (el2) { el2.focus(); const v = el2.value; if (el2.setSelectionRange) el2.setSelectionRange(v.length, v.length); } } return; }
+      if (canalIdx !== null) { config.canales[canalIdx].comisionPct = e.target.value; guardarConfig(); return; }
+      if (e.target.hasAttribute("data-config-iibb")) { config.iibbPorProvincia[estado.provincia] = e.target.value; guardarConfig(); return; }
+      if (e.target.hasAttribute("data-config-ganancias")) { config.tasaGanancias = e.target.value; guardarConfig(); return; }
+    });
+
+    document.getElementById("marg-content").addEventListener("change", async (e) => {
+      if (e.target.getAttribute("data-action") === "elegir-cotizacion") {
+        cotizacionElegidaId = e.target.value;
+        aplicarCotizacionElegida();
+        render();
+      } else if (e.target.getAttribute("data-field") === "provincia") {
+        estado.provincia = e.target.value;
+        render();
+      }
+    });
+
+    async function guardarSimulacion() {
+      const { t, filas } = calcularTodosLosCanales();
+      const btn = document.getElementById("marg-guardar");
+      const payload = {
+        cliente_id: clienteId,
+        nombre: `Simulación ${new Date().toLocaleDateString("es-AR")}`,
+        unidades: t.unidades,
+        costo_total: t.desembolsoTotal,
+        impuestos: { iva: pNum(estado.ivaAlImportar), iibb: pNum(estado.adelantoIIBB), ganancias: pNum(estado.adelantoGanancias) },
+        margen_pct: estado.modo === "margen" ? pNum(estado.margenPct) : null,
+        modo: estado.modo,
+        precio_fijo: estado.modo === "precio_fijo" ? pNum(estado.precioFijo) : null,
+        canales: config.canales,
+        resultado: { filas: filas.map(({ canal, r }) => ({ canal, r })) },
+      };
+      const { error } = await supabaseClient.from("simulaciones_margen").insert(payload);
+      if (error) { console.error(error); if (btn) btn.textContent = "⚠️ No se pudo guardar"; return; }
+      if (btn) { btn.textContent = "✓ Guardado"; setTimeout(() => { if (btn) btn.textContent = "💾 Guardar simulación"; }, 2000); }
+    }
+
+    await cargarSimulacionesGuardadas();
+    render();
+  })();
+} catch (e) { console.error("calculadora de márgenes:", e); }
+</script>
+</body>
+</html>

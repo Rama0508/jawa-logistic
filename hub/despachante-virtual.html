@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Despachante virtual — Portal de cliente — Jawa Logistic</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../css/hub.css" />
+</head>
+<body>
+
+<div id="hub-shell">
+  <div id="hub-page">
+    <p class="hub-page-lead">Preguntale al despachante virtual sobre regímenes, impuestos y documentación de importación.</p>
+    <div id="desp-content"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/rates.js"></script>
+<script src="../js/cuenta.js"></script>
+<script src="../js/hub.js"></script>
+<script>
+try {
+  (async function () {
+    await SUPABASE_READY;
+    const session = await iniciarHub("despachante-virtual");
+    if (!session) return;
+    const clienteId = session.user.id;
+
+    const SUGERENCIAS = [
+      "¿Qué régimen me conviene para un envío de 30kg?",
+      "¿Cómo se calcula el IVA en una importación?",
+      "¿Qué documentos necesito para despachar mi carga?",
+      "¿Cuál es la diferencia entre courier y régimen general?",
+    ];
+
+    let conversaciones = [];
+    let conversacionActualId = null;
+    let mensajes = [];
+    let enviando = false;
+    let archivoAdjunto = null; // { base64, mediaType, nombre }
+    let filtroBusqueda = "";
+
+    function fmtFechaConv(iso) {
+      const d = new Date(iso);
+      const hoy = new Date();
+      const esHoy = d.toDateString() === hoy.toDateString();
+      return esHoy ? d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : d.toLocaleDateString("es-AR");
+    }
+
+    async function cargarConversaciones() {
+      const { data, error } = await supabaseClient
+        .from("despachante_conversaciones")
+        .select("id, titulo, actualizado_en")
+        .eq("cliente_id", clienteId)
+        .order("actualizado_en", { ascending: false });
+      if (!error) conversaciones = data || [];
+    }
+
+    async function cargarMensajes(conversacionId) {
+      const { data, error } = await supabaseClient
+        .from("despachante_mensajes")
+        .select("id, rol, contenido, creado_en")
+        .eq("conversacion_id", conversacionId)
+        .order("creado_en", { ascending: true });
+      mensajes = error ? [] : (data || []);
+    }
+
+    function renderSidebar() {
+      const filtradas = filtroBusqueda
+        ? conversaciones.filter((c) => (c.titulo || "").toLowerCase().includes(filtroBusqueda.toLowerCase()))
+        : conversaciones;
+      return `
+        <div class="desp-sidebar">
+          <button class="hub-btn-primary" id="desp-nueva" type="button" style="width:100%;">+ Nueva conversación</button>
+          <input type="search" id="desp-buscar" placeholder="Buscar conversación…" value="${escHtml(filtroBusqueda)}" />
+          ${!filtradas.length ? `<div style="font-size:11.5px; color:var(--muted); padding:10px 4px;">${conversaciones.length ? "Sin resultados" : "Todavía no tenés conversaciones"}</div>` : filtradas.map((c) => `
+            <div class="desp-conv-item ${c.id === conversacionActualId ? "active" : ""}" data-conv-id="${c.id}">
+              <div>${escHtml(c.titulo || "Nueva conversación")}</div>
+              <div class="fecha">${fmtFechaConv(c.actualizado_en)}</div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderMensajes() {
+      if (!mensajes.length) {
+        return `
+          <div class="desp-suggestions">
+            ${SUGERENCIAS.map((s) => `<button class="desp-suggestion" data-sugerencia="${escHtml(s)}" type="button">${escHtml(s)}</button>`).join("")}
+          </div>
+        `;
+      }
+      return mensajes.map((m) => `
+        <div class="hub-chat-msg ${m.rol === "user" ? "propio" : "ajeno"}">${escHtml(m.contenido).replace(/\n/g, "<br/>")}</div>
+      `).join("") + (enviando ? `<div class="hub-chat-msg ajeno">Escribiendo…</div>` : "");
+    }
+
+    function renderPanel() {
+      return `
+        <div class="desp-panel">
+          <div class="desp-head">
+            <div class="avatar">🧑‍💼</div>
+            <div>
+              <div style="font-weight:800; font-size:14px;">Despachante virtual</div>
+              <div class="estado">● Disponible</div>
+            </div>
+          </div>
+          <div class="desp-messages" id="desp-messages">${renderMensajes()}</div>
+          ${archivoAdjunto ? `<div class="desp-archivo-chip">📎 ${escHtml(archivoAdjunto.nombre)} <span data-action="quitar-archivo" style="cursor:pointer; font-weight:800;">✕</span></div>` : ""}
+          <div class="desp-input-row">
+            <button class="desp-attach-btn" id="desp-attach-btn" type="button" title="Adjuntar archivo">📎</button>
+            <input type="file" id="desp-file-input" accept="application/pdf,image/*" style="display:none;" />
+            <input type="text" id="desp-input" placeholder="Escribí tu consulta…" ${enviando ? "disabled" : ""} />
+            <button class="desp-send-btn" id="desp-send" type="button" ${enviando ? "disabled" : ""}>➤</button>
+          </div>
+          <div class="desp-attach-note">Adjuntá una factura proforma o packing list para un análisis más preciso</div>
+        </div>
+      `;
+    }
+
+    function render() {
+      const cont = document.getElementById("desp-content");
+      cont.innerHTML = `<div class="desp-shell">${renderSidebar()}${renderPanel()}</div>`;
+      attachHandlers();
+      const box = document.getElementById("desp-messages");
+      if (box) box.scrollTop = box.scrollHeight;
+    }
+
+    async function seleccionarConversacion(id) {
+      conversacionActualId = id;
+      await cargarMensajes(id);
+      render();
+    }
+
+    async function nuevaConversacion() {
+      conversacionActualId = null;
+      mensajes = [];
+      render();
+    }
+
+    async function asegurarConversacion(primerMensaje) {
+      if (conversacionActualId) return conversacionActualId;
+      const titulo = primerMensaje.length > 48 ? primerMensaje.slice(0, 48) + "…" : primerMensaje;
+      const { data, error } = await supabaseClient
+        .from("despachante_conversaciones")
+        .insert({ cliente_id: clienteId, titulo })
+        .select("id, titulo, actualizado_en")
+        .single();
+      if (error) { console.error(error); return null; }
+      conversacionActualId = data.id;
+      conversaciones.unshift(data);
+      return data.id;
+    }
+
+    async function enviarMensaje(texto) {
+      const contenido = (texto || "").trim();
+      if (!contenido && !archivoAdjunto) return;
+      if (enviando) return;
+
+      const convId = await asegurarConversacion(contenido || archivoAdjunto.nombre);
+      if (!convId) return;
+
+      mensajes.push({ rol: "user", contenido: contenido || `📎 ${archivoAdjunto.nombre}` });
+      const archivoParaEnviar = archivoAdjunto;
+      archivoAdjunto = null;
+      enviando = true;
+      render();
+
+      await supabaseClient.from("despachante_mensajes").insert({
+        conversacion_id: convId, rol: "user", contenido: contenido || `📎 ${archivoParaEnviar.nombre}`,
+      });
+
+      const historial = mensajes.slice(0, -1).map((m) => ({ rol: m.rol, contenido: m.contenido }));
+
+      try {
+        const { data: { session: authSession } } = await supabaseClient.auth.getSession();
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/despachante-virtual`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${authSession ? authSession.access_token : SUPABASE_ANON_KEY}`,
+            apikey: SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
+            mensaje: contenido,
+            historial,
+            archivoBase64: archivoParaEnviar ? archivoParaEnviar.base64 : undefined,
+            archivoMediaType: archivoParaEnviar ? archivoParaEnviar.mediaType : undefined,
+            archivoNombre: archivoParaEnviar ? archivoParaEnviar.nombre : undefined,
+          }),
+        });
+        const data = await resp.json();
+        const respuesta = data && data.success ? data.respuesta : (data && data.error) || "No se pudo obtener respuesta. Probá de nuevo.";
+        mensajes.push({ rol: "assistant", contenido: respuesta });
+        await supabaseClient.from("despachante_mensajes").insert({ conversacion_id: convId, rol: "assistant", contenido: respuesta });
+        await supabaseClient.from("despachante_conversaciones").update({ actualizado_en: new Date().toISOString() }).eq("id", convId);
+      } catch (e) {
+        mensajes.push({ rol: "assistant", contenido: "No se pudo conectar con el despachante virtual. Probá de nuevo en un momento." });
+      }
+      enviando = false;
+      render();
+    }
+
+    function leerArchivo(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = String(reader.result).split(",")[1];
+        archivoAdjunto = { base64, mediaType: file.type, nombre: file.name };
+        render();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function attachHandlers() {
+      const nuevaBtn = document.getElementById("desp-nueva");
+      if (nuevaBtn) nuevaBtn.addEventListener("click", nuevaConversacion);
+
+      const buscar = document.getElementById("desp-buscar");
+      if (buscar) buscar.addEventListener("input", (e) => {
+        filtroBusqueda = e.target.value;
+        const activo = document.activeElement === e.target;
+        render();
+        if (activo) { const el = document.getElementById("desp-buscar"); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }
+      });
+
+      document.querySelectorAll("[data-conv-id]").forEach((el) => {
+        el.addEventListener("click", () => seleccionarConversacion(el.getAttribute("data-conv-id")));
+      });
+
+      document.querySelectorAll("[data-sugerencia]").forEach((el) => {
+        el.addEventListener("click", () => enviarMensaje(el.getAttribute("data-sugerencia")));
+      });
+
+      const input = document.getElementById("desp-input");
+      const sendBtn = document.getElementById("desp-send");
+      if (input) input.addEventListener("keydown", (e) => { if (e.key === "Enter") { enviarMensaje(input.value); input.value = ""; } });
+      if (sendBtn) sendBtn.addEventListener("click", () => { const v = input ? input.value : ""; enviarMensaje(v); if (input) input.value = ""; });
+
+      const attachBtn = document.getElementById("desp-attach-btn");
+      const fileInput = document.getElementById("desp-file-input");
+      if (attachBtn && fileInput) {
+        attachBtn.addEventListener("click", () => fileInput.click());
+        fileInput.addEventListener("change", () => { if (fileInput.files && fileInput.files[0]) leerArchivo(fileInput.files[0]); });
+      }
+      const quitarArchivo = document.querySelector('[data-action="quitar-archivo"]');
+      if (quitarArchivo) quitarArchivo.addEventListener("click", () => { archivoAdjunto = null; render(); });
+    }
+
+    await cargarConversaciones();
+    render();
+  })();
+} catch (e) { console.error("despachante virtual:", e); }
+</script>
+</body>
+</html>

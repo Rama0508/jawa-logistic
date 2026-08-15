@@ -109,23 +109,10 @@ try {
       return { cantidad, fobU, fobTotal, pesoTotal, cbm, cbmAuto, cbmCobrable, fleteMaritimo, pesoCobrable, fleteAereo, origen, cajas: bultos };
     }
 
-    // Cascada de impuestos del régimen general (aéreo/marítimo): DIE y tasa
-    // estadística sobre el CIF, después IVA/IVA adicional/Ganancias/IIBB
-    // sobre CIF+DIE+tasa — mismo orden que aplica la aduana argentina en la
-    // práctica. Las alícuotas vienen del paso 2 (estimadas por IA o a mano).
-    function calcularImpuestosCascada(alic, cif) {
-      const die = pNum(alic.die), iva = pNum(alic.iva), ivaAd = pNum(alic.ivaAdicional),
-            gan = pNum(alic.ganancias), iibb = pNum(alic.iibb), tasa = pNum(alic.tasaEstadistica);
-      const tasaMonto = (cif * tasa) / 100;
-      const dieMonto = (cif * die) / 100;
-      const baseIVA = cif + dieMonto + tasaMonto;
-      const ivaMonto = (baseIVA * iva) / 100;
-      const ivaAdMonto = (baseIVA * ivaAd) / 100;
-      const ganMonto = (baseIVA * gan) / 100;
-      const iibbMonto = (baseIVA * iibb) / 100;
-      const total = dieMonto + tasaMonto + ivaMonto + ivaAdMonto + ganMonto + iibbMonto;
-      return { esCourier: false, dieMonto, tasaMonto, baseIVA, ivaMonto, ivaAdMonto, ganMonto, iibbMonto, total, ivaRecuperable: ivaMonto + ivaAdMonto };
-    }
+    // calcularImpuestosCascada (DIE/tasa sobre CIF, después IVA/IVA
+    // adicional/Ganancias/IIBB sobre CIF+DIE+tasa) vive en
+    // js/cotizador-core.js — compartida con hub/calculadora-margenes.html
+    // para no duplicarla.
 
     // Envío entero (todos los productos válidos), para la vía elegida en el
     // paso 4. Courier usa el régimen simplificado ya vigente en todo el sitio
