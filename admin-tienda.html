@@ -117,6 +117,7 @@
     <button class="tab-btn" data-tab="cursos">Cursos</button>
     <button class="tab-btn" data-tab="pedidos">Pedidos</button>
     <button class="tab-btn" data-tab="envio">Envío</button>
+    <button class="tab-btn" data-tab="proveedores">Proveedores</button>
   </div>
 
   <!-- ---------- Productos ---------- -->
@@ -184,6 +185,37 @@
       <button class="btn-primary" id="envio-guardar-btn" type="button">Guardar</button>
       <div class="msg" id="envio-msg"></div>
     </div>
+  </div>
+
+  <!-- ---------- Proveedores verificados ---------- -->
+  <div class="tab-panel" id="tab-proveedores">
+    <p class="sub">Catálogo de "Proveedores Verificados" del hub. Marcá "Verificado" solo en productos de proveedores que evaluaste de verdad — el resto se muestra con la etiqueta "Ejemplo" en el sitio.</p>
+    <button class="add-btn" id="proveedor-nuevo-btn" type="button">+ Nuevo producto</button>
+    <div id="proveedor-form-card" class="card" style="display:none;">
+      <div class="card-title" id="proveedor-form-titulo">Nuevo producto</div>
+      <input type="hidden" id="proveedor-id" />
+      <div class="field-row">
+        <div class="field span2"><label>Nombre</label><input type="text" id="proveedor-nombre" /></div>
+        <div class="field"><label>Categoría</label><input type="text" id="proveedor-categoria" placeholder="Ej: Hogar y jardín" /></div>
+        <div class="field"><label>Origen</label><input type="text" id="proveedor-origen" value="China" /></div>
+        <div class="field"><label>FOB mínimo (USD)</label><input type="text" inputmode="decimal" id="proveedor-fob-min" placeholder="0.00" /></div>
+        <div class="field"><label>FOB máximo (USD, opcional)</label><input type="text" inputmode="decimal" id="proveedor-fob-max" placeholder="0.00" /></div>
+        <div class="field"><label>Verificado</label><select id="proveedor-verificado"><option value="false">No (ejemplo)</option><option value="true">Sí, lo evalué</option></select></div>
+        <div class="field"><label>Activo</label><select id="proveedor-activo"><option value="true">Sí</option><option value="false">No</option></select></div>
+        <div class="field span2"><label>Nombre del proveedor (interno, opcional)</label><input type="text" id="proveedor-proveedor-nombre" /></div>
+        <div class="field span2"><label>Link del proveedor (interno, opcional)</label><input type="text" id="proveedor-proveedor-link" placeholder="https://..." /></div>
+        <div class="field span4"><label>Descripción</label><textarea id="proveedor-descripcion"></textarea></div>
+        <div class="field span4">
+          <label>Foto</label>
+          <input type="file" id="proveedor-foto-input" accept="image/*" />
+          <div class="thumbs" id="proveedor-foto-thumb"></div>
+        </div>
+      </div>
+      <button class="btn-primary" id="proveedor-guardar-btn" type="button">Guardar producto</button>
+      <button class="btn-ghost" id="proveedor-cancelar-btn" type="button">Cancelar</button>
+      <div class="msg" id="proveedor-form-msg"></div>
+    </div>
+    <div id="proveedores-lista"></div>
   </div>
 </div>
 
@@ -620,6 +652,146 @@ try {
     window.addEventListener("staff-listo", cargar, { once: false });
   })();
 } catch (e) { console.error("admin envío:", e); }
+
+// ---------- Proveedores verificados ----------
+try {
+  (function () {
+    let editando = null;
+    let fotoNueva = null;
+
+    function resetForm() {
+      editando = null;
+      fotoNueva = null;
+      document.getElementById("proveedor-id").value = "";
+      document.getElementById("proveedor-nombre").value = "";
+      document.getElementById("proveedor-categoria").value = "";
+      document.getElementById("proveedor-origen").value = "China";
+      document.getElementById("proveedor-fob-min").value = "";
+      document.getElementById("proveedor-fob-max").value = "";
+      document.getElementById("proveedor-verificado").value = "false";
+      document.getElementById("proveedor-activo").value = "true";
+      document.getElementById("proveedor-proveedor-nombre").value = "";
+      document.getElementById("proveedor-proveedor-link").value = "";
+      document.getElementById("proveedor-descripcion").value = "";
+      document.getElementById("proveedor-foto-thumb").innerHTML = "";
+      document.getElementById("proveedor-form-msg").classList.remove("show");
+      document.getElementById("proveedor-form-titulo").textContent = "Nuevo producto";
+    }
+
+    document.getElementById("proveedor-nuevo-btn").addEventListener("click", () => {
+      resetForm();
+      document.getElementById("proveedor-form-card").style.display = "block";
+    });
+    document.getElementById("proveedor-cancelar-btn").addEventListener("click", () => {
+      document.getElementById("proveedor-form-card").style.display = "none";
+    });
+    document.getElementById("proveedor-foto-input").addEventListener("change", (e) => {
+      fotoNueva = (e.target.files || [])[0] || null;
+      document.getElementById("proveedor-foto-thumb").innerHTML = fotoNueva ? `<img src="${URL.createObjectURL(fotoNueva)}" />` : "";
+    });
+
+    function pNumProveedor(v) {
+      const n = parseFloat(String(v || "").trim().replace(",", "."));
+      return isNaN(n) ? null : n;
+    }
+
+    async function cargarLista() {
+      const { data, error } = await supabaseClient.from("proveedores_catalogo").select("*").order("creado_en", { ascending: false });
+      if (error) { console.error(error); return; }
+      document.getElementById("proveedores-lista").innerHTML = (data || []).map((p) => `
+        <div class="item-card">
+          <div class="item-card-head">
+            <div>
+              <div class="nombre">${escHtml(p.nombre)}
+                ${p.verificado ? '<span class="estado-pill estado-pagado">verificado</span>' : '<span class="estado-pill" style="background:var(--paper-2); color:var(--muted);">ejemplo</span>'}
+                ${p.activo ? "" : '<span class="estado-pill estado-cancelado">inactivo</span>'}
+              </div>
+              <div class="meta">${escHtml(p.categoria)} · FOB US$${p.precio_fob_min}${p.precio_fob_max ? "–" + p.precio_fob_max : ""} · ${escHtml(p.origen)}</div>
+            </div>
+            <div class="item-actions">
+              <button class="btn-ghost" data-editar="${p.id}">Editar</button>
+              <button class="btn-danger" data-borrar="${p.id}">Eliminar</button>
+            </div>
+          </div>
+        </div>
+      `).join("") || `<p class="sub">Todavía no hay productos cargados.</p>`;
+
+      document.querySelectorAll("[data-editar]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const p = data.find((x) => x.id === btn.dataset.editar);
+          if (!p) return;
+          editando = p;
+          fotoNueva = null;
+          document.getElementById("proveedor-id").value = p.id;
+          document.getElementById("proveedor-nombre").value = p.nombre;
+          document.getElementById("proveedor-categoria").value = p.categoria;
+          document.getElementById("proveedor-origen").value = p.origen || "China";
+          document.getElementById("proveedor-fob-min").value = p.precio_fob_min ?? "";
+          document.getElementById("proveedor-fob-max").value = p.precio_fob_max ?? "";
+          document.getElementById("proveedor-verificado").value = String(!!p.verificado);
+          document.getElementById("proveedor-activo").value = String(p.activo);
+          document.getElementById("proveedor-proveedor-nombre").value = p.proveedor_nombre || "";
+          document.getElementById("proveedor-proveedor-link").value = p.proveedor_link || "";
+          document.getElementById("proveedor-descripcion").value = p.descripcion || "";
+          document.getElementById("proveedor-foto-thumb").innerHTML = p.imagen_url ? `<img src="${escHtml(p.imagen_url)}" />` : "";
+          document.getElementById("proveedor-form-titulo").textContent = "Editar producto";
+          document.getElementById("proveedor-form-card").style.display = "block";
+        });
+      });
+      document.querySelectorAll("[data-borrar]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("¿Eliminar este producto del catálogo?")) return;
+          await supabaseClient.from("proveedores_catalogo").delete().eq("id", btn.dataset.borrar);
+          cargarLista();
+        });
+      });
+    }
+
+    document.getElementById("proveedor-guardar-btn").addEventListener("click", async () => {
+      const msg = document.getElementById("proveedor-form-msg");
+      msg.className = "msg";
+      const nombre = document.getElementById("proveedor-nombre").value.trim();
+      const categoria = document.getElementById("proveedor-categoria").value.trim();
+      const fobMin = pNumProveedor(document.getElementById("proveedor-fob-min").value);
+      if (!nombre || !categoria || fobMin === null) {
+        msg.textContent = "Faltan campos obligatorios (nombre, categoría, FOB mínimo).";
+        msg.classList.add("show", "error");
+        return;
+      }
+
+      let imagenUrl = editando ? editando.imagen_url : null;
+      if (fotoNueva) {
+        const urls = await subirFotos([fotoNueva], "productos", "proveedores-catalogo/" + slugify(nombre));
+        if (urls[0]) imagenUrl = urls[0];
+      }
+
+      const payload = {
+        nombre,
+        categoria,
+        origen: document.getElementById("proveedor-origen").value.trim() || "China",
+        precio_fob_min: fobMin,
+        precio_fob_max: pNumProveedor(document.getElementById("proveedor-fob-max").value),
+        verificado: document.getElementById("proveedor-verificado").value === "true",
+        activo: document.getElementById("proveedor-activo").value === "true",
+        proveedor_nombre: document.getElementById("proveedor-proveedor-nombre").value.trim() || null,
+        proveedor_link: document.getElementById("proveedor-proveedor-link").value.trim() || null,
+        descripcion: document.getElementById("proveedor-descripcion").value.trim() || null,
+        imagen_url: imagenUrl,
+      };
+
+      const { error } = editando
+        ? await supabaseClient.from("proveedores_catalogo").update(payload).eq("id", editando.id)
+        : await supabaseClient.from("proveedores_catalogo").insert(payload);
+
+      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("show", "error"); return; }
+      msg.textContent = "Guardado ✓"; msg.classList.add("show", "ok");
+      document.getElementById("proveedor-form-card").style.display = "none";
+      cargarLista();
+    });
+
+    window.addEventListener("staff-listo", cargarLista, { once: false });
+  })();
+} catch (e) { console.error("admin proveedores:", e); }
 </script>
 </body>
 </html>
