@@ -53,13 +53,14 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ success: false, error: "Escribí una consulta o adjuntá un archivo." }, 400);
   }
 
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  const apiKey = (Deno.env.get("ANTHROPIC_API_KEY") || "").replace(/[^\x21-\x7E]/g, "");
   if (!apiKey) {
     return jsonResponse({
       success: false,
       error: "El despachante virtual no está configurado todavía (falta ANTHROPIC_API_KEY en el proyecto de Supabase).",
     }, 500);
   }
+  console.log(`despachante-virtual: apiKey length=${apiKey.length}, prefix=${apiKey.slice(0, 8)}`);
 
   const contenido: Record<string, unknown>[] = [];
   if (archivoBase64) {
@@ -82,7 +83,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeout = setTimeout(() => controller.abort(), 55000);
     const resp = await fetch(ANTHROPIC_API_URL, {
       method: "POST",
       signal: controller.signal,
@@ -104,6 +105,7 @@ Deno.serve(async (req: Request) => {
     const data = await resp.json();
 
     if (!resp.ok) {
+      console.error("despachante-virtual: Anthropic respondió", resp.status, JSON.stringify(data));
       return jsonResponse({
         success: false,
         error: `El despachante virtual no pudo responder (${resp.status}). Probá de nuevo en un momento.`,
@@ -124,6 +126,7 @@ Deno.serve(async (req: Request) => {
 
     return jsonResponse({ success: true, respuesta: textBlock.text });
   } catch (err) {
+    console.error("despachante-virtual fetch error:", err instanceof Error ? `${err.name}: ${err.message}` : String(err));
     const timedOut = err instanceof Error && err.name === "AbortError";
     return jsonResponse({
       success: false,

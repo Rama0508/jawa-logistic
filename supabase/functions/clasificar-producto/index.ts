@@ -79,13 +79,14 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ success: false, error: "Cargá una descripción o una foto del producto." }, 400);
   }
 
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  const apiKey = (Deno.env.get("ANTHROPIC_API_KEY") || "").replace(/[^\x21-\x7E]/g, "");
   if (!apiKey) {
     return jsonResponse({
       success: false,
       error: "La clasificación por IA no está configurada todavía (falta ANTHROPIC_API_KEY en el proyecto de Supabase). Cargá los datos a mano mientras tanto.",
     }, 500);
   }
+  console.log(`clasificar-producto: apiKey length=${apiKey.length}, prefix=${apiKey.slice(0, 8)}`);
 
   const contenido: Record<string, unknown>[] = [];
   if (imagenBase64) {
@@ -103,7 +104,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
+    const timeout = setTimeout(() => controller.abort(), 55000);
     const resp = await fetch(ANTHROPIC_API_URL, {
       method: "POST",
       signal: controller.signal,
@@ -129,6 +130,7 @@ Deno.serve(async (req: Request) => {
     const data = await resp.json();
 
     if (!resp.ok) {
+      console.error("clasificar-producto: Anthropic respondió", resp.status, JSON.stringify(data));
       return jsonResponse({
         success: false,
         error: `La IA no pudo clasificar el producto (${resp.status}). Cargá los datos a mano.`,
@@ -163,6 +165,7 @@ Deno.serve(async (req: Request) => {
       advertencia: "Alícuotas estimadas por IA, sin base NCM oficial — confirmalas con tu despachante antes de una operación real.",
     });
   } catch (err) {
+    console.error("clasificar-producto fetch error:", err instanceof Error ? `${err.name}: ${err.message}` : String(err));
     const timedOut = err instanceof Error && err.name === "AbortError";
     return jsonResponse({
       success: false,
