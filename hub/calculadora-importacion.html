@@ -411,7 +411,7 @@ try {
         </div>
         <div class="wiz-note">
           Volumen total (CBM): lo calculamos solo desde las medidas — <b>${fmt(c.cbmAuto)} m³</b>. O escribí el valor si ya lo conocés:
-          <div class="hub-field" style="margin-top:8px; max-width:200px;"><input type="text" inputmode="decimal" data-field="cbmManual" value="${p.cbmManual}" placeholder="${fmt(c.cbmAuto)}" /></div>
+          <div class="hub-field" style="margin-top:8px; max-width:200px;"><input type="text" inputmode="decimal" data-field="cbmManual" value="${p.cbmManual !== "" ? p.cbmManual : fmt(c.cbmAuto)}" placeholder="${fmt(c.cbmAuto)}" /></div>
         </div>
         <div class="hub-field-row" style="margin-top:6px;">
           <div class="hub-field"><label>Unidades</label><input type="text" disabled value="${c.cantidad}" /></div>
