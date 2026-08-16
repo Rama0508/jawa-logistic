@@ -59,6 +59,12 @@ const REQUISITOS_SCHEMA = {
     confianza: { type: "string", enum: ["alta", "media", "baja"] },
     resumen: { type: "string", description: "1-2 frases en criollo explicando en general qué implica importar este tipo de producto" },
     complejidad: { type: "string", enum: ["baja", "media", "alta"], description: "Qué tan trabado suele ser el trámite para este tipo de producto en términos generales" },
+    estadoAceptacion: {
+      type: "string",
+      enum: ["sin_restricciones_tipicas", "con_permisos_especiales", "prohibido_o_muy_restringido"],
+      description: "Si el producto típicamente entra en alguna categoría prohibida o muy restringida para importar a Argentina (usados, armas/réplicas, residuos peligrosos, especies protegidas/CITES, falsificaciones, estupefacientes/precursores sin RENPRE, neumáticos usados, etc.), marcá 'prohibido_o_muy_restringido'. Si necesita licencia no automática u otro permiso especial pero no está prohibido, 'con_permisos_especiales'. Si no hay indicios de restricción, 'sin_restricciones_tipicas'. Ante la duda, preferí la opción más cautelosa (no asegures 'sin_restricciones_tipicas' sin base)."
+    },
+    notaAceptacion: { type: "string", description: "1-2 frases explicando el estadoAceptacion, en criollo" },
     requisitos: {
       type: "array",
       description: "Entre 1 y 5 items. Si el producto típicamente no tiene requisitos especiales más allá del trámite de importación estándar, devolver un solo item que lo aclare.",
@@ -74,7 +80,7 @@ const REQUISITOS_SCHEMA = {
       },
     },
   },
-  required: ["nombreProducto", "categoria", "confianza", "resumen", "complejidad", "requisitos"],
+  required: ["nombreProducto", "categoria", "confianza", "resumen", "complejidad", "estadoAceptacion", "notaAceptacion", "requisitos"],
   additionalProperties: false,
 };
 
@@ -83,6 +89,7 @@ const SYSTEM_PROMPT = `Sos un asistente que ayuda a estimar, de forma orientativ
 Reglas importantes:
 - NO tenés acceso a la nomenclatura arancelaria oficial (NCM/Mercosur) ni a la normativa vigente en tiempo real — nunca inventes un código NCM, un número de resolución, una ley o norma real. Hablá siempre en términos generales de qué TIPO de organismo o trámite suele intervenir.
 - Basate en tu conocimiento general de qué organismos suelen intervenir según el rubro: ANMAT (cosmética, alimentos, dispositivos médicos, suplementos), SENASA (productos de origen animal o vegetal, agroquímicos), ENACOM (equipos de telecomunicaciones o radiofrecuencia, ej. con bluetooth/wifi), certificación de seguridad eléctrica tipo INTI (electrónica y electrodomésticos), licencias no automáticas (rubros como textil, calzado, juguetes, neumáticos, autopartes), RENPRE (precursores químicos). Si el producto es de un rubro sin restricciones típicas conocidas (ej: un llavero de metal, un accesorio simple), decilo con tranquilidad — no inventes trámites que no aplican.
+- Para "estadoAceptacion": marcá "prohibido_o_muy_restringido" cuando el producto típicamente entra en categorías generalmente prohibidas o con restricción muy fuerte para importar a Argentina: mercadería USADA o de segunda mano (regla general, con pocas excepciones para bienes de capital específicos), armas de fuego/municiones/réplicas sin autorización de ANMaC, residuos peligrosos, especies protegidas o productos de fauna/flora silvestre (CITES), mercadería falsificada o que infringe marcas registradas, estupefacientes o precursores químicos sin registro RENPRE, neumáticos usados. Marcá "con_permisos_especiales" cuando necesita licencia no automática, intervención previa u otro trámite especial pero no está prohibido en sí. Marcá "sin_restricciones_tipicas" para el resto. Ante la duda entre categorías, elegí siempre la más cautelosa — nunca asegures "sin_restricciones_tipicas" sin una base razonable, es preferible pecar de prudente y sugerir consultar antes de comprar.
 - Si no tenés información suficiente para estimar con confianza, marcá "confianza": "baja" pero igual devolvé la mejor estimación general (nunca dejes los campos vacíos).
 - Tu respuesta es siempre orientativa, para que la persona entienda en general con qué se puede llegar a encontrar — nunca es un dictamen oficial ni asesoramiento legal vinculante. La clasificación y el trámite real los confirma Jawa Logistic con su despachante de aduana matriculado.
 - Mantené el resumen y los detalles cortos, en un tono claro y directo, como si se lo explicaras a alguien que nunca importó en su vida.`;

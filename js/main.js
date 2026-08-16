@@ -653,10 +653,26 @@ try {
       return c === "alta" ? "Complejidad alta" : c === "media" ? "Complejidad media" : "Complejidad baja";
     }
 
+    const ACEPTACION_INFO = {
+      sin_restricciones_tipicas: { icono: "🟢", titulo: "Generalmente se puede importar", clase: "ok" },
+      con_permisos_especiales: { icono: "🟡", titulo: "Necesita permisos o trámites especiales", clase: "permisos" },
+      prohibido_o_muy_restringido: { icono: "🔴", titulo: "Prohibido o muy restringido — consultanos antes de comprar", clase: "prohibido" },
+    };
+
     function renderResultado(a) {
       const mensajeWa = `Hola! Quiero importar: ${a.nombreProducto} (${a.categoria}). ¿Me ayudan con los trámites?`;
+      const acept = ACEPTACION_INFO[a.estadoAceptacion] || null;
       cont.innerHTML = `
         <div class="requisitos-resultado">
+          ${acept ? `
+            <div class="requisitos-aceptacion requisitos-aceptacion-${acept.clase}">
+              <span class="requisitos-aceptacion-icono">${acept.icono}</span>
+              <div>
+                <div class="requisitos-aceptacion-titulo">${acept.titulo}</div>
+                ${a.notaAceptacion ? `<div class="requisitos-aceptacion-nota">${escHtml(a.notaAceptacion)}</div>` : ""}
+              </div>
+            </div>
+          ` : ""}
           <div class="requisitos-resultado-head">
             <div class="requisitos-nombre">${escHtml(a.nombreProducto)}</div>
             <div class="requisitos-categoria">${escHtml(a.categoria)}</div>
