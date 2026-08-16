@@ -637,5 +637,89 @@ window.addEventListener("error", (e) => {
   console.error("Error en la calculadora:", e.message, e.filename, e.lineno);
 });
 
+// ---------- Analizador de requisitos de importación (home) ----------
+try {
+  (function () {
+    const input = document.getElementById("req-input");
+    const btn = document.getElementById("req-btn");
+    const cont = document.getElementById("req-resultado");
+    if (!input || !btn || !cont) return;
+
+    const REQUISITOS_URL = `${SUPABASE_URL}/functions/v1/requisitos-importacion`;
+    const WA_NUMERO = "5493813312280";
+
+    function badgeLabel(c) {
+      return c === "alta" ? "Complejidad alta" : c === "media" ? "Complejidad media" : "Complejidad baja";
+    }
+
+    function renderResultado(a) {
+      const mensajeWa = `Hola! Quiero importar: ${a.nombreProducto} (${a.categoria}). ¿Me ayudan con los trámites?`;
+      cont.innerHTML = `
+        <div class="requisitos-resultado">
+          <div class="requisitos-resultado-head">
+            <div class="requisitos-nombre">${escHtml(a.nombreProducto)}</div>
+            <div class="requisitos-categoria">${escHtml(a.categoria)}</div>
+            <span class="requisitos-badge requisitos-badge-${escHtml(a.complejidad)}">${badgeLabel(a.complejidad)}</span>
+          </div>
+          <p class="requisitos-resumen">${escHtml(a.resumen)}</p>
+          <div class="requisitos-lista">
+            ${(a.requisitos || []).map((r) => `
+              <div class="requisitos-item">
+                <div class="requisitos-item-organismo">${escHtml(r.organismo)}</div>
+                <div class="requisitos-item-tramite">${escHtml(r.tramite)}</div>
+                <div class="requisitos-item-detalle">${escHtml(r.detalle)}</div>
+              </div>
+            `).join("")}
+          </div>
+          <div class="requisitos-nota">⚠️ ${escHtml(a.advertencia || "Estimación orientativa — Jawa Logistic la confirma con despachante de aduana matriculado antes de tu operación.")}</div>
+          <p class="requisitos-seguro">🛡️ Además, tu carga viaja asegurada: si algo se pierde o se daña en tránsito internacional, te cubrimos el valor declarado del envío.</p>
+          <div class="requisitos-ctas">
+            <a class="btn-primary" href="https://wa.me/${WA_NUMERO}?text=${encodeURIComponent(mensajeWa)}" target="_blank">Que Jawa se encargue de esto →</a>
+            <a class="btn-outline-navy" href="#quick-quote">Cotizar este producto</a>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderError(msg) {
+      cont.innerHTML = `
+        <div class="requisitos-error">
+          ${escHtml(msg)} <a href="https://wa.me/${WA_NUMERO}" target="_blank">Escribinos por WhatsApp →</a>
+        </div>
+      `;
+    }
+
+    async function analizar() {
+      const descripcion = input.value.trim();
+      if (!descripcion) { input.focus(); return; }
+      btn.disabled = true;
+      const textoOriginal = btn.textContent;
+      btn.textContent = "Analizando…";
+      cont.innerHTML = "";
+      try {
+        const resp = await fetch(REQUISITOS_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + SUPABASE_ANON_KEY },
+          body: JSON.stringify({ descripcion }),
+        });
+        const data = await resp.json();
+        if (!data.success) {
+          renderError(data.error || "No pudimos analizar este producto. Escribinos por WhatsApp y te asesoramos directamente.");
+        } else {
+          renderResultado(data);
+        }
+      } catch (err) {
+        renderError("No pudimos conectar con el análisis. Escribinos por WhatsApp y te asesoramos directamente.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+      }
+    }
+
+    btn.addEventListener("click", analizar);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") analizar(); });
+  })();
+} catch (e) { console.error("analizador de requisitos:", e); }
+
 render();
 renderDatosEnvio();
