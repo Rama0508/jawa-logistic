@@ -252,6 +252,15 @@ a { color: inherit; }
 .wiz-path-title { font-size: 14px; font-weight: 800; color: var(--navy); margin-bottom: 4px; }
 .wiz-path-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
 
+.wiz-doc-upload-row { display: flex; flex-direction: column; gap: 8px; }
+.wiz-doc-slot { display: flex; align-items: center; gap: 10px; border: 1.5px dashed var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; background: var(--paper); }
+.wiz-doc-slot:hover { border-color: var(--coral); }
+.wiz-doc-slot.filled { border-style: solid; border-color: var(--green); background: var(--green-bg); }
+.wiz-doc-slot .ic { font-size: 18px; flex: none; }
+.wiz-doc-slot .txt { flex: 1; min-width: 0; }
+.wiz-doc-slot .t { font-size: 12.5px; font-weight: 700; color: var(--navy); }
+.wiz-doc-slot .d { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .wiz-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
 .wiz-chip { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 20px; border: 1.5px solid var(--line); font-size: 12.5px; font-weight: 700; color: var(--muted); background: var(--white); cursor: pointer; }
 .wiz-chip.active { border-color: var(--coral); color: var(--navy); background: #fdf1ec; }
