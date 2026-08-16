@@ -60,7 +60,7 @@ try {
     // ---------- Estado ----------
     function nuevoProductoWiz() {
       return {
-        id: uid(), nombre: "", descripcion: "", foto: "",
+        id: uid(), nombre: "", codigoHS: "", descripcion: "", foto: "",
         rubro: "", confianza: "", advertenciaIA: "",
         alicuotas: { die: "", iva: "21", ivaAdicional: "20", ganancias: "6", iibb: "0", tasaEstadistica: "3" },
         cantidad: "", fob: "", origen: "china",
@@ -387,6 +387,11 @@ try {
         <div style="font-size:12.5px; color:var(--muted); margin-bottom:10px;">Paso 2 de 4. Revisá la clasificación y los impuestos estimados.</div>
         ${renderChips()}
         ${p.rubro ? `<div class="wiz-note">✨ Clasificado por IA${p.confianza ? " · confianza " + escHtml(p.confianza) : ""} — <b>${escHtml(p.rubro)}</b></div>` : `<div class="wiz-note">Todavía no clasificaste este producto con IA — completá las alícuotas a mano o volvé al paso 1.</div>`}
+        <div class="hub-field" style="max-width:220px; margin-top:10px;">
+          <label>Código HS / NCM (si lo conocés)</label>
+          <input type="text" data-field="codigoHS" value="${escHtml(p.codigoHS || "")}" placeholder="Ej: 8517.62.00" />
+        </div>
+        <div style="font-size:11px; color:var(--muted); margin-top:-6px; margin-bottom:10px;">Opcional — no lo estimamos con IA porque no tenemos la base arancelaria oficial. Confirmalo con tu despachante si no lo tenés.</div>
         <div class="hub-card-title" style="margin-top:14px;">Alícuotas estimadas — tocá un valor para ajustarlo</div>
         <div class="wiz-alicuotas">
           ${Object.keys(ALICUOTA_LABELS).map((k) => `
@@ -521,7 +526,7 @@ try {
         ${r.detalle.map(({ p, c, flete, impuestos, totalProducto }) => `
           <div class="wiz-producto-detalle ${detalleAbierto === p.id ? "open" : ""}" data-action="toggle-detalle" data-id="${p.id}">
             <div class="head">
-              <span>${escHtml(p.nombre)} <span style="color:var(--muted); font-weight:400;">· ${c.cantidad} u.</span></span>
+              <span>${escHtml(p.nombre)} <span style="color:var(--muted); font-weight:400;">· ${c.cantidad} u.</span>${p.codigoHS ? ` <span class="data" style="font-size:10.5px; color:var(--muted); background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:1px 6px;">HS ${escHtml(p.codigoHS)}</span>` : ""}</span>
               <span class="data" style="font-weight:800;">$${fmt(totalProducto)}</span>
             </div>
             <div class="cuerpo">
@@ -551,7 +556,7 @@ try {
         detalle: {
           licencia, via: viaElegida,
           productos: r.detalle.map(({ p, c, flete, impuestos }) => ({
-            nombre: p.nombre, rubro: p.rubro, alicuotas: p.alicuotas,
+            nombre: p.nombre, codigoHS: p.codigoHS, rubro: p.rubro, alicuotas: p.alicuotas,
             cantidad: c.cantidad, fobTotal: c.fobTotal, flete, impuestos: impuestos.total, cif: impuestos.cif,
           })),
           fobTotal: r.fobTotal, fleteTotal: r.fleteTotal, impuestosTotal: r.impuestosTotal,
