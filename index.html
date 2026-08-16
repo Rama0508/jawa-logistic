@@ -376,6 +376,13 @@
                 <input type="text" inputmode="decimal" id="envio-peso" placeholder="Ej: 12.5" />
               </div>
             </div>
+            <div id="total-a-pagar" style="display:none; background:var(--paper-2); border:1px solid var(--gold); border-radius:8px; padding:10px 14px; margin-bottom:10px; justify-content:space-between; align-items:center;">
+              <span style="font-size:12px; color:var(--muted);">Total a pagar (según peso declarado)</span>
+              <span id="total-a-pagar-valor" style="font-size:18px; font-weight:800; color:var(--navy);"></span>
+            </div>
+            <div style="margin-bottom:10px; padding:10px 12px; background:var(--paper-2); border:1px solid var(--line); border-radius:8px; font-size:11.5px; color:var(--ink); line-height:1.6;">
+              <b style="color:var(--navy);">📌 Condiciones de pago:</b> a tu proveedor le pagás vos directamente (eso ya lo hiciste al comprar). A nosotros nos pagás este total <b>cuando la carga llega a Argentina</b> — la mercadería no se entrega sin el pago confirmado, y te vamos a pedir que compartas el comprobante de pago antes de la entrega.
+            </div>
             <div style="font-size:12px; color: var(--muted); margin-bottom:10px;">Cuando se abra WhatsApp, adjuntá la foto del paquete directo en el chat antes de enviar.</div>
             <div style="margin-top:8px; padding:12px; background:#fff4de; border:1px solid var(--gold); border-radius:8px; font-size:11.5px; color:#a05a00; font-weight:700;">⚠️ La foto tiene que ser real, del paquete físico con la etiqueta de tracking visible — no sirven capturas, fotos bajadas de internet ni de otro envío.</div>
             <button id="whatsapp-btn" style="width:100%; padding:13px; background:#25d366; border:none; border-radius:8px; color:#0b1f19; font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:14px;">Enviar aviso por WhatsApp</button>

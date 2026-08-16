@@ -275,8 +275,11 @@ function calcular(p) {
   const pesoRaw = parseNum(p.peso);
   const pesoKg = p.pesoUnidad === "kg" ? pesoRaw : pesoRaw / 1000;
   const cant = parseNum(p.cantidad);
+  const fobTotal = fob * cant;
+  const pesoTotalKg = pesoKg * cant;
+  const fleteTotal = pesoTotalKg * FLETE_USD_KG;
   const costoUnit = fob + pesoKg * FLETE_USD_KG; // flete ya sumado, sin desglosar
-  return { ...p, fob, pesoKg, cant, costoUnit, costoTotal: costoUnit * cant };
+  return { ...p, fob, pesoKg, cant, costoUnit, costoTotal: costoUnit * cant, fobTotal, pesoTotalKg, fleteTotal };
 }
 
 function getCalculados() { return productos.map(calcular); }
@@ -285,9 +288,10 @@ function getTotales() {
     items: acc.items + (p.nombre && p.cant > 0 ? 1 : 0),
     unidades: acc.unidades + p.cant,
     total: acc.total + p.costoTotal,
-    pesoTotalKg: acc.pesoTotalKg + p.pesoKg * p.cant,
-    fobTotal: acc.fobTotal + p.fob * p.cant,
-  }), { items: 0, unidades: 0, total: 0, pesoTotalKg: 0, fobTotal: 0 });
+    pesoTotalKg: acc.pesoTotalKg + p.pesoTotalKg,
+    fobTotal: acc.fobTotal + p.fobTotal,
+    fleteTotal: acc.fleteTotal + p.fleteTotal,
+  }), { items: 0, unidades: 0, total: 0, pesoTotalKg: 0, fobTotal: 0, fleteTotal: 0 });
 }
 
 // ---------- Render ----------
@@ -325,9 +329,17 @@ function render() {
           <input type="text" inputmode="decimal" placeholder="0" data-field="cantidad" data-id="${p.id}" value="${p.cantidad}" />
         </div>
       </div>
+      <div class="results" style="margin-bottom:6px;">
+        <span class="lbl">Costo unitario (producto + envío)</span>
+        <span class="val">$${fmt(c.costoUnit)} / u.</span>
+      </div>
+      <div class="results" style="margin-bottom:6px;">
+        <span class="lbl">Pagás a tu proveedor (${p.fob || 0} × ${c.cant || 0} u.)</span>
+        <span class="val">$${fmt(c.fobTotal)}</span>
+      </div>
       <div class="results">
-        <span class="lbl">Costo total puesto en Arg.</span>
-        <span class="val">$${fmt(c.costoTotal)}</span>
+        <span class="lbl">Total de carga (${fmt(c.pesoTotalKg)} kg — se abona cuando llega)</span>
+        <span class="val">$${fmt(c.fleteTotal)}</span>
       </div>
     `;
     cont.appendChild(div);
@@ -429,8 +441,21 @@ function datosEnvioActuales() {
   const apellido = document.getElementById("cli-apellido").value.trim();
   const peso = document.getElementById("envio-peso").value.trim();
   const tracking = document.getElementById("trigger-tracking").value.trim();
-  return { codigo, nombre, apellido, peso, tracking };
+  const total = parseNum(peso) * FLETE_USD_KG;
+  return { codigo, nombre, apellido, peso, tracking, total };
 }
+
+document.getElementById("envio-peso").addEventListener("input", () => {
+  const peso = parseNum(document.getElementById("envio-peso").value);
+  const box = document.getElementById("total-a-pagar");
+  const valor = document.getElementById("total-a-pagar-valor");
+  if (peso > 0) {
+    box.style.display = "flex";
+    valor.textContent = `$${fmt(peso * FLETE_USD_KG)}`;
+  } else {
+    box.style.display = "none";
+  }
+});
 
 function abrirWhatsappConAviso() {
   const d = datosEnvioActuales();
@@ -442,7 +467,10 @@ ID de cliente: ${d.codigo}
 Nombre: ${d.nombre} ${d.apellido}
 Peso del envío: ${d.peso} kg
 Tracking number: ${d.tracking}
-(adjunto foto del paquete acá mismo)`;
+TOTAL A PAGAR: $${fmt(d.total)}
+(adjunto foto del paquete acá mismo)
+
+📌 Recordatorio: la carga se entrega en Argentina una vez confirmado el pago del total de arriba, con comprobante compartido.`;
 
   const numero = TELEFONO_NOTIFICACION.replace(/[^\d]/g, "");
   const url = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
@@ -460,6 +488,7 @@ document.getElementById("descargar-comprobante-btn").addEventListener("click", (
     <style>body{font-family:ui-monospace,Menlo,monospace;color:#111;padding:24px;}
     h1{font-size:18px;margin:0 0 2px;} p.sub{font-size:12px;color:#666;margin:0 0 18px;}
     .row{padding:6px 0;border-bottom:1px solid #eee;} .lbl{color:#666;font-size:11px;text-transform:uppercase;}
+    .total{margin-top:14px;font-size:17px;font-weight:700;text-align:right;}
     @media print{ button{display:none;} }</style></head><body>
     <button onclick="window.print()" style="margin-bottom:16px;padding:8px 16px;font-size:13px;cursor:pointer;">Imprimir</button>
     <h1>Aviso de envío — Jawa Logistic</h1><p class="sub">${fecha}</p>
@@ -467,6 +496,8 @@ document.getElementById("descargar-comprobante-btn").addEventListener("click", (
     <div class="row"><div class="lbl">Nombre</div><div>${d.nombre} ${d.apellido}</div></div>
     <div class="row"><div class="lbl">Peso del envío</div><div>${d.peso} kg</div></div>
     <div class="row"><div class="lbl">Tracking number</div><div>${d.tracking}</div></div>
+    <div class="total">Total a pagar: $${fmt(d.total)}</div>
+    <div style="margin-top:10px; padding:10px; background:#f0f7f2; border-radius:6px; font-size:11.5px; color:#333;">📌 La carga se entrega en Argentina una vez confirmado el pago de este total, con comprobante compartido.</div>
     <div style="margin-top:14px; font-size:12px; color:#a05a00;">La foto del paquete se manda por separado, directo en el chat de WhatsApp.</div>
     </body></html>`;
   const blob = new Blob([html], { type: "text/html" });
