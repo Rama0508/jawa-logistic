@@ -151,11 +151,9 @@ const TELEFONO_NOTIFICACION = "+54 9 381 331-2280"; // único número visible pa
 const DEPOSITOS = {
   china: {
     nombre: "Depósito Jawa Logistic — China",
-    // ⚠️ La dirección en chino se perdió al pegar el archivo original (quedó con caracteres
-    // corruptos). Reemplazá esta línea por la dirección real de tu depósito antes de publicar.
-    direccion: "⚠️ PEGÁ ACÁ LA DIRECCIÓN REAL DEL DEPÓSITO EN CHINO (la original se corrompió al copiar el archivo)",
+    direccion: "广州市花都区狮岭镇新扬村第二工业区122号仓库，ARC办公室",
     codigoPostal: "510850",
-    contacto: "Sr. Hong",
+    contacto: "Sr. Hong (红先生)",
     prefijoCliente: "ROD145",
     codigoConfirmacion: "ROD145", // mismo código que usás para etiquetar cajas en Alibaba
   },
