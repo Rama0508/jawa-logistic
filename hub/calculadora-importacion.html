@@ -16,6 +16,9 @@
 <div id="hub-shell">
   <div id="hub-page">
     <p class="hub-page-lead">Cargá lo que querés traer, clasificalo con IA y mirá el costo puesto en Argentina — flete, impuestos y recupero de IVA incluidos.</p>
+    <div style="text-align:right; margin:-14px 0 12px;">
+      <button class="hub-btn-ghost" id="wiz-limpiar-todo" type="button" style="font-size:11.5px; padding:6px 12px;">Empezar de nuevo</button>
+    </div>
 
     <div class="hub-card">
       <div id="wiz-steps"></div>
@@ -610,6 +613,37 @@ try {
 
     document.getElementById("wiz-volver").addEventListener("click", () => { paso = Math.max(1, paso - 1); render(); });
     document.getElementById("wiz-continuar").addEventListener("click", () => { paso = Math.min(4, paso + 1); render(); });
+
+    // Doble toque para confirmar (no window.confirm — no funciona bien en el
+    // WebView de WhatsApp) — mismo patrón que la calculadora interna.
+    let limpiarTodoConfirmando = false;
+    document.getElementById("wiz-limpiar-todo").addEventListener("click", () => {
+      const btn = document.getElementById("wiz-limpiar-todo");
+      if (!limpiarTodoConfirmando) {
+        limpiarTodoConfirmando = true;
+        btn.textContent = "¿Seguro? Tocá de nuevo";
+        btn.style.color = "var(--coral-deep)";
+        btn.style.borderColor = "var(--coral-deep)";
+        setTimeout(() => {
+          if (limpiarTodoConfirmando) {
+            limpiarTodoConfirmando = false;
+            btn.textContent = "Empezar de nuevo";
+            btn.style.color = "";
+            btn.style.borderColor = "";
+          }
+        }, 3000);
+        return;
+      }
+      limpiarTodoConfirmando = false;
+      productos = [nuevoProductoWiz()];
+      productoActivoId = productos[0].id;
+      paso = 1;
+      licencia = "jawa";
+      viaElegida = "aereo";
+      detalleAbierto = null;
+      guardarWiz();
+      render();
+    });
 
     document.getElementById("wiz-content").addEventListener("click", (e) => {
       const action = e.target.closest("[data-action]") ? e.target.closest("[data-action]").getAttribute("data-action") : null;
