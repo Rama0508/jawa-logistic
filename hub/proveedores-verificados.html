@@ -99,13 +99,13 @@ try {
             <div class="prov-detail-cat">${escHtml(p.categoria)}</div>
             <div class="prov-detail-nombre">${escHtml(p.nombre)}</div>
             <div class="prov-detail-desc">${escHtml(p.descripcion || "Sin descripción todavía.")}</div>
-            ${p.codigo_hs ? `<div style="font-size:11.5px; color:var(--muted); margin:-10px 0 14px;">Código HS/NCM: <span class="data" style="color:var(--navy); font-weight:700;">${escHtml(p.codigo_hs)}</span></div>` : ""}
+            ${p.codigo_hs ? `<div style="font-size:11.5px; color:var(--muted); margin:-10px 0 14px;">Código HS/NCM <span class="hub-tooltip" tabindex="0" title="Código que clasifica el producto ante la aduana argentina — determina el arancel real.">?</span>: <span class="data" style="color:var(--navy); font-weight:700;">${escHtml(p.codigo_hs)}</span></div>` : ""}
             <div class="prov-detail-precio-box">
               <div class="lbl">Precio FOB · ${escHtml(p.origen)}</div>
               <div class="val">${fmtFob(p)}</div>
             </div>
             <div class="prov-detail-actions">
-              <a class="hub-btn-primary" style="text-align:center; text-decoration:none;" href="calculadora-importacion.html">Cotizar este producto →</a>
+              <a class="hub-btn-primary" style="text-align:center; text-decoration:none;" href="calculadora-importacion.html?nombre=${encodeURIComponent(p.nombre)}&categoria=${encodeURIComponent(p.categoria || "")}&codigoHS=${encodeURIComponent(p.codigo_hs || "")}&fob=${encodeURIComponent(p.precio_fob_min || "")}&origen=${encodeURIComponent(p.origen || "")}">Cotizar este producto →</a>
               <a class="hub-btn-ghost" style="text-align:center; text-decoration:none;" href="${linkWa(`Hola! Me interesa este producto del catálogo: ${p.nombre} (FOB ${fmtFob(p)}). ¿Me ayudan a importarlo?`)}" target="_blank">Consultar por WhatsApp</a>
             </div>
           </div>

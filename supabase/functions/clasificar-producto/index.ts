@@ -12,6 +12,28 @@
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_MODEL = "claude-opus-5";
 
+const SUPABASE_URL = "https://hthyehsqfrfwdqkbqrwj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_Dlh15glcRPYtVKmvkytcbw_LGfPqN7F";
+
+// Busca coincidencias en la biblioteca interna de códigos HS/NCM ya
+// confirmados por el despachante matriculado en operaciones reales (ver
+// supabase/migrations/0012_biblioteca_ncm.sql). Es "best effort": si falla
+// por lo que sea, no rompe la clasificación por IA, sigue sin ese contexto.
+async function buscarBiblioteca(termino: string): Promise<{ producto_nombre: string; categoria: string | null; codigo_hs: string }[]> {
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/rpc/buscar_ncm_biblioteca`, {
+      method: "POST",
+      headers: { "content-type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + SUPABASE_ANON_KEY },
+      body: JSON.stringify({ termino }),
+    });
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -88,6 +110,11 @@ Deno.serve(async (req: Request) => {
   }
   console.log(`clasificar-producto: apiKey length=${apiKey.length}, prefix=${apiKey.slice(0, 8)}`);
 
+  const coincidenciasBiblioteca = descripcion ? await buscarBiblioteca(descripcion) : [];
+  const contextoBiblioteca = coincidenciasBiblioteca.length
+    ? `\n\nProductos similares ya confirmados en la biblioteca interna de Jawa Logistic (historial propio, NO es una base oficial): ${coincidenciasBiblioteca.map((c) => `"${c.producto_nombre}" (${c.categoria || "sin categoría"}) → código ${c.codigo_hs}`).join("; ")}. Si tu estimación es consistente con alguno de estos, podés usarlo como referencia; si no aplica al producto consultado, ignoralo.`
+    : "";
+
   const contenido: Record<string, unknown>[] = [];
   if (imagenBase64) {
     contenido.push({
@@ -97,9 +124,9 @@ Deno.serve(async (req: Request) => {
   }
   contenido.push({
     type: "text",
-    text: descripcion
+    text: (descripcion
       ? `Producto: ${descripcion}`
-      : "Clasificá el producto de la foto.",
+      : "Clasificá el producto de la foto.") + contextoBiblioteca,
   });
 
   try {
@@ -163,6 +190,7 @@ Deno.serve(async (req: Request) => {
       success: true,
       ...clasificacion,
       advertencia: "Alícuotas estimadas por IA, sin base NCM oficial — confirmalas con tu despachante antes de una operación real.",
+      ...(coincidenciasBiblioteca[0] ? { codigoHSSugerido: coincidenciasBiblioteca[0].codigo_hs, fuenteSugerencia: "biblioteca_interna" } : {}),
     });
   } catch (err) {
     console.error("clasificar-producto fetch error:", err instanceof Error ? `${err.name}: ${err.message}` : String(err));

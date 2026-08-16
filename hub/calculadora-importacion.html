@@ -60,7 +60,7 @@ try {
     // ---------- Estado ----------
     function nuevoProductoWiz() {
       return {
-        id: uid(), nombre: "", codigoHS: "", descripcion: "", foto: "",
+        id: uid(), nombre: "", codigoHS: "", codigoHSFuente: "", descripcion: "", foto: "",
         rubro: "", confianza: "", advertenciaIA: "",
         alicuotas: { die: "", iva: "21", ivaAdicional: "20", ganancias: "6", iibb: "0", tasaEstadistica: "3" },
         cantidad: "", fob: "", origen: "china",
@@ -77,6 +77,23 @@ try {
       productos = Array.isArray(saved) && saved.length ? saved.map((p) => ({ ...nuevoProductoWiz(), ...p, alicuotas: { ...nuevoProductoWiz().alicuotas, ...(p.alicuotas || {}) } })) : [nuevoProductoWiz()];
     } catch (e) { productos = [nuevoProductoWiz()]; }
     function guardarWiz() { try { localStorage.setItem(WIZ_KEY, JSON.stringify(productos)); } catch (e) {} }
+
+    // Si se llega desde "Proveedores Verificados" con datos en la URL, y el
+    // wizard todavía está en blanco (no pisa nada si el cliente ya venía
+    // con un producto cargado), precarga ese producto.
+    (function prefillDesdeCatalogo() {
+      const params = new URLSearchParams(location.search);
+      const nombre = params.get("nombre");
+      if (!nombre || productos.length !== 1 || productos[0].nombre) return;
+      const p = productos[0];
+      p.nombre = nombre;
+      p.rubro = params.get("categoria") || "";
+      p.codigoHS = params.get("codigoHS") || "";
+      p.fob = params.get("fob") || "";
+      const origenParam = (params.get("origen") || "").toLowerCase();
+      p.origen = origenParam.includes("miami") ? "miami" : "china";
+      guardarWiz();
+    })();
 
     let paso = 1;
     let productoActivoId = productos[0].id;
@@ -291,6 +308,10 @@ try {
           p.confianza = data.confianza || "";
           p.advertenciaIA = data.advertencia || "";
           p.alicuotas = { ...p.alicuotas, ...data.alicuotas };
+          if (data.codigoHSSugerido && !p.codigoHS) {
+            p.codigoHS = data.codigoHSSugerido;
+            p.codigoHSFuente = data.fuenteSugerencia || "biblioteca_interna";
+          }
           estado.textContent = "✓ Clasificado — revisá el rubro y las alícuotas en el paso 2.";
         }
         guardarWiz();
@@ -388,10 +409,14 @@ try {
         ${renderChips()}
         ${p.rubro ? `<div class="wiz-note">✨ Clasificado por IA${p.confianza ? " · confianza " + escHtml(p.confianza) : ""} — <b>${escHtml(p.rubro)}</b></div>` : `<div class="wiz-note">Todavía no clasificaste este producto con IA — completá las alícuotas a mano o volvé al paso 1.</div>`}
         <div class="hub-field" style="max-width:220px; margin-top:10px;">
-          <label>Código HS / NCM (si lo conocés)</label>
+          <label>Código HS / NCM (si lo conocés) <span class="hub-tooltip" tabindex="0" title="Es el código de 8 dígitos que clasifica tu producto ante la aduana argentina — determina el arancel real y qué permisos aplican. Si no lo sabés, no pasa nada: lo confirmamos nosotros.">?</span></label>
           <input type="text" data-field="codigoHS" value="${escHtml(p.codigoHS || "")}" placeholder="Ej: 8517.62.00" />
         </div>
-        <div style="font-size:11px; color:var(--muted); margin-top:-6px; margin-bottom:10px;">Opcional — no lo estimamos con IA porque no tenemos la base arancelaria oficial. Confirmalo con tu despachante si no lo tenés.</div>
+        ${p.codigoHSFuente === "biblioteca_interna" ? `
+          <div class="wiz-note" style="margin-top:-6px;">💡 Sugerido desde nuestra biblioteca interna — ya lo confirmamos en una operación anterior con un producto similar. Revisalo igual, puede no aplicar exacto a tu caso.</div>
+        ` : `
+          <div style="font-size:11px; color:var(--muted); margin-top:-6px; margin-bottom:10px;">Opcional — no lo estimamos con IA porque no tenemos la base arancelaria oficial. Confirmalo con tu despachante si no lo tenés.</div>
+        `}
         <div class="hub-card-title" style="margin-top:14px;">Alícuotas estimadas — tocá un valor para ajustarlo</div>
         <div class="wiz-alicuotas">
           ${Object.keys(ALICUOTA_LABELS).map((k) => `
@@ -712,6 +737,7 @@ try {
       if (!field && !alic) return;
       if (field) p[field] = e.target.value;
       else p.alicuotas[alic] = e.target.value;
+      if (field === "codigoHS") p.codigoHSFuente = ""; // el cliente lo tocó a mano, ya no es "sugerido"
       if (field === "pesoTotalRef") {
         // Congela la cantidad que había al cargar el peso del lote — así el
         // peso por unidad no cambia si después se edita la cantidad, mismo

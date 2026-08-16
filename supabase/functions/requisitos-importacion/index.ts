@@ -13,6 +13,28 @@
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_MODEL = "claude-opus-5";
 
+const SUPABASE_URL = "https://hthyehsqfrfwdqkbqrwj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_Dlh15glcRPYtVKmvkytcbw_LGfPqN7F";
+
+// Busca coincidencias en la biblioteca interna de códigos HS/NCM ya
+// confirmados por el despachante matriculado en operaciones reales (ver
+// supabase/migrations/0012_biblioteca_ncm.sql). Es "best effort": si falla
+// por lo que sea, no rompe el análisis por IA, sigue sin ese contexto.
+async function buscarBiblioteca(termino: string): Promise<{ producto_nombre: string; categoria: string | null; codigo_hs: string }[]> {
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/rpc/buscar_ncm_biblioteca`, {
+      method: "POST",
+      headers: { "content-type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + SUPABASE_ANON_KEY },
+      body: JSON.stringify({ termino }),
+    });
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -69,9 +91,11 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   let descripcion: string | undefined;
+  let codigoHS: string | undefined;
   try {
     const body = await req.json();
     descripcion = body?.descripcion;
+    codigoHS = body?.codigoHS;
   } catch {
     return jsonResponse({ success: false, error: "Cuerpo de la petición inválido." }, 400);
   }
@@ -87,6 +111,14 @@ Deno.serve(async (req: Request) => {
       error: "Este análisis todavía no está configurado. Escribinos por WhatsApp y te asesoramos directamente.",
     }, 500);
   }
+
+  const coincidenciasBiblioteca = await buscarBiblioteca(descripcion);
+  const contextoBiblioteca = coincidenciasBiblioteca.length
+    ? `\n\nProductos similares ya confirmados en la biblioteca interna de Jawa Logistic (historial propio, NO es una base oficial): ${coincidenciasBiblioteca.map((c) => `"${c.producto_nombre}" (${c.categoria || "sin categoría"}) → código ${c.codigo_hs}`).join("; ")}. Si tu estimación es consistente con alguno de estos, podés usarlo como referencia; si no aplica al producto consultado, ignoralo.`
+    : "";
+  const contextoCodigoUsuario = codigoHS && codigoHS.trim()
+    ? `\n\nLa persona ya conoce (o cree conocer) este código HS/NCM para su producto: "${codigoHS.trim()}". Tenelo en cuenta como contexto adicional, pero no asumas que es necesariamente correcto.`
+    : "";
 
   try {
     const controller = new AbortController();
@@ -108,7 +140,7 @@ Deno.serve(async (req: Request) => {
           format: { type: "json_schema", schema: REQUISITOS_SCHEMA },
         },
         system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: `Producto: ${descripcion}` }],
+        messages: [{ role: "user", content: `Producto: ${descripcion}${contextoCodigoUsuario}${contextoBiblioteca}` }],
       }),
     });
     clearTimeout(timeout);
@@ -149,6 +181,7 @@ Deno.serve(async (req: Request) => {
       success: true,
       ...analisis,
       advertencia: "Estimación orientativa, sin base normativa oficial — Jawa Logistic la confirma con despachante de aduana matriculado antes de tu operación.",
+      ...(coincidenciasBiblioteca[0] ? { codigoHSSugerido: coincidenciasBiblioteca[0].codigo_hs, fuenteSugerencia: "biblioteca_interna" } : {}),
     });
   } catch (err) {
     console.error("requisitos-importacion fetch error:", err instanceof Error ? `${err.name}: ${err.message}` : String(err));

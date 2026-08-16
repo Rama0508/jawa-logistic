@@ -924,6 +924,7 @@ function renderFormulario() {
             <div class="field" style="width:130px; flex:none;">
               <label>Código HS / NCM</label>
               <input type="text" data-field="codigoHS" data-id="${p.id}" value="${escHtml(p.codigoHS || "")}" placeholder="Ej: 8517.62.00" />
+              ${p.nombre && p.codigoHS ? `<button type="button" class="btn-ghost" data-guardar-ncm="${p.id}" style="margin-top:4px; padding:4px 8px; font-size:10.5px;">+ Guardar en biblioteca</button>` : ""}
             </div>
           </div>
           <div class="field">
@@ -1151,6 +1152,17 @@ document.getElementById("productos-admin").addEventListener("click", (e) => {
     guardarProductos();
     renderFormulario();
     renderPresupuestos();
+    return;
+  }
+  const ncmId = e.target.getAttribute("data-guardar-ncm");
+  if (ncmId) {
+    const p = productos.find((x) => x.id === ncmId);
+    if (p && p.nombre && p.codigoHS) {
+      supabaseClient.from("ncm_biblioteca").insert({ producto_nombre: p.nombre, codigo_hs: p.codigoHS }).then(({ error }) => {
+        e.target.textContent = error ? "Error al guardar" : "✓ Guardado en biblioteca";
+        e.target.disabled = true;
+      });
+    }
     return;
   }
   // PDF 8.3: ningún transportista cotiza directo en USD/kg, siempre dan un

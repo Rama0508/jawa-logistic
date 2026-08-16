@@ -641,6 +641,7 @@ window.addEventListener("error", (e) => {
 try {
   (function () {
     const input = document.getElementById("req-input");
+    const hsInput = document.getElementById("req-hs");
     const btn = document.getElementById("req-btn");
     const cont = document.getElementById("req-resultado");
     if (!input || !btn || !cont) return;
@@ -662,6 +663,9 @@ try {
             <span class="requisitos-badge requisitos-badge-${escHtml(a.complejidad)}">${badgeLabel(a.complejidad)}</span>
           </div>
           <p class="requisitos-resumen">${escHtml(a.resumen)}</p>
+          ${a.fuenteSugerencia === "biblioteca_interna" && a.codigoHSSugerido ? `
+            <p class="requisitos-sugerencia">💡 Ya confirmamos un código para un producto similar en una operación anterior: <b>${escHtml(a.codigoHSSugerido)}</b>. No es garantía de que aplique igual al tuyo, pero es una referencia real, no una estimación genérica.</p>
+          ` : ""}
           <div class="requisitos-lista">
             ${(a.requisitos || []).map((r) => `
               <div class="requisitos-item">
@@ -697,10 +701,11 @@ try {
       btn.textContent = "Analizando…";
       cont.innerHTML = "";
       try {
+        const codigoHS = hsInput ? hsInput.value.trim() : "";
         const resp = await fetch(REQUISITOS_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + SUPABASE_ANON_KEY },
-          body: JSON.stringify({ descripcion }),
+          body: JSON.stringify({ descripcion, codigoHS }),
         });
         const data = await resp.json();
         if (!data.success) {

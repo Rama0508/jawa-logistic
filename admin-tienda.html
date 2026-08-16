@@ -118,6 +118,7 @@
     <button class="tab-btn" data-tab="pedidos">Pedidos</button>
     <button class="tab-btn" data-tab="envio">Envío</button>
     <button class="tab-btn" data-tab="proveedores">Proveedores</button>
+    <button class="tab-btn" data-tab="ncm">Biblioteca NCM</button>
   </div>
 
   <!-- ---------- Productos ---------- -->
@@ -217,6 +218,26 @@
       <div class="msg" id="proveedor-form-msg"></div>
     </div>
     <div id="proveedores-lista"></div>
+  </div>
+
+  <!-- ---------- Biblioteca NCM ---------- -->
+  <div class="tab-panel" id="tab-ncm">
+    <p class="sub">Códigos HS/NCM confirmados por el despachante matriculado en operaciones reales. No inventes ni copies un código sin confirmarlo — esta biblioteca alimenta las sugerencias de IA en la calculadora y el analizador de la home, así que solo debe tener códigos reales.</p>
+    <button class="add-btn" id="ncm-nuevo-btn" type="button">+ Nuevo código</button>
+    <div id="ncm-form-card" class="card" style="display:none;">
+      <div class="card-title" id="ncm-form-titulo">Nuevo código</div>
+      <input type="hidden" id="ncm-id" />
+      <div class="field-row">
+        <div class="field span2"><label>Nombre del producto</label><input type="text" id="ncm-nombre" placeholder="Ej: parlante bluetooth portátil" /></div>
+        <div class="field"><label>Categoría (opcional)</label><input type="text" id="ncm-categoria" placeholder="Ej: Electrónica" /></div>
+        <div class="field"><label>Código HS / NCM</label><input type="text" id="ncm-codigo" placeholder="Ej: 8517.62.00" /></div>
+        <div class="field span4"><label>Notas (opcional)</label><textarea id="ncm-notas" placeholder="Ej: confirmado en la operación JWA-0042"></textarea></div>
+      </div>
+      <button class="btn-primary" id="ncm-guardar-btn" type="button">Guardar código</button>
+      <button class="btn-ghost" id="ncm-cancelar-btn" type="button">Cancelar</button>
+      <div class="msg" id="ncm-form-msg"></div>
+    </div>
+    <div id="ncm-lista"></div>
   </div>
 </div>
 
@@ -796,6 +817,102 @@ try {
     window.addEventListener("staff-listo", cargarLista, { once: false });
   })();
 } catch (e) { console.error("admin proveedores:", e); }
+
+// ---------- Biblioteca NCM ----------
+try {
+  (function () {
+    let editando = null;
+
+    function resetForm() {
+      editando = null;
+      document.getElementById("ncm-id").value = "";
+      document.getElementById("ncm-nombre").value = "";
+      document.getElementById("ncm-categoria").value = "";
+      document.getElementById("ncm-codigo").value = "";
+      document.getElementById("ncm-notas").value = "";
+      document.getElementById("ncm-form-msg").classList.remove("show");
+      document.getElementById("ncm-form-titulo").textContent = "Nuevo código";
+    }
+
+    document.getElementById("ncm-nuevo-btn").addEventListener("click", () => {
+      resetForm();
+      document.getElementById("ncm-form-card").style.display = "block";
+    });
+    document.getElementById("ncm-cancelar-btn").addEventListener("click", () => {
+      document.getElementById("ncm-form-card").style.display = "none";
+    });
+
+    async function cargarLista() {
+      const { data, error } = await supabaseClient.from("ncm_biblioteca").select("*").order("creado_en", { ascending: false });
+      if (error) { console.error(error); return; }
+      document.getElementById("ncm-lista").innerHTML = (data || []).map((n) => `
+        <div class="item-card">
+          <div class="item-card-head">
+            <div>
+              <div class="nombre">${escHtml(n.producto_nombre)}</div>
+              <div class="meta">${n.categoria ? escHtml(n.categoria) + " · " : ""}HS ${escHtml(n.codigo_hs)}${n.notas ? " · " + escHtml(n.notas) : ""}</div>
+            </div>
+            <div class="item-actions">
+              <button class="btn-ghost" data-editar="${n.id}">Editar</button>
+              <button class="btn-danger" data-borrar="${n.id}">Eliminar</button>
+            </div>
+          </div>
+        </div>
+      `).join("") || `<p class="sub">Todavía no cargaste ningún código.</p>`;
+
+      document.querySelectorAll("#ncm-lista [data-editar]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const n = data.find((x) => x.id === btn.dataset.editar);
+          if (!n) return;
+          editando = n;
+          document.getElementById("ncm-id").value = n.id;
+          document.getElementById("ncm-nombre").value = n.producto_nombre;
+          document.getElementById("ncm-categoria").value = n.categoria || "";
+          document.getElementById("ncm-codigo").value = n.codigo_hs;
+          document.getElementById("ncm-notas").value = n.notas || "";
+          document.getElementById("ncm-form-titulo").textContent = "Editar código";
+          document.getElementById("ncm-form-card").style.display = "block";
+        });
+      });
+      document.querySelectorAll("#ncm-lista [data-borrar]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("¿Eliminar este código de la biblioteca?")) return;
+          await supabaseClient.from("ncm_biblioteca").delete().eq("id", btn.dataset.borrar);
+          cargarLista();
+        });
+      });
+    }
+
+    document.getElementById("ncm-guardar-btn").addEventListener("click", async () => {
+      const msg = document.getElementById("ncm-form-msg");
+      msg.className = "msg";
+      const producto_nombre = document.getElementById("ncm-nombre").value.trim();
+      const codigo_hs = document.getElementById("ncm-codigo").value.trim();
+      if (!producto_nombre || !codigo_hs) {
+        msg.textContent = "Faltan campos obligatorios (nombre del producto, código HS/NCM).";
+        msg.classList.add("show", "error");
+        return;
+      }
+      const payload = {
+        producto_nombre,
+        codigo_hs,
+        categoria: document.getElementById("ncm-categoria").value.trim() || null,
+        notas: document.getElementById("ncm-notas").value.trim() || null,
+      };
+
+      const { error } = editando
+        ? await supabaseClient.from("ncm_biblioteca").update(payload).eq("id", editando.id)
+        : await supabaseClient.from("ncm_biblioteca").insert(payload);
+
+      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("show", "error"); return; }
+      msg.textContent = "Guardado ✓"; msg.classList.add("show", "ok");
+      document.getElementById("ncm-form-card").style.display = "none";
+      cargarLista();
+    });
+
+    window.addEventListener("staff-listo", cargarLista, { once: false });
+  })();
+} catch (e) { console.error("admin biblioteca NCM:", e); }
 </script>
 </body>
 </html>
