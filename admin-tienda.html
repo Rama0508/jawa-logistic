@@ -200,6 +200,7 @@
         <div class="field"><label>Origen</label><input type="text" id="proveedor-origen" value="China" /></div>
         <div class="field"><label>FOB mínimo (USD)</label><input type="text" inputmode="decimal" id="proveedor-fob-min" placeholder="0.00" /></div>
         <div class="field"><label>FOB máximo (USD, opcional)</label><input type="text" inputmode="decimal" id="proveedor-fob-max" placeholder="0.00" /></div>
+        <div class="field"><label>Código HS / NCM (opcional)</label><input type="text" id="proveedor-codigo-hs" placeholder="Ej: 8517.62.00" /></div>
         <div class="field"><label>Verificado</label><select id="proveedor-verificado"><option value="false">No (ejemplo)</option><option value="true">Sí, lo evalué</option></select></div>
         <div class="field"><label>Activo</label><select id="proveedor-activo"><option value="true">Sí</option><option value="false">No</option></select></div>
         <div class="field span2"><label>Nombre del proveedor (interno, opcional)</label><input type="text" id="proveedor-proveedor-nombre" /></div>
@@ -668,6 +669,7 @@ try {
       document.getElementById("proveedor-origen").value = "China";
       document.getElementById("proveedor-fob-min").value = "";
       document.getElementById("proveedor-fob-max").value = "";
+      document.getElementById("proveedor-codigo-hs").value = "";
       document.getElementById("proveedor-verificado").value = "false";
       document.getElementById("proveedor-activo").value = "true";
       document.getElementById("proveedor-proveedor-nombre").value = "";
@@ -706,7 +708,7 @@ try {
                 ${p.verificado ? '<span class="estado-pill estado-pagado">verificado</span>' : '<span class="estado-pill" style="background:var(--paper-2); color:var(--muted);">ejemplo</span>'}
                 ${p.activo ? "" : '<span class="estado-pill estado-cancelado">inactivo</span>'}
               </div>
-              <div class="meta">${escHtml(p.categoria)} · FOB US$${p.precio_fob_min}${p.precio_fob_max ? "–" + p.precio_fob_max : ""} · ${escHtml(p.origen)}</div>
+              <div class="meta">${escHtml(p.categoria)} · FOB US$${p.precio_fob_min}${p.precio_fob_max ? "–" + p.precio_fob_max : ""} · ${escHtml(p.origen)}${p.codigo_hs ? " · HS " + escHtml(p.codigo_hs) : ""}</div>
             </div>
             <div class="item-actions">
               <button class="btn-ghost" data-editar="${p.id}">Editar</button>
@@ -728,6 +730,7 @@ try {
           document.getElementById("proveedor-origen").value = p.origen || "China";
           document.getElementById("proveedor-fob-min").value = p.precio_fob_min ?? "";
           document.getElementById("proveedor-fob-max").value = p.precio_fob_max ?? "";
+          document.getElementById("proveedor-codigo-hs").value = p.codigo_hs || "";
           document.getElementById("proveedor-verificado").value = String(!!p.verificado);
           document.getElementById("proveedor-activo").value = String(p.activo);
           document.getElementById("proveedor-proveedor-nombre").value = p.proveedor_nombre || "";
@@ -771,6 +774,7 @@ try {
         origen: document.getElementById("proveedor-origen").value.trim() || "China",
         precio_fob_min: fobMin,
         precio_fob_max: pNumProveedor(document.getElementById("proveedor-fob-max").value),
+        codigo_hs: document.getElementById("proveedor-codigo-hs").value.trim() || null,
         verificado: document.getElementById("proveedor-verificado").value === "true",
         activo: document.getElementById("proveedor-activo").value === "true",
         proveedor_nombre: document.getElementById("proveedor-proveedor-nombre").value.trim() || null,

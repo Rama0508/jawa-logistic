@@ -99,6 +99,7 @@ try {
             <div class="prov-detail-cat">${escHtml(p.categoria)}</div>
             <div class="prov-detail-nombre">${escHtml(p.nombre)}</div>
             <div class="prov-detail-desc">${escHtml(p.descripcion || "Sin descripción todavía.")}</div>
+            ${p.codigo_hs ? `<div style="font-size:11.5px; color:var(--muted); margin:-10px 0 14px;">Código HS/NCM: <span class="data" style="color:var(--navy); font-weight:700;">${escHtml(p.codigo_hs)}</span></div>` : ""}
             <div class="prov-detail-precio-box">
               <div class="lbl">Precio FOB · ${escHtml(p.origen)}</div>
               <div class="val">${fmtFob(p)}</div>
