@@ -53,7 +53,6 @@
   /* ---------- Letrero de publicidad (valla estilo cancha, fija arriba) ---------- */
   :root { --ad-marquee-h: 48px; }
   body:has(.ad-marquee) { padding-top: var(--ad-marquee-h); }
-  body:has(.ad-marquee) .navbar { top: var(--ad-marquee-h); }
 
   .ad-marquee { position:fixed; top:0; left:0; right:0; height:var(--ad-marquee-h); background:#0d0d14; border-bottom:2px solid var(--gold-bright); overflow:hidden; z-index:60; box-shadow:0 6px 18px -6px rgba(0,0,0,0.5); }
   .ad-marquee::before, .ad-marquee::after { content:""; position:absolute; top:0; bottom:0; width:44px; z-index:2; pointer-events:none; }
@@ -96,7 +95,7 @@
   @media (max-width:560px) { .topbar-inner { justify-content:center; gap:14px; font-size:11px; padding:7px 12px; } }
 
   /* ---------- Nav ---------- */
-  .navbar { position: sticky; top: 0; z-index: 40; background: rgba(246,247,250,0.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  .navbar { position: static; z-index: 40; background: rgba(246,247,250,0.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
   .navbar-inner { max-width: 1100px; margin: 0 auto; padding: 13px 20px; display:flex; align-items:center; justify-content:space-between; gap:16px; position:relative; }
   .brand { display:flex; align-items:center; gap:10px; text-decoration:none; }
   .logo-box { width:34px; height:34px; flex:none; }
