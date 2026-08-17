@@ -506,6 +506,28 @@
   .legal-prohibited-d { font-size:12.5px; color: var(--muted); line-height:1.7; }
   .legal-disclaimer { max-width:720px; margin: 20px auto 0; text-align:center; font-size:11px; color: var(--muted); opacity:.8; line-height:1.6; }
 
+  /* ---------- Club de Importadores ---------- */
+  .club-tiers { display:grid; grid-template-columns: repeat(3, 1fr); gap:22px; align-items:stretch; margin-bottom:36px; }
+  @media (max-width:900px) { .club-tiers { grid-template-columns: 1fr; max-width:420px; margin-left:auto; margin-right:auto; } }
+  .club-tier { position:relative; background:var(--white); border-radius:16px; padding:32px 26px; text-align:center; border-top:4px solid #94a3b8; box-shadow:0 14px 34px -24px rgba(22,34,61,0.35); }
+  .club-tier-2 { border-top-color: var(--coral); }
+  .club-tier-3 { border-top-color: var(--gold); box-shadow:0 20px 46px -20px rgba(169,134,90,0.45); transform:translateY(-8px); }
+  @media (max-width:900px) { .club-tier-3 { transform:none; } }
+  .club-tier-badge { position:absolute; top:-13px; left:50%; transform:translateX(-50%); background:var(--gold); color:#fff; font-size:10.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; padding:4px 14px; border-radius:20px; white-space:nowrap; }
+  .club-tier-nombre { font-family:var(--font-display); font-size:20px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; color:var(--navy); margin-top:6px; }
+  .club-tier-umbral { font-size:11.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; margin-top:4px; }
+  .club-tier-descuento { font-size:34px; font-weight:800; color:var(--coral-deep); font-family:ui-monospace, monospace; margin:16px 0 12px; }
+  .club-tier-1 .club-tier-descuento { color:#94a3b8; font-size:26px; }
+  .club-tier-detalle { font-size:12.5px; color:var(--muted); line-height:1.65; }
+
+  .club-nota { max-width:760px; margin:0 auto 32px; background:var(--paper-2); border-radius:12px; padding:22px 26px; }
+  .club-nota-t { font-size:13.5px; font-weight:800; color:var(--navy); margin-bottom:10px; }
+  .club-nota ul { margin:0; padding-left:18px; }
+  .club-nota li { font-size:12.5px; color:var(--muted); line-height:1.7; margin-bottom:6px; }
+  .club-nota li:last-child { margin-bottom:0; }
+
+  .club-cta { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+
   /* ---------- Cómo elegir proveedor ---------- */
   .proveedor-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; }
   @media (max-width: 900px) { .proveedor-grid { grid-template-columns: repeat(2, 1fr); } }
