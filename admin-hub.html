@@ -86,6 +86,7 @@
         </div>
         <div class="hub-field span2"><label>Origen</label><input type="text" id="operacion-origen" placeholder="China, Miami, etc." /></div>
         <div class="hub-field"><label>Total estimado (ARS)</label><input type="text" inputmode="decimal" id="operacion-total" placeholder="0.00" /></div>
+        <div class="hub-field"><label>FOB (USD) <span class="hub-tooltip" tabindex="0" title="Valor FOB de la mercadería en dólares — se usa para calcular el nivel del cliente en el Club de Importadores. Sin este dato la operación no suma para el club.">?</span></label><input type="text" inputmode="decimal" id="operacion-fob-usd" placeholder="0.00" /></div>
         <div class="hub-field span4"><label>Descripción</label><textarea id="operacion-descripcion" placeholder="Qué se está importando, referencia interna, etc."></textarea></div>
       </div>
       <button class="hub-btn-primary" id="operacion-guardar-btn" type="button">Crear operación</button>
@@ -343,12 +344,14 @@ try {
       msg.className = "hub-msg";
       if (!clienteSeleccionado) { msg.textContent = "Elegí un cliente primero."; msg.classList.add("show", "error"); return; }
 
+      const fobUsdInput = document.getElementById("operacion-fob-usd").value.trim();
       const payload = {
         cliente_id: clienteSeleccionado.id,
         tipo: document.getElementById("operacion-tipo").value,
         origen: document.getElementById("operacion-origen").value.trim() || null,
         descripcion: document.getElementById("operacion-descripcion").value.trim() || null,
         total_estimado_centavos: pesosACentavos(document.getElementById("operacion-total").value) || null,
+        fob_usd: fobUsdInput ? Number(fobUsdInput.replace(",", ".")) : null,
         creado_por: sesionStaffActual.user.id,
         cotizacion_id: cotizacionAConvertir,
       };
@@ -366,6 +369,7 @@ try {
       document.getElementById("operacion-origen").value = "";
       document.getElementById("operacion-descripcion").value = "";
       document.getElementById("operacion-total").value = "";
+      document.getElementById("operacion-fob-usd").value = "";
       cargarOperaciones();
       cargarCotizaciones();
     });
@@ -382,7 +386,7 @@ try {
             <div>
               <div class="hub-item-title data">${escHtml(o.codigo)}</div>
               <div class="hub-item-meta">${escHtml(o.cliente_nombre || o.cliente_email)} · ${escHtml(o.tipo)}${o.origen ? " · " + escHtml(o.origen) : ""}</div>
-              <div class="hub-item-meta">${fmtFecha(o.creado_en)}${o.total_estimado_centavos ? " · " + fmtCentavos(o.total_estimado_centavos) : ""}</div>
+              <div class="hub-item-meta">${fmtFecha(o.creado_en)}${o.total_estimado_centavos ? " · " + fmtCentavos(o.total_estimado_centavos) : ""}${o.fob_usd ? " · FOB USD " + Number(o.fob_usd).toLocaleString("es-AR", { minimumFractionDigits: 2 }) : ""}</div>
               ${o.descripcion ? `<div class="hub-item-meta">${escHtml(o.descripcion)}</div>` : ""}
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
@@ -395,6 +399,10 @@ try {
           <div class="hub-field-row" style="margin-top:10px; margin-bottom:0;">
             <input type="text" data-nota="${o.id}" placeholder="Nota de seguimiento (opcional) — ej: salió del depósito en Guangzhou" style="flex:1;" />
             <button class="hub-btn-ghost" data-agregar-nota="${o.id}" style="flex:none;">+ Agregar al timeline</button>
+          </div>
+          <div class="hub-field-row" style="margin-top:6px; margin-bottom:0;">
+            <input type="text" inputmode="decimal" data-fob="${o.id}" placeholder="FOB USD (para el Club de Importadores)" value="${o.fob_usd != null ? o.fob_usd : ""}" style="flex:1;" />
+            <button class="hub-btn-ghost" data-guardar-fob="${o.id}" style="flex:none;">Guardar FOB</button>
           </div>
           <div class="hub-item-meta" id="nota-msg-${o.id}"></div>
         </div>
@@ -434,6 +442,19 @@ try {
           if (error) { msg.textContent = "Error: " + error.message; return; }
           msg.textContent = "✓ Agregado al timeline del cliente.";
           if (notaInput) notaInput.value = "";
+        });
+      });
+
+      cont.querySelectorAll("[data-guardar-fob]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = btn.dataset.guardarFob;
+          const fobInput = cont.querySelector(`[data-fob="${id}"]`);
+          const msg = document.getElementById(`nota-msg-${id}`);
+          const raw = fobInput ? fobInput.value.trim() : "";
+          const fobUsd = raw ? Number(raw.replace(",", ".")) : null;
+          const { error } = await supabaseClient.from("operaciones").update({ fob_usd: fobUsd }).eq("id", id);
+          if (error) { msg.textContent = "Error: " + error.message; return; }
+          msg.textContent = "✓ FOB guardado.";
         });
       });
     }

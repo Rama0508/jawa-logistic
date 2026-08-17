@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Club de Importadores — Portal de cliente — Jawa Logistic</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../css/hub.css" />
+</head>
+<body>
+
+<div id="hub-shell">
+  <div id="hub-page">
+    <p class="hub-page-lead">Tu nivel se calcula solo, sumando el FOB (valor de mercadería en dólares) de todas tus operaciones con Jawa. <a href="/club-importadores.html" target="_blank">Ver el detalle completo del club →</a></p>
+    <div id="club-content"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/rates.js"></script>
+<script src="../js/cuenta.js"></script>
+<script src="../js/hub.js"></script>
+<script>
+try {
+  (async function () {
+    await SUPABASE_READY;
+    const session = await iniciarHub("club-importadores");
+    if (!session) return;
+    const clienteId = session.user.id;
+
+    // Umbrales confirmados por el usuario (ver club-importadores.html público):
+    // Nivel 1: 0 a 3.000 USD acumulados. Nivel 2: desde 3.000 (US$300 de
+    // descuento en compras de US$7.000+). Nivel 3: desde 15.000 (US$500 de
+    // descuento en compras de US$10.000+).
+    const NIVEL2_UMBRAL = 3000;
+    const NIVEL3_UMBRAL = 15000;
+
+    function fmtUsd(n) {
+      return "USD " + Number(n).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    function tierCardHtml(n, activo) {
+      const nombres = { 1: "Nivel 1", 2: "Nivel 2", 3: "Nivel 3" };
+      const umbrales = { 1: "Arrancás acá", 2: "Desde USD 3.000 acumulados", 3: "Desde USD 15.000 acumulados" };
+      const descuentos = { 1: "—", 2: "US$ 300", 3: "US$ 500" };
+      const detalles = {
+        1: "Todos los clientes empiezan acá desde su primera importación.",
+        2: "De descuento sobre el costo total puesto en Argentina, en cualquier operación de <b>USD 7.000 o más</b>.",
+        3: "De descuento sobre el costo total puesto en Argentina, en cualquier operación de <b>USD 10.000 o más</b>.",
+      };
+      return `
+        <div class="club-tier club-tier-${n} ${activo ? "club-tier-activo" : ""}" style="position:relative;">
+          ${activo ? `<div class="club-tier-check">✓ Tu nivel</div>` : ""}
+          <div class="club-tier-nombre">${nombres[n]}</div>
+          <div class="club-tier-umbral">${umbrales[n]}</div>
+          <div class="club-tier-descuento">${descuentos[n]}</div>
+          <div class="club-tier-detalle">${detalles[n]}</div>
+        </div>
+      `;
+    }
+
+    function progresoHtml(monto, nivel) {
+      if (nivel === 3) {
+        return `
+          <div class="club-progreso-head">
+            <div class="club-progreso-nivel">Nivel 3 🏆</div>
+            <div class="club-progreso-monto">${fmtUsd(monto)} acumulados</div>
+          </div>
+          <div class="club-progreso-max">Llegaste al nivel máximo del Club de Importadores.</div>
+        `;
+      }
+      const umbral = nivel === 1 ? NIVEL2_UMBRAL : NIVEL3_UMBRAL;
+      const base = nivel === 1 ? 0 : NIVEL2_UMBRAL;
+      const pct = Math.max(0, Math.min(100, ((monto - base) / (umbral - base)) * 100));
+      const falta = Math.max(0, umbral - monto);
+      return `
+        <div class="club-progreso-head">
+          <div class="club-progreso-nivel">Nivel ${nivel}</div>
+          <div class="club-progreso-monto">${fmtUsd(monto)} acumulados</div>
+        </div>
+        <div class="club-progreso-track"><div class="club-progreso-fill" style="width:${pct}%;"></div></div>
+        <div class="club-progreso-meta">
+          <span>${fmtUsd(base)}</span>
+          <span>Faltan ${fmtUsd(falta)} para el Nivel ${nivel + 1}</span>
+          <span>${fmtUsd(umbral)}</span>
+        </div>
+      `;
+    }
+
+    function operacionesListHtml(ops) {
+      const conFob = ops.filter((o) => o.fob_usd != null);
+      if (!conFob.length) {
+        return `<p class="hub-empty">Todavía no tenés operaciones con FOB cargado. A medida que Jawa confirme el valor FOB de tus importaciones, van a sumar acá automáticamente.</p>`;
+      }
+      return conFob.map((o) => `
+        <div class="hub-item">
+          <div class="hub-item-head">
+            <div>
+              <div class="hub-item-title data">${escHtml(o.codigo)}</div>
+              <div class="hub-item-meta">${fmtFecha(o.creado_en)} · ${HUB_ESTADO_LABEL[o.estado] || o.estado}${o.estado === "cancelado" ? " · no suma al club" : ""}</div>
+            </div>
+            <div class="hub-item-title data" style="${o.estado === "cancelado" ? "opacity:.4; text-decoration:line-through;" : ""}">${fmtUsd(o.fob_usd)}</div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    const { data: ops, error } = await supabaseClient
+      .from("operaciones")
+      .select("id, codigo, estado, fob_usd, creado_en")
+      .eq("cliente_id", clienteId)
+      .order("creado_en", { ascending: false });
+
+    const cont = document.getElementById("club-content");
+    if (error) { cont.innerHTML = `<p class="hub-empty">No pudimos cargar tu nivel del Club de Importadores en este momento. Probá de nuevo en unos minutos.</p>`; console.error(error); return; }
+
+    const operaciones = ops || [];
+    const monto = operaciones
+      .filter((o) => o.estado !== "cancelado" && o.fob_usd != null)
+      .reduce((acc, o) => acc + Number(o.fob_usd), 0);
+    const nivel = monto >= NIVEL3_UMBRAL ? 3 : monto >= NIVEL2_UMBRAL ? 2 : 1;
+
+    cont.innerHTML = `
+      <div class="hub-card">
+        ${progresoHtml(monto, nivel)}
+        <div class="club-tiers-hub">
+          ${tierCardHtml(1, nivel === 1)}
+          ${tierCardHtml(2, nivel === 2)}
+          ${tierCardHtml(3, nivel === 3)}
+        </div>
+      </div>
+      <div class="hub-card">
+        <div class="hub-card-title">Operaciones que suman a tu nivel</div>
+        ${operacionesListHtml(operaciones)}
+      </div>
+    `;
+  })();
+} catch (e) { console.error("club de importadores:", e); }
+</script>
+</body>
+</html>
