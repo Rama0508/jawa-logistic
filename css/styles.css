@@ -95,7 +95,7 @@
   @media (max-width:560px) { .topbar-inner { justify-content:center; gap:14px; font-size:11px; padding:7px 12px; } }
 
   /* ---------- Nav ---------- */
-  .navbar { position: static; z-index: 40; background: rgba(246,247,250,0.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  .navbar { position: relative; z-index: 40; background: rgba(246,247,250,0.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
   .navbar-inner { max-width: 1100px; margin: 0 auto; padding: 13px 20px; display:flex; align-items:center; justify-content:space-between; gap:16px; position:relative; }
   .brand { display:flex; align-items:center; gap:10px; text-decoration:none; }
   .logo-box { width:34px; height:34px; flex:none; }
