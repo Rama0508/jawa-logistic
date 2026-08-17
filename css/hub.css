@@ -209,6 +209,22 @@ a { color: inherit; }
 .hub-timeline .estado { font-weight: 800; font-size: 13px; }
 .hub-timeline .fecha { font-size: 11.5px; color: var(--muted); }
 
+/* ---------- Stepper visual de seguimiento (tipo delivery app) ---------- */
+.hub-stepper { display:flex; align-items:flex-start; overflow-x:auto; padding:6px 2px 4px; gap:0; }
+.hub-stepper-step { display:flex; flex-direction:column; align-items:center; flex:1; min-width:76px; text-align:center; position:relative; }
+.hub-stepper-line { position:absolute; top:19px; left:-50%; width:100%; height:3px; background:var(--line); z-index:0; }
+.hub-stepper-step:first-child .hub-stepper-line { display:none; }
+.hub-stepper-step.done .hub-stepper-line { background:var(--coral); }
+.hub-stepper-icon { width:38px; height:38px; border-radius:50%; background:var(--paper-2); border:2px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:16px; position:relative; z-index:1; }
+.hub-stepper-step.done .hub-stepper-icon { background:var(--coral); border-color:var(--coral); filter:grayscale(0); }
+.hub-stepper-step.current .hub-stepper-icon { background:var(--navy); border-color:var(--navy); animation: hub-stepper-pulse 1.8s ease-in-out infinite; }
+.hub-stepper-step:not(.done):not(.current) .hub-stepper-icon { filter:grayscale(1) opacity(.55); }
+@keyframes hub-stepper-pulse { 0%,100% { box-shadow:0 0 0 0 rgba(22,34,61,0.35); } 50% { box-shadow:0 0 0 7px rgba(22,34,61,0); } }
+.hub-stepper-label { font-size:10.5px; font-weight:700; color:var(--muted); margin-top:7px; line-height:1.3; }
+.hub-stepper-step.done .hub-stepper-label, .hub-stepper-step.current .hub-stepper-label { color:var(--navy); }
+.hub-stepper-cancelado { text-align:center; padding:14px; background:#fdecec; color:#b3261e; border-radius:8px; font-weight:700; font-size:13px; }
+@media (max-width:640px) { .hub-stepper-step { min-width:64px; } .hub-stepper-label { font-size:9.5px; } }
+
 /* ---------- Login (mismo criterio que admin-tienda.html) ---------- */
 .hub-login-screen { max-width: 360px; margin: 80px auto; padding: 0 20px; }
 .hub-login-screen .hub-card-title { margin-bottom: 4px; }

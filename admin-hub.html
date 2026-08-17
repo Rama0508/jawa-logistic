@@ -392,14 +392,48 @@ try {
               <button class="hub-btn-ghost" data-guardar-estado="${o.id}">Guardar</button>
             </div>
           </div>
+          <div class="hub-field-row" style="margin-top:10px; margin-bottom:0;">
+            <input type="text" data-nota="${o.id}" placeholder="Nota de seguimiento (opcional) — ej: salió del depósito en Guangzhou" style="flex:1;" />
+            <button class="hub-btn-ghost" data-agregar-nota="${o.id}" style="flex:none;">+ Agregar al timeline</button>
+          </div>
+          <div class="hub-item-meta" id="nota-msg-${o.id}"></div>
         </div>
       `).join("");
 
       cont.querySelectorAll("[data-guardar-estado]").forEach((btn) => {
         btn.addEventListener("click", async () => {
-          const select = cont.querySelector(`[data-estado="${btn.dataset.guardarEstado}"]`);
-          await supabaseClient.from("operaciones").update({ estado: select.value }).eq("id", btn.dataset.guardarEstado);
+          const id = btn.dataset.guardarEstado;
+          const select = cont.querySelector(`[data-estado="${id}"]`);
+          const notaInput = cont.querySelector(`[data-nota="${id}"]`);
+          const nota = notaInput ? notaInput.value.trim() : "";
+          await supabaseClient.from("operaciones").update({ estado: select.value }).eq("id", id);
+          // El trigger de la base ya registra el evento del cambio de estado —
+          // si staff también cargó una nota, la adjuntamos al evento recién
+          // creado (el más reciente de esa operación) en vez de duplicar el insert.
+          if (nota) {
+            const { data: ultimoEvento } = await supabaseClient
+              .from("operacion_eventos").select("id").eq("operacion_id", id)
+              .order("creado_en", { ascending: false }).limit(1).maybeSingle();
+            if (ultimoEvento) await supabaseClient.from("operacion_eventos").update({ nota }).eq("id", ultimoEvento.id);
+          }
           cargarOperaciones();
+        });
+      });
+
+      cont.querySelectorAll("[data-agregar-nota]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = btn.dataset.agregarNota;
+          const notaInput = cont.querySelector(`[data-nota="${id}"]`);
+          const select = cont.querySelector(`[data-estado="${id}"]`);
+          const nota = notaInput ? notaInput.value.trim() : "";
+          const msg = document.getElementById(`nota-msg-${id}`);
+          if (!nota) { msg.textContent = "Escribí una nota antes de agregarla."; return; }
+          const { error } = await supabaseClient.from("operacion_eventos").insert({
+            operacion_id: id, estado: select.value, nota,
+          });
+          if (error) { msg.textContent = "Error: " + error.message; return; }
+          msg.textContent = "✓ Agregado al timeline del cliente.";
+          if (notaInput) notaInput.value = "";
         });
       });
     }

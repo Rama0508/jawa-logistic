@@ -57,6 +57,27 @@ try {
     // timeline siempre arranque en la creación de la operación.
     const timeline = [{ estado: "cotizado", creado_en: o.creado_en }, ...(eventos || [])];
 
+    function stepperHtml() {
+      if (o.estado === "cancelado") {
+        return `<div class="hub-stepper-cancelado">✕ Esta operación fue cancelada</div>`;
+      }
+      const pasoActualIdx = HUB_ESTADO_ORDEN.indexOf(o.estado);
+      return `
+        <div class="hub-stepper">
+          ${HUB_ESTADO_ORDEN.map((estado, i) => {
+            const cls = i < pasoActualIdx ? "done" : i === pasoActualIdx ? "current" : "";
+            return `
+              <div class="hub-stepper-step ${cls}">
+                <div class="hub-stepper-line"></div>
+                <div class="hub-stepper-icon">${cls === "done" ? "✓" : HUB_ESTADO_ICONO[estado]}</div>
+                <div class="hub-stepper-label">${escHtml(HUB_ESTADO_LABEL[estado])}</div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
     cont.innerHTML = `
       <div class="hub-card">
         <div class="hub-card-head">
@@ -71,11 +92,16 @@ try {
       </div>
 
       <div class="hub-card">
-        <div class="hub-card-title">Estado de la operación</div>
+        <div class="hub-card-title">Seguimiento</div>
+        ${stepperHtml()}
+      </div>
+
+      <div class="hub-card">
+        <div class="hub-card-title">Historial completo</div>
         <ul class="hub-timeline">
-          ${timeline.map((ev) => `
+          ${timeline.slice().reverse().map((ev) => `
             <li>
-              <div class="estado">${escHtml(HUB_ESTADO_LABEL[ev.estado] || ev.estado)}</div>
+              <div class="estado">${HUB_ESTADO_ICONO[ev.estado] || ""} ${escHtml(HUB_ESTADO_LABEL[ev.estado] || ev.estado)}</div>
               <div class="fecha">${fmtFechaHora(ev.creado_en)}</div>
               ${ev.nota ? `<div class="hub-item-meta" style="margin-top:4px;">${escHtml(ev.nota)}</div>` : ""}
             </li>

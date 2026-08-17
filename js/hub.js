@@ -68,6 +68,20 @@ const HUB_ESTADO_LABEL = {
   cancelado: "Cancelado",
 };
 
+// Secuencia "normal" de una operación (cancelado queda afuera, es un
+// estado terminal aparte) — se usa para el tracking visual tipo delivery
+// app en hub/operacion.html: qué pasos ya se cumplieron y cuál falta.
+const HUB_ESTADO_ORDEN = ["cotizado", "deposito_confirmado", "en_transito", "en_aduana", "liberado", "entregado"];
+const HUB_ESTADO_ICONO = {
+  cotizado: "📝",
+  deposito_confirmado: "💰",
+  en_transito: "🚢",
+  en_aduana: "🛃",
+  liberado: "✅",
+  entregado: "📦",
+  cancelado: "✕",
+};
+
 function renderHubShell(tabActiva, session, contenidoPagina) {
   const navHtml = HUB_NAV_ITEMS.map((item) => `
     <a href="${item.href}" data-tab="${item.tab}" class="${item.tab === tabActiva ? "active" : ""}">
