@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<title>Marco legal — Jawa Logistic</title>
-<meta name="description" content="Cómo funciona el régimen simplificado de envíos courier en Argentina: franquicias, topes y qué no se puede importar." />
+<title>Comparador: importar vs. comprar ya importado — Jawa Logistic</title>
+<meta name="description" content="Compará cuánto pagás importando vos mismo con Jawa Logistic contra comprar el mismo producto ya importado en Argentina (Mercado Libre, tiendas físicas)." />
 <meta name="theme-color" content="#16223d" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -75,7 +75,7 @@
       <a href="tienda.html">Tienda</a>
       <a href="cursos.html">Cursos</a>
       <div class="nav-dropdown">
-        <button type="button" class="nav-dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+        <button type="button" class="nav-dropdown-toggle active" aria-haspopup="true" aria-expanded="false">
           Conocenos
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
@@ -87,10 +87,10 @@
           <a href="quienes-somos.html">¿Quiénes somos?</a>
           <a href="club-importadores.html">Club de importadores</a>
           <a href="proveedores-calificados.html">Calificaciones de proveedores</a>
-          <a href="comparador-importar-vs-comprar.html">Importar vs. comprar ya importado</a>
+          <a href="comparador-importar-vs-comprar.html"><strong>Importar vs. comprar ya importado</strong></a>
         </div>
       </div>
-      <a href="legal.html"><strong>Legal</strong></a>
+      <a href="legal.html">Legal</a>
       <a href="preguntas.html">Preguntas</a>
       <a href="contacto.html">Contacto</a>
       <a class="nav-cart" href="carrito.html" aria-label="Ver carrito">
@@ -110,51 +110,52 @@
 </div>
 
 <main>
-  <section id="legal" class="section">
+  <section id="comparador" class="section">
     <div class="wrap">
       <div class="section-head center reveal">
-        <div class="eyebrow">Marco legal</div>
-        <h2>Importar así es 100% legal — así funciona en criollo</h2>
-        <p>Sin letra chica. Esto es lo que dice la normativa vigente y qué significa realmente para vos.</p>
+        <div class="eyebrow">¿Importar o comprar ya importado?</div>
+        <h2>Compará antes de decidir</h2>
+        <p>Cargá lo que te sale importando ese producto vos mismo con Jawa y lo que sale comprarlo ya importado en Argentina (Mercado Libre, una tienda) — te mostramos al instante cuánto ahorrás o si te conviene más comprarlo hecho.</p>
       </div>
 
-      <div class="legal-callout reveal">
-        <strong>Los impuestos ya están incluidos en tu precio.</strong> Cuando la calculadora te muestra un total, no hay IVA ni alícuotas para pagar aparte cuando llega el paquete — ya está contemplado en el número que ves.
-      </div>
+      <div class="requisitos-box reveal">
+        <div class="field-grid" style="grid-template-columns: 1fr;">
+          <div class="field">
+            <label>Producto (opcional, solo para el resumen)</label>
+            <input type="text" id="cmp-nombre" placeholder="Ej: Auriculares inalámbricos" />
+          </div>
+        </div>
+        <div class="field-grid" style="grid-template-columns: repeat(3, 1fr);">
+          <div class="field">
+            <label>Costo puesto en Argentina, importando con Jawa (ARS, por unidad)
+              <span class="qq-tooltip" tabindex="0" title="Usá el resultado de nuestra calculadora real (Cotizá tu pedido, más arriba en la home, o la del portal de cliente) — este comparador no recalcula el costo de importar, solo compara los dos números que vos cargues.">?</span>
+            </label>
+            <input type="text" inputmode="decimal" id="cmp-jawa" placeholder="Ej: 45000" />
+          </div>
+          <div class="field">
+            <label>Precio ya importado en Argentina (ARS, por unidad)
+              <span class="qq-tooltip" tabindex="0" title="El precio que encontraste en Mercado Libre, una tienda física, etc., para ese mismo producto ya nacionalizado.">?</span>
+            </label>
+            <input type="text" inputmode="decimal" id="cmp-local" placeholder="Ej: 68000" />
+          </div>
+          <div class="field">
+            <label>Cantidad</label>
+            <input type="text" inputmode="numeric" id="cmp-cantidad" placeholder="1" value="1" />
+          </div>
+        </div>
+        <button class="btn-primary" id="cmp-calcular-btn" type="button" style="width:100%; justify-content:center;">Comparar</button>
 
-      <div class="legal-grid reveal-group">
-        <div class="legal-card reveal">
-          <div class="legal-card-t">¿Qué es el régimen simplificado de envíos courier?</div>
-          <div class="legal-card-d">El mecanismo legal que usa la aduana argentina (ARCA, ex AFIP) para que puedas recibir compras del exterior puerta a puerta sin ser "importador" en el sentido formal. Es el régimen bajo el que viaja tu pedido.</div>
-        </div>
-        <div class="legal-card reveal">
-          <div class="legal-card-t">Franquicia hasta USD 400</div>
-          <div class="legal-card-d">Los primeros USD 400 de valor FOB de tu envío no pagan derechos de importación ni tasa estadística. El IVA (21%) sí corresponde, pero ya está incluido en el precio que te cotizamos.</div>
-        </div>
-        <div class="legal-card reveal">
-          <div class="legal-card-t">Entre USD 400 y USD 3.000</div>
-          <div class="legal-card-d">Por encima de los USD 400 se aplica una alícuota simplificada del 50% sobre el excedente, más el IVA — también ya incluido en tu cotización. No te llega ninguna sorpresa cuando el paquete está por entrar al país.</div>
-        </div>
-        <div class="legal-card reveal">
-          <div class="legal-card-t">Topes por envío</div>
-          <div class="legal-card-d">Hasta 50kg y hasta 3 unidades de la misma especie por envío, sin fin comercial. Nuestra calculadora te avisa si tu pedido se pasa de estos límites antes de que confirmes.</div>
-        </div>
-        <div class="legal-card reveal">
-          <div class="legal-card-t">Tope anual: 5 envíos por persona</div>
-          <div class="legal-card-d">La normativa permite hasta 5 envíos por año por CUIT/CUIL bajo este régimen. Es un límite tuyo como comprador, no nuestro — si ya usaste los 5, el próximo pedido pasa a trámite formal con despachante de aduana. Te avisamos si estás cerca del límite.</div>
-        </div>
-        <div class="legal-card reveal">
-          <div class="legal-card-t">¿Necesito CUIT o ser monotributista?</div>
-          <div class="legal-card-d">No hace falta ser monotributista ni tener una empresa para importar de uso personal bajo este régimen. Tu CUIT o CUIL (el mismo con el que estás en relación de dependencia, sos autónomo, o simplemente tenés DNI) es el número que identifica tus envíos ante la aduana.</div>
+        <div id="cmp-resultado" style="margin-top:22px;"></div>
+
+        <div class="club-nota reveal" style="margin-top:24px; max-width:none;">
+          <div class="club-nota-t">¿Por qué lo cargo yo y no lo busca la página sola?</div>
+          <ul>
+            <li>Los precios de Mercado Libre y de otras tiendas cambian todo el tiempo, y hoy no tenemos una conexión en vivo con ellos para traerlos automáticamente.</li>
+            <li>Así el resultado es siempre exacto, con el precio real que vos encontraste — nada estimado ni desactualizado.</li>
+            <li>No guardamos nada de lo que cargués acá: el cálculo se hace en tu navegador.</li>
+          </ul>
         </div>
       </div>
-
-      <div class="legal-prohibited reveal">
-        <div class="legal-prohibited-t">Lo que no se puede importar por este régimen</div>
-        <div class="legal-prohibited-d">Armas y réplicas, medicamentos sin autorización sanitaria, alimentos frescos, plantas y semillas, productos falsificados o con marcas registradas sin autorización, tabaco y baterías de litio sueltas (sin el dispositivo que las contiene). Si tu producto entra en una zona gris — electrónicos que necesitan certificación, cosmética, suplementos — escribinos antes de comprar y te confirmamos.</div>
-      </div>
-
-      <p class="legal-disclaimer reveal">Esta información refleja la normativa vigente de ARCA (ex AFIP) para el régimen de envíos courier. Como cualquier norma impositiva, puede cambiar — si tenés un caso puntual o valores grandes en juego, confirmalo con nosotros antes de comprar.</p>
     </div>
   </section>
 </main>
@@ -232,6 +233,85 @@ document.addEventListener("click", () => {
     d.querySelector(".nav-dropdown-toggle").setAttribute("aria-expanded", "false");
   });
 });
+
+try {
+  (function () {
+    function fmtArs(n) {
+      return Number(n).toLocaleString("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    function calcular() {
+      const nombre = document.getElementById("cmp-nombre").value.trim();
+      const jawa = Number(document.getElementById("cmp-jawa").value.replace(",", "."));
+      const local = Number(document.getElementById("cmp-local").value.replace(",", "."));
+      const cantidad = Math.max(1, Number(document.getElementById("cmp-cantidad").value) || 1);
+      const cont = document.getElementById("cmp-resultado");
+
+      if (!jawa || !local) {
+        cont.innerHTML = `<p style="font-size:12.5px; color:var(--coral-deep);">Cargá los dos costos por unidad para comparar.</p>`;
+        return;
+      }
+
+      const max = Math.max(jawa, local);
+      const diferenciaUnitaria = local - jawa;
+      const diferenciaTotal = diferenciaUnitaria * cantidad;
+      const pct = Math.abs(Math.round((diferenciaUnitaria / local) * 1000) / 10);
+      const conviene = diferenciaUnitaria > 0 ? "jawa" : diferenciaUnitaria < 0 ? "local" : "igual";
+
+      const barrasHtml = `
+        <div class="comp-bars">
+          <div class="comp-bar-row">
+            <div class="comp-bar-label">Importando con Jawa</div>
+            <div class="comp-bar-track"><div class="comp-bar-fill jawa" style="width:${(jawa / max) * 100}%;"></div></div>
+            <div class="comp-bar-val">${fmtArs(jawa)}</div>
+          </div>
+          <div class="comp-bar-row">
+            <div class="comp-bar-label">Ya importado (${nombre ? "esta tienda" : "Argentina"})</div>
+            <div class="comp-bar-track"><div class="comp-bar-fill local" style="width:${(local / max) * 100}%;"></div></div>
+            <div class="comp-bar-val">${fmtArs(local)}</div>
+          </div>
+        </div>
+      `;
+
+      let mensajeHtml;
+      if (conviene === "jawa") {
+        mensajeHtml = `
+          <div class="requisitos-aceptacion requisitos-aceptacion-ok">
+            <div class="requisitos-aceptacion-icono">✅</div>
+            <div>
+              <div class="requisitos-aceptacion-titulo">Te conviene importarlo${nombre ? " — " + escHtml(nombre) : ""}</div>
+              <div class="requisitos-aceptacion-nota">Ahorrás ${fmtArs(diferenciaUnitaria)} por unidad (${pct}% menos) importándolo con Jawa en vez de comprarlo ya importado. Con ${cantidad} unidad${cantidad === 1 ? "" : "es"}, el ahorro total es de ${fmtArs(diferenciaTotal)}.</div>
+            </div>
+          </div>`;
+      } else if (conviene === "local") {
+        mensajeHtml = `
+          <div class="requisitos-aceptacion requisitos-aceptacion-permisos">
+            <div class="requisitos-aceptacion-icono">⚖️</div>
+            <div>
+              <div class="requisitos-aceptacion-titulo">Con estos números, te conviene más comprarlo ya importado</div>
+              <div class="requisitos-aceptacion-nota">Importándolo vos mismo sale ${fmtArs(Math.abs(diferenciaUnitaria))} más caro por unidad (${pct}%) que comprarlo ya nacionalizado. Con pedidos más grandes los costos fijos de importar se diluyen — probá aumentar la cantidad o consultanos por WhatsApp para una cotización más ajustada.</div>
+            </div>
+          </div>`;
+      } else {
+        mensajeHtml = `
+          <div class="requisitos-aceptacion requisitos-aceptacion-permisos">
+            <div class="requisitos-aceptacion-icono">🟰</div>
+            <div>
+              <div class="requisitos-aceptacion-titulo">Están empatados</div>
+              <div class="requisitos-aceptacion-nota">El costo por unidad es prácticamente el mismo importando o comprando ya importado.</div>
+            </div>
+          </div>`;
+      }
+
+      cont.innerHTML = mensajeHtml + barrasHtml;
+    }
+
+    document.getElementById("cmp-calcular-btn").addEventListener("click", calcular);
+    [`cmp-nombre`, `cmp-jawa`, `cmp-local`, `cmp-cantidad`].forEach((id) => {
+      document.getElementById(id).addEventListener("keydown", (e) => { if (e.key === "Enter") calcular(); });
+    });
+  })();
+} catch (e) { console.error("comparador importar vs comprar:", e); }
 </script>
 </body>
 </html>

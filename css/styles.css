@@ -701,6 +701,17 @@
   .requisitos-badge-baja { background:rgba(52,150,90,0.13); color:#2e7d4f; }
   .requisitos-badge-media { background:rgba(201,150,46,0.16); color:#93650f; }
   .requisitos-badge-alta { background:rgba(201,80,46,0.14); color:var(--coral-deep); }
+
+  /* ---------- Comparador: importar vs. comprar ya importado ---------- */
+  .comp-bars { display:flex; flex-direction:column; gap:14px; margin:18px 0 4px; }
+  .comp-bar-row { display:grid; grid-template-columns:150px 1fr 110px; align-items:center; gap:12px; }
+  .comp-bar-label { font-size:12.5px; font-weight:700; color:var(--navy); }
+  .comp-bar-track { position:relative; height:16px; background:var(--paper-2); border-radius:8px; overflow:hidden; }
+  .comp-bar-fill { height:100%; border-radius:8px; transition:width .4s ease; }
+  .comp-bar-fill.jawa { background:linear-gradient(90deg, var(--coral), var(--gold)); }
+  .comp-bar-fill.local { background:#94a3b8; }
+  .comp-bar-val { font-size:13px; font-weight:800; color:var(--navy); font-family:ui-monospace, monospace; text-align:right; }
+  @media (max-width:560px) { .comp-bar-row { grid-template-columns:1fr; gap:4px; } .comp-bar-val { text-align:left; } }
   .requisitos-resumen { font-size:13.5px; color:var(--ink); line-height:1.65; margin:0 0 16px; }
 
   .requisitos-lista { display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
