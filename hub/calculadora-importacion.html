@@ -409,7 +409,7 @@ try {
         ${renderChips()}
         ${p.rubro ? `<div class="wiz-note">✨ Clasificado por IA${p.confianza ? " · confianza " + escHtml(p.confianza) : ""} — <b>${escHtml(p.rubro)}</b></div>` : `<div class="wiz-note">Todavía no clasificaste este producto con IA — completá las alícuotas a mano o volvé al paso 1.</div>`}
         <div class="hub-field" style="max-width:220px; margin-top:10px;">
-          <label>Código HS / NCM (si lo conocés) <span class="hub-tooltip" tabindex="0" title="Es el código de 8 dígitos que clasifica tu producto ante la aduana argentina — determina el arancel real y qué permisos aplican. Si no lo sabés, no pasa nada: lo confirmamos nosotros.">?</span></label>
+          <label>Código HS / NCM (si lo conocés) <span class="hub-tooltip" tabindex="0" title="Es el código que clasifica tu producto ante la aduana argentina — de él depende qué arancel pagás y qué permisos necesitás. Pedíselo siempre a tu proveedor (en Alibaba, 1688, etc. suele figurar como &quot;HS Code&quot; en la ficha del producto). Si no lo tiene, no pasa nada: lo confirmamos nosotros.">?</span></label>
           <input type="text" data-field="codigoHS" value="${escHtml(p.codigoHS || "")}" placeholder="Ej: 8517.62.00" />
         </div>
         ${p.codigoHSFuente === "biblioteca_interna" ? `
