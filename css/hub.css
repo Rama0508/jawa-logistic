@@ -225,6 +225,13 @@ a { color: inherit; }
 .hub-stepper-cancelado { text-align:center; padding:14px; background:#fdecec; color:#b3261e; border-radius:8px; font-weight:700; font-size:13px; }
 @media (max-width:640px) { .hub-stepper-step { min-width:64px; } .hub-stepper-label { font-size:9.5px; } }
 
+/* ---------- Calificación de proveedores (estrellas) ---------- */
+.calif-estrellas { display:inline-flex; gap:3px; }
+.calif-estrella { font-size:20px; color:var(--line); line-height:1; }
+.calif-estrella.activa { color:#e0a835; }
+.calif-estrellas.interactivo .calif-estrella { cursor:pointer; transition:transform .1s ease; }
+.calif-estrellas.interactivo .calif-estrella:hover { transform:scale(1.15); }
+
 /* ---------- Login (mismo criterio que admin-tienda.html) ---------- */
 .hub-login-screen { max-width: 360px; margin: 80px auto; padding: 0 20px; }
 .hub-login-screen .hub-card-title { margin-bottom: 4px; }

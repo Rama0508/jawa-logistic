@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Calificar proveedor — Portal de cliente — Jawa Logistic</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../css/hub.css" />
+</head>
+<body>
+
+<div id="hub-shell">
+  <div id="hub-page">
+    <p class="hub-page-lead">Calificá a un proveedor real después de comprarle — le sirve a otros clientes de Jawa antes de pagar. <a href="/proveedores-calificados.html" target="_blank">Ver todas las calificaciones →</a></p>
+    <div id="calificar-content"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/rates.js"></script>
+<script src="../js/cuenta.js"></script>
+<script src="../js/hub.js"></script>
+<script>
+try {
+  (async function () {
+    await SUPABASE_READY;
+    const session = await iniciarHub("calificar-proveedor");
+    if (!session) return;
+    const clienteId = session.user.id;
+
+    let puntajeElegido = 5;
+    let misCalificaciones = [];
+
+    function estrellasHtml(n, interactivo) {
+      let html = `<div class="calif-estrellas${interactivo ? " interactivo" : ""}">`;
+      for (let i = 1; i <= 5; i++) {
+        html += `<span class="calif-estrella ${i <= n ? "activa" : ""}" ${interactivo ? `data-estrella="${i}"` : ""}>★</span>`;
+      }
+      html += `</div>`;
+      return html;
+    }
+
+    async function cargarMisCalificaciones() {
+      const { data, error } = await supabaseClient
+        .from("proveedor_calificaciones")
+        .select("*")
+        .eq("cliente_id", clienteId)
+        .order("creado_en", { ascending: false });
+      if (error) { console.error(error); return; }
+      misCalificaciones = data || [];
+    }
+
+    function render() {
+      const cont = document.getElementById("calificar-content");
+      cont.innerHTML = `
+        <div class="hub-card">
+          <div class="hub-card-title">Nueva calificación</div>
+          <div class="hub-field">
+            <label>Nombre del proveedor</label>
+            <input type="text" id="calif-nombre" placeholder="Ej: Shenzhen ABC Electronics Co." />
+          </div>
+          <div class="hub-field" style="margin-top:10px;">
+            <label>Link del proveedor (opcional)</label>
+            <input type="text" id="calif-link" placeholder="https://www.alibaba.com/..." />
+          </div>
+          <div class="hub-field" style="margin-top:10px;">
+            <label>Tu puntaje</label>
+            ${estrellasHtml(puntajeElegido, true)}
+          </div>
+          <div class="hub-field" style="margin-top:10px;">
+            <label>Comentario (opcional)</label>
+            <textarea id="calif-comentario" placeholder="¿Cómo fue tu experiencia? Cumplió lo acordado, tiempos de respuesta, calidad recibida..."></textarea>
+          </div>
+          <button class="hub-btn-primary" id="calif-enviar-btn" type="button" style="margin-top:12px;">Publicar calificación</button>
+          <div class="hub-msg" id="calif-msg"></div>
+        </div>
+
+        <div class="hub-card">
+          <div class="hub-card-title">Tus calificaciones</div>
+          ${!misCalificaciones.length
+            ? `<p class="hub-empty">Todavía no calificaste ningún proveedor.</p>`
+            : misCalificaciones.map((c) => `
+              <div class="hub-item">
+                <div class="hub-item-head">
+                  <div>
+                    <div class="hub-item-title">${escHtml(c.proveedor_nombre)}</div>
+                    ${estrellasHtml(c.puntaje, false)}
+                    ${c.comentario ? `<div class="hub-item-meta" style="margin-top:4px;">${escHtml(c.comentario)}</div>` : ""}
+                    <div class="hub-item-meta">${fmtFecha(c.creado_en)}</div>
+                  </div>
+                  <button class="hub-btn-ghost" data-borrar="${c.id}">Eliminar</button>
+                </div>
+              </div>
+            `).join("")}
+        </div>
+      `;
+
+      cont.querySelectorAll("[data-estrella]").forEach((el) => {
+        el.addEventListener("click", () => {
+          puntajeElegido = Number(el.dataset.estrella);
+          render();
+        });
+      });
+
+      document.getElementById("calif-enviar-btn").addEventListener("click", async () => {
+        const msg = document.getElementById("calif-msg");
+        msg.className = "hub-msg";
+        const nombre = document.getElementById("calif-nombre").value.trim();
+        if (!nombre) { msg.textContent = "Cargá el nombre del proveedor."; msg.classList.add("show", "error"); return; }
+        const payload = {
+          proveedor_nombre: nombre,
+          proveedor_link: document.getElementById("calif-link").value.trim() || null,
+          puntaje: puntajeElegido,
+          comentario: document.getElementById("calif-comentario").value.trim() || null,
+          cliente_id: clienteId,
+        };
+        const { error } = await supabaseClient.from("proveedor_calificaciones").insert(payload);
+        if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("show", "error"); return; }
+        puntajeElegido = 5;
+        await cargarMisCalificaciones();
+        render();
+      });
+
+      cont.querySelectorAll("[data-borrar]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("¿Eliminar esta calificación?")) return;
+          await supabaseClient.from("proveedor_calificaciones").delete().eq("id", btn.dataset.borrar);
+          await cargarMisCalificaciones();
+          render();
+        });
+      });
+    }
+
+    await cargarMisCalificaciones();
+    render();
+  })();
+} catch (e) { console.error("calificar proveedor:", e); }
+</script>
+</body>
+</html>
