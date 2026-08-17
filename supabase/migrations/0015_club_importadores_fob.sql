@@ -14,6 +14,9 @@ alter table public.operaciones add column if not exists fob_usd numeric;
 
 -- Se recrea operaciones_admin_listar() (definida en 0013) para que el
 -- listado de admin-hub.html pueda mostrar/editar el FOB de cada operación.
+-- Postgres no permite cambiar las columnas de salida de una función con
+-- CREATE OR REPLACE si ya existe con otra firma — hay que borrarla primero.
+drop function if exists public.operaciones_admin_listar();
 create or replace function public.operaciones_admin_listar()
 returns table (
   id uuid, codigo text, cliente_id uuid, cliente_email text, cliente_nombre text,
