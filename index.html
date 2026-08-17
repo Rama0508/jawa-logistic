@@ -114,9 +114,15 @@
 </div>
 
 <header class="hero" id="top">
-  <!-- El fondo (foto del barco) está definido en .hero, en css/styles.css.
-       Acá van el degradé para que el texto sea legible y el canvas de
-       partículas flotantes (ver #hero-particles en js/main.js). -->
+  <!-- Fondo: 3 fotos en rotación (barco → delivery → avión), ver
+       .hero-bg-slide en css/styles.css y el ciclo en js/main.js. Debajo,
+       el degradé para que el texto sea legible y el canvas de partículas
+       flotantes (ver #hero-particles en js/main.js). -->
+  <div class="hero-bg" id="hero-bg">
+    <div class="hero-bg-slide hero-bg-slide-ship active"></div>
+    <div class="hero-bg-slide hero-bg-slide-delivery"></div>
+    <div class="hero-bg-slide hero-bg-slide-plane"></div>
+  </div>
   <div class="hero-overlay"></div>
   <div class="hero-shimmer"></div>
   <canvas id="hero-particles" class="hero-particles" aria-hidden="true"></canvas>

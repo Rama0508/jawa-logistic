@@ -154,7 +154,15 @@
      la foto del avión fija detrás de toda la página), el hero de la home
      tiene su propia foto de fondo (el barco) — es la primera impresión de
      la página y queremos una imagen más específica ahí. */
-  .hero { background: url("../images/hero-ship.jpg") center 45% / cover no-repeat; color: var(--white); position:relative; z-index:0; overflow:hidden; }
+  .hero { background: #0d1730; color: var(--white); position:relative; z-index:0; overflow:hidden; }
+  /* Slideshow de fondo: barco → delivery → avión, una imagen fija por .hero
+     ya no alcanza — ver .hero-bg-slide y el ciclo en js/main.js. */
+  .hero-bg { position:absolute; inset:0; }
+  .hero-bg-slide { position:absolute; inset:0; background-size:cover; background-position:center 45%; background-repeat:no-repeat; opacity:0; transition:opacity 1s ease; }
+  .hero-bg-slide.active { opacity:1; }
+  .hero-bg-slide-ship { background-image:url("../images/hero-ship.jpg"); }
+  .hero-bg-slide-delivery { background-image:url("../images/hero-delivery.jpg"); background-position:center 30%; }
+  .hero-bg-slide-plane { background-image:url("../images/hero-plane.jpg"); background-position:center 55%; }
   .hero-overlay { position:absolute; inset:0; background: linear-gradient(180deg, rgba(13,23,48,0.5) 0%, rgba(13,23,48,0.34) 45%, rgba(13,23,48,0.6) 100%); pointer-events:none; }
   .hero-shimmer { position:absolute; inset:0; background: linear-gradient(115deg, transparent 40%, rgba(215,182,134,0.10) 50%, transparent 60%); background-size: 220% 220%; animation: shimmer-sweep 7s ease-in-out infinite; pointer-events:none; }
   .hero-particles { position:absolute; inset:0; width:100%; height:100%; z-index:1; pointer-events:none; }

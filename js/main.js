@@ -77,6 +77,20 @@ try {
   })();
 } catch (e) { console.error("reveal on scroll:", e); }
 
+// ---------- Slideshow de fondo del hero (barco → delivery → avión) ----------
+try {
+  (function () {
+    const slides = document.querySelectorAll("#hero-bg .hero-bg-slide");
+    if (!slides.length) return;
+    let i = 0;
+    setInterval(() => {
+      slides[i].classList.remove("active");
+      i = (i + 1) % slides.length;
+      slides[i].classList.add("active");
+    }, 2000);
+  })();
+} catch (e) { console.error("slideshow del hero:", e); }
+
 // ---------- Partículas flotantes del hero ----------
 // Animación liviana (sin video, sin librerías): triangulitos que suben
 // despacio sobre la foto de fondo, para que el hero no quede del todo
