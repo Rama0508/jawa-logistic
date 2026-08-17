@@ -105,7 +105,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span class="nav-user-label">Usuario</span>
       </a>
-      <a class="nav-cta" href="#cotizador">Cotizar ahora</a>
+      <a class="nav-cta" href="#quick-quote">Cotizar ahora</a>
     </div>
     <button class="nav-toggle" id="nav-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="nav-links">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
@@ -122,7 +122,7 @@
   <canvas id="hero-particles" class="hero-particles" aria-hidden="true"></canvas>
 
   <div class="hero-quicklinks">
-    <a href="#cotizador">Cotizador</a>
+    <a href="#quick-quote">Cotizador</a>
     <a href="#hub-jawa">HUB</a>
     <a href="como-funciona.html">Proceso</a>
     <a href="preguntas.html">Preguntas</a>
@@ -204,32 +204,11 @@
   </div>
 </section>
 
-<section id="requisitos" class="section section-alt">
-  <div class="wrap">
-    <div class="section-head center reveal">
-      <div class="eyebrow">Antes de importar</div>
-      <h2>¿Qué necesitás para traer esto a Argentina?</h2>
-      <p>Contanos qué producto querés importar y te decimos, en general, qué papeles o permisos suele necesitar — así no te agarra de sorpresa en la aduana.</p>
-    </div>
-
-    <div class="requisitos-box reveal">
-      <div class="requisitos-form">
-        <input type="text" id="req-input" placeholder="Ej: parlante bluetooth, casco de moto, crema facial…" />
-        <button class="btn-primary" id="req-btn" type="button">Analizar</button>
-      </div>
-      <div class="requisitos-hs-row">
-        <label for="req-hs">¿Ya conocés el código HS/NCM? (opcional) <span class="qq-tooltip" tabindex="0" title="Es el código de 8 dígitos que clasifica tu producto ante la aduana argentina. Si lo tenés, nos ayuda a afinar el análisis — si no, no importa.">?</span></label>
-        <input type="text" id="req-hs" placeholder="Ej: 8517.62.00" />
-      </div>
-      <div id="req-resultado"></div>
-    </div>
-  </div>
-</section>
-
 <div class="quick-quote-section" id="quick-quote">
   <div class="wrap">
     <div class="quick-quote">
       <div class="qq-eyebrow">Cotización rápida</div>
+      <p style="font-size:12.5px; color:var(--muted); margin:-6px 0 16px; text-align:center;">Esto es una estimación de un solo producto. Para el desglose completo de costos (aranceles, IVA, tasas, todo el detalle) y armar tu pedido real, <a href="mi-cuenta.html" style="color:var(--navy); font-weight:700;">iniciá sesión en tu HUB →</a></p>
       <div class="qq-body">
         <div class="qq-field">
           <label>Nombre del producto</label>
@@ -275,7 +254,7 @@
         </div>
         <div class="qq-result-actions">
           <a class="qq-cta-wa" id="qq-wa-btn" href="#" target="_blank">Cotizar por WhatsApp</a>
-          <a class="qq-cta-full" href="#cotizador">Armar pedido completo con varios productos →</a>
+          <a class="qq-cta-full" href="mi-cuenta.html">Iniciá sesión para el desglose completo →</a>
         </div>
       </div>
     </div>
@@ -303,7 +282,7 @@
       <div class="model-strip-step">
         <div class="model-strip-n">3</div>
         <div class="model-strip-t">Nosotros lo traemos hasta tu puerta</div>
-        <div class="model-strip-d">Flete internacional, trámite aduanero y entrega — todo incluido en el precio que ves en la calculadora.</div>
+        <div class="model-strip-d">Flete internacional, trámite aduanero y entrega — todo incluido en el precio final puesto en tu puerta.</div>
       </div>
     </div>
   </div>
@@ -312,148 +291,6 @@
 <main>
 
   <div class="lane-divider"></div>
-
-  <section id="cotizador" class="section section-alt">
-    <div class="section-blob" style="width:320px;height:320px;right:-110px;top:60px;background:radial-gradient(circle, rgba(169,134,90,0.14), transparent 70%);"></div>
-    <div class="wrap">
-      <div class="section-head reveal" style="margin-left:auto;margin-right:auto;text-align:center;">
-        <div class="eyebrow">Calculadora</div>
-        <h2>Armá tu pedido</h2>
-        <p>Cargá los productos que querés importar y mirá el costo final puesto en Argentina.</p>
-      </div>
-
-      <div class="stepper reveal" id="stepper">
-        <div class="step-fill" id="step-fill"></div>
-        <div class="step-dot active" data-step="1"><span class="dot">1</span><span class="lbl">Cotizás</span></div>
-        <div class="step-dot" data-step="2"><span class="dot">2</span><span class="lbl">Confirmás</span></div>
-        <div class="step-dot" data-step="3"><span class="dot">3</span><span class="lbl">Despachás</span></div>
-        <div class="step-dot" data-step="4"><span class="dot">4</span><span class="lbl">Recibís</span></div>
-      </div>
-
-      <div class="calc-shell">
-        <div class="intro">
-          Cargá el nombre, precio FOB en USD, peso y cantidad de cada producto. Vas a ver al instante el costo final puesto en Argentina, con el flete internacional ya incluido.
-        </div>
-
-        <div class="card" id="datos-cliente">
-          <div class="card-label">Tus datos</div>
-          <div style="font-size:11px; color:var(--muted); margin:-6px 0 12px;">Los usamos solo para gestionar tu pedido y contactarte por WhatsApp — no los compartimos con terceros.</div>
-          <div class="field-grid" style="grid-template-columns: repeat(2, 1fr);">
-            <div class="field">
-              <label>Nombre</label>
-              <input type="text" id="cli-nombre" placeholder="Nombre" autocomplete="given-name" />
-            </div>
-            <div class="field">
-              <label>Apellido</label>
-              <input type="text" id="cli-apellido" placeholder="Apellido" autocomplete="family-name" />
-            </div>
-            <div class="field">
-              <label>DNI</label>
-              <input type="text" inputmode="numeric" id="cli-dni" placeholder="00.000.000" />
-            </div>
-            <div class="field">
-              <label>Teléfono</label>
-              <input type="text" inputmode="tel" id="cli-telefono" placeholder="11 1234-5678" autocomplete="tel" />
-            </div>
-            <div class="field" style="grid-column: 1 / -1;">
-              <label>Email</label>
-              <input type="email" id="cli-email" placeholder="tuemail@ejemplo.com" autocomplete="email" />
-            </div>
-          </div>
-        </div>
-
-        <div class="card" id="productos-container"></div>
-        <button class="add-btn" id="add-btn">+ Agregar producto</button>
-
-        <div class="card resumen" id="resumen-container" style="margin-top:16px;"></div>
-
-        <button class="send-btn" id="whatsapp-pedido-btn" style="background:#25d366; color:#0b1f19;">Enviar cotización por WhatsApp</button>
-        <button class="send-btn" id="descargar-btn" style="margin-top:8px;">Descargar mi cotización</button>
-
-        <div class="note">Los precios se calculan puertas adentro con el flete internacional y costos de importación ya incluidos.</div>
-
-        <div class="card" id="confirmacion-gate" style="margin-top:20px;">
-          <div class="card-label">🔒 ¿Ya cerraste tu pedido con nosotros?</div>
-          <div style="font-size:12px; color: var(--muted); margin-bottom:12px;">Una vez que confirmemos tu compra, te vamos a pasar un código. Cargalo acá para destrabar la dirección y los datos que necesitás para tu proveedor.</div>
-          <div class="field" style="margin-bottom:12px;">
-            <label>¿Tu pedido sale de China o de Miami?</label>
-            <div class="fc-origin-options" id="origen-pedido-options">
-              <button class="fc-origin-btn active" data-origen="china" type="button">🇨🇳 China</button>
-              <button class="fc-origin-btn" data-origen="miami" type="button">🇺🇸 Miami</button>
-            </div>
-          </div>
-          <div class="field">
-            <label>Código de confirmación</label>
-            <input type="text" id="codigo-confirmacion" placeholder="Te lo pasamos por WhatsApp" />
-          </div>
-          <div id="confirmacion-error" style="font-size:11.5px; color: var(--coral); margin-top:6px; display:none;">Código incorrecto. Revisá que esté bien escrito.</div>
-          <button id="desbloquear-btn" style="width:100%; padding:11px; margin-top:12px; background:var(--paper-2); border:1px solid var(--gold); border-radius:8px; color:var(--navy); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;">Desbloquear</button>
-          <div style="font-size:10.5px; color:var(--muted); margin-top:8px;">Al desbloquear se abre WhatsApp para avisarnos que ya tenés tu código — solo tenés que tocar enviar.</div>
-        </div>
-
-        <div id="post-confirmacion" style="display:none;">
-
-          <div class="card" id="direccion-basica" style="border-color: var(--gold); border-width:1.5px;">
-            <div class="card-label" style="color: var(--navy);">📍 Dirección para tu proveedor (Alibaba)</div>
-            <div style="font-size:12px; color: var(--muted); margin-bottom:12px;">Pasale esto a tu proveedor como dirección de envío al pedir la cotización de flete.</div>
-            <div style="font-size:13.5px; line-height:1.8;">
-              <div><b>Dirección:</b><br/><span id="direccion-texto"></span></div>
-              <div style="margin-top:4px;"><b>Código postal:</b> <span id="cp-texto" class="data"></span></div>
-              <div style="margin-top:4px;"><b>Tu ID de cliente:</b> <span id="id-cliente-texto" class="data" style="color:var(--navy); font-weight:700;"></span></div>
-            </div>
-            <div style="margin-top:10px; font-size:11.5px; color:var(--gold);">⚠️ Alibaba te va a pedir estos datos al finalizar la compra — incluí tu ID de cliente en las notas del pedido si te lo permite.</div>
-          </div>
-
-          <div class="card" id="fotos-obligatorias" style="border-color: var(--gold); background: #fff8ec;">
-            <div class="card-label" style="color: #a05a00;">⚠️ Paso obligatorio antes de que tu proveedor entregue las cajas</div>
-            <div style="font-size:12.5px; color: var(--ink); line-height:1.7;">
-              Pedile a tu proveedor <b>fotos reales</b> de cada caja antes de que las entregue en el depósito, donde se vean bien:
-            </div>
-            <ul style="margin:10px 0 0; padding-left:18px; font-size:12.5px; color: var(--ink); line-height:1.9;">
-              <li>La etiqueta con el <b>tracking number</b> legible</li>
-              <li>El estado del embalaje (que no esté dañado)</li>
-              <li>La cantidad de cajas, si es más de una</li>
-            </ul>
-            <div style="margin-top:10px; font-size:11.5px; color: #a05a00;">No sirven fotos genéricas del producto ni imágenes del catálogo — tienen que ser del paquete físico real que se está enviando. Sin esto no podemos confirmar tu envío.</div>
-          </div>
-
-          <div class="card" id="tracking-trigger">
-            <div class="card-label">📦 ¿Ya despachaste tu pedido?</div>
-            <div style="font-size:12px; color: var(--muted); margin-bottom:12px;">Cuando tu proveedor te dé el número de seguimiento, cargalo acá.</div>
-            <div class="field">
-              <label>Tracking number</label>
-              <input type="text" id="trigger-tracking" placeholder="Ej: SF123456789CN" />
-            </div>
-          </div>
-
-          <div class="card" id="datos-envio" style="display:none; border-color: var(--gold);">
-            <div class="card-label" style="color: #a05a00;">📲 Confirmá el envío</div>
-            <div style="font-size:12px; color: var(--muted); margin-bottom:14px;">Completá esto y mandanos el aviso.</div>
-
-            <div class="field-grid" style="grid-template-columns: 1fr;">
-              <div class="field">
-                <label>Peso del envío (kg)</label>
-                <input type="text" inputmode="decimal" id="envio-peso" placeholder="Ej: 12.5" />
-              </div>
-            </div>
-            <div id="total-a-pagar" style="display:none; background:var(--paper-2); border:1px solid var(--gold); border-radius:8px; padding:10px 14px; margin-bottom:10px; justify-content:space-between; align-items:center;">
-              <span style="font-size:12px; color:var(--muted);">Total a pagar (según peso declarado)</span>
-              <span id="total-a-pagar-valor" style="font-size:18px; font-weight:800; color:var(--navy);"></span>
-            </div>
-            <div style="margin-bottom:10px; padding:10px 12px; background:var(--paper-2); border:1px solid var(--line); border-radius:8px; font-size:11.5px; color:var(--ink); line-height:1.6;">
-              <b style="color:var(--navy);">📌 Condiciones de pago:</b> a tu proveedor le pagás vos directamente (eso ya lo hiciste al comprar). A nosotros nos pagás este total <b>cuando la carga llega a Argentina</b> — la mercadería no se entrega sin el pago confirmado, y te vamos a pedir que compartas el comprobante de pago antes de la entrega.
-            </div>
-            <div style="font-size:12px; color: var(--muted); margin-bottom:10px;">Cuando se abra WhatsApp, adjuntá la foto del paquete directo en el chat antes de enviar.</div>
-            <div style="margin-top:8px; padding:12px; background:#fff4de; border:1px solid var(--gold); border-radius:8px; font-size:11.5px; color:#a05a00; font-weight:700;">⚠️ La foto tiene que ser real, del paquete físico con la etiqueta de tracking visible — no sirven capturas, fotos bajadas de internet ni de otro envío.</div>
-            <button id="whatsapp-btn" style="width:100%; padding:13px; background:#25d366; border:none; border-radius:8px; color:#0b1f19; font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:14px;">Enviar aviso por WhatsApp</button>
-            <button id="descargar-comprobante-btn" style="width:100%; padding:11px; margin-top:8px; background:transparent; border:1px solid var(--line); border-radius:8px; color:var(--ink); font-size:12.5px; cursor:pointer; font-family:inherit;">Descargar comprobante (con foto)</button>
-            <div style="font-size:11px; color:var(--muted); margin-top:8px;">Al enviar el mensaje de WhatsApp, adjuntá ahí mismo la foto del paquete (📎 → Galería) antes de mandarlo.</div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </section>
 
   <section class="section">
     <div class="wrap">
@@ -541,11 +378,12 @@
       </div>
       <div class="footer-col">
         <div class="t">Enlaces</div>
-        <a href="#cotizador">Cotizar mi pedido</a>
+        <a href="#quick-quote">Cotizar mi pedido</a>
         <a href="tienda.html">Tienda</a>
         <a href="cursos.html">Cursos</a>
         <a href="mi-cuenta.html">Mi cuenta</a>
         <a href="preguntas.html">Preguntas frecuentes</a>
+        <a href="mi-pedido.html">¿Ya confirmaste tu pedido? →</a>
       </div>
     </div>
     <div class="footer-legal">
@@ -564,7 +402,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/rates.js"></script>
 <script src="js/tienda.js"></script>
-<script src="js/cotizador-core.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

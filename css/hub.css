@@ -240,11 +240,61 @@ a { color: inherit; }
 .club-progreso-fill { height:100%; background:linear-gradient(90deg, var(--coral), var(--gold)); border-radius:8px; transition:width .4s ease; }
 .club-progreso-meta { display:flex; justify-content:space-between; font-size:11.5px; color:var(--muted); margin-top:6px; }
 .club-progreso-max { text-align:center; padding:10px; background:var(--green-bg); color:var(--green); border-radius:8px; font-weight:700; font-size:13px; margin-top:4px; }
+/* Base de las tarjetas de nivel — portada de css/styles.css (club-importadores.html
+   público) porque hub/club-importadores.html no carga esa hoja, solo esta. */
+.club-tier { position:relative; background:var(--white); border-radius:16px; padding:32px 26px; text-align:center; border-top:4px solid #94a3b8; box-shadow:0 14px 34px -24px rgba(22,34,61,0.35); }
+.club-tier-2 { border-top-color: var(--coral); }
+.club-tier-3 { border-top-color: var(--gold); box-shadow:0 20px 46px -20px rgba(169,134,90,0.45); }
+.club-tier-badge { position:absolute; top:-13px; left:50%; transform:translateX(-50%); background:var(--gold); color:#fff; font-size:10.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; padding:4px 14px; border-radius:20px; white-space:nowrap; }
+.club-tier-nombre { font-family:var(--font-display); font-size:20px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; color:var(--navy); margin-top:6px; }
+.club-tier-umbral { font-size:11.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; margin-top:4px; }
+.club-tier-descuento { font-size:34px; font-weight:800; color:var(--coral-deep); font-family:ui-monospace, monospace; margin:16px 0 12px; }
+.club-tier-1 .club-tier-descuento { color:#94a3b8; font-size:26px; }
+.club-tier-detalle { font-size:12.5px; color:var(--muted); line-height:1.65; }
+
 .club-tiers-hub { display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; margin-top:18px; }
 @media (max-width:720px) { .club-tiers-hub { grid-template-columns: 1fr; } }
 .club-tiers-hub .club-tier { padding:22px 18px; }
 .club-tiers-hub .club-tier-activo { outline:3px solid var(--coral); outline-offset:2px; }
 .club-tiers-hub .club-tier-check { position:absolute; top:-13px; right:14px; background:var(--green); color:#fff; font-size:10.5px; font-weight:800; padding:3px 10px; border-radius:20px; }
+
+/* ---------- Analizador de requisitos de importación (herramienta del HUB) ----------
+   Portado de css/styles.css: hub/requisitos-importacion.html no carga esa hoja. */
+.requisitos-box { max-width:none; margin:0; background:transparent; border-radius:0; padding:0; box-shadow:none; }
+.requisitos-form { display:flex; gap:10px; flex-wrap:wrap; }
+.requisitos-form input { flex:1 1 260px; font-size:14.5px; padding:11px 13px; border:1px solid var(--line); border-radius:8px; font-family:inherit; }
+.requisitos-form button { flex:none; }
+.requisitos-form button:disabled { opacity:.6; cursor:default; }
+.requisitos-hs-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:12px; }
+.requisitos-hs-row label { font-size:11.5px; color:var(--muted); font-weight:600; flex:none; }
+.requisitos-hs-row input { flex:1 1 160px; max-width:220px; font-size:13px; padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-family:inherit; }
+.requisitos-sugerencia { font-size:12.5px; color:var(--navy); background:rgba(169,134,90,0.14); border-radius:8px; padding:10px 14px; margin:0 0 14px; line-height:1.6; }
+.requisitos-resultado { margin-top:22px; padding-top:22px; border-top:1px dashed var(--line); }
+.requisitos-aceptacion { display:flex; gap:12px; align-items:flex-start; border-radius:10px; padding:14px 16px; margin-bottom:18px; }
+.requisitos-aceptacion-icono { font-size:20px; line-height:1; flex:none; }
+.requisitos-aceptacion-titulo { font-size:14px; font-weight:800; }
+.requisitos-aceptacion-nota { font-size:12.5px; margin-top:3px; line-height:1.55; opacity:.85; }
+.requisitos-aceptacion-ok { background:rgba(52,150,90,0.1); color:#2e7d4f; }
+.requisitos-aceptacion-permisos { background:rgba(201,150,46,0.14); color:#93650f; }
+.requisitos-aceptacion-prohibido { background:rgba(201,80,46,0.12); color:var(--coral-deep); border:1px solid rgba(201,80,46,0.3); }
+.requisitos-resultado-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.requisitos-nombre { font-size:16px; font-weight:800; color:var(--navy); }
+.requisitos-categoria { font-size:12px; color:var(--muted); background:var(--paper-2); padding:4px 10px; border-radius:20px; }
+.requisitos-badge { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; padding:4px 10px; border-radius:20px; margin-left:auto; }
+.requisitos-badge-baja { background:rgba(52,150,90,0.13); color:#2e7d4f; }
+.requisitos-badge-media { background:rgba(201,150,46,0.16); color:#93650f; }
+.requisitos-badge-alta { background:rgba(201,80,46,0.14); color:var(--coral-deep); }
+.requisitos-resumen { font-size:13.5px; color:var(--ink); line-height:1.65; margin:0 0 16px; }
+.requisitos-lista { display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
+.requisitos-item { background:var(--paper); border-radius:8px; padding:12px 14px; }
+.requisitos-item-organismo { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:var(--coral); margin-bottom:3px; }
+.requisitos-item-tramite { font-size:13.5px; font-weight:700; color:var(--navy); margin-bottom:3px; }
+.requisitos-item-detalle { font-size:12.5px; color:var(--muted); line-height:1.55; }
+.requisitos-nota { font-size:11.5px; color:var(--muted); line-height:1.6; margin-bottom:10px; }
+.requisitos-seguro { font-size:12.5px; color:var(--navy); background:var(--paper-2); border-radius:8px; padding:10px 14px; margin:0 0 18px; line-height:1.6; }
+.requisitos-ctas { display:flex; gap:10px; flex-wrap:wrap; }
+.requisitos-error { margin-top:22px; padding-top:22px; border-top:1px dashed var(--line); font-size:13px; color:var(--muted); line-height:1.65; text-align:center; }
+.requisitos-error a { color:var(--coral); font-weight:700; }
 
 /* ---------- Login (mismo criterio que admin-tienda.html) ---------- */
 .hub-login-screen { max-width: 360px; margin: 80px auto; padding: 0 20px; }

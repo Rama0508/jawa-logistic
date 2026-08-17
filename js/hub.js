@@ -10,6 +10,7 @@
 
 const HUB_NAV_ITEMS = [
   { tab: "dashboard", href: "/hub/index.html", icon: "🏠", label: "Dashboard" },
+  { tab: "requisitos-importacion", href: "/hub/requisitos-importacion.html", icon: "📋", label: "¿Qué necesito para importar?" },
   { tab: "calculadora-importacion", href: "/hub/calculadora-importacion.html", icon: "🧮", label: "Calculadora de importación" },
   { tab: "calculadora-margenes", href: "/hub/calculadora-margenes.html", icon: "📈", label: "Calculadora de márgenes" },
   { tab: "despachante-virtual", href: "/hub/despachante-virtual.html", icon: "🧑‍💼", label: "Despachante virtual" },
@@ -27,6 +28,7 @@ const HUB_NAV_ITEMS = [
 
 const HUB_TITULOS = {
   dashboard: "Dashboard",
+  "requisitos-importacion": "¿Qué necesito para importar?",
   "calculadora-importacion": "Calculadora de importación",
   "calculadora-margenes": "Calculadora de márgenes",
   "despachante-virtual": "Despachante virtual",

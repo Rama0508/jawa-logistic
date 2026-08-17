@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Mi pedido — Jawa Logistic</title>
+<meta name="description" content="Armá tu pedido con Jawa Logistic y, si ya confirmaste la compra, desbloqueá la dirección del depósito y hacé el seguimiento de tu envío." />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#16223d" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<div id="page-bg" aria-hidden="true"></div>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <a href="tel:+5493813312280">📞 +54 9 381 331-2280</a>
+    <a href="https://wa.me/5493813312280" target="_blank">Escribinos por WhatsApp →</a>
+  </div>
+</div>
+
+<div class="navbar">
+  <div class="navbar-inner">
+    <a class="brand" href="index.html">
+      <div class="logo-box">
+        <svg class="compass-mark" viewBox="0 0 200 200" width="34" height="34">
+          <circle class="ring" cx="100" cy="100" r="92"/>
+          <polygon class="facet-coral-l" points="100,100 100,15 121,79"/>
+          <polygon class="facet-coral-d" points="100,100 100,15 79,79"/>
+          <polygon class="facet-navy-l" points="100,100 121,79 185,100"/>
+          <polygon class="facet-navy-d" points="100,100 185,100 121,121"/>
+          <polygon class="facet-navy-l" points="100,100 121,121 100,185"/>
+          <polygon class="facet-navy-d" points="100,100 100,185 79,121"/>
+          <polygon class="facet-navy-l" points="100,100 79,121 15,100"/>
+          <polygon class="facet-navy-d" points="100,100 15,100 79,79"/>
+          <circle class="core" cx="100" cy="100" r="7"/>
+        </svg>
+      </div>
+      <div class="brand-name">Jawa Logistic</div>
+    </a>
+    <div class="nav-links" id="nav-links">
+      <a href="tienda.html">Tienda</a>
+      <a href="cursos.html">Cursos</a>
+      <a href="index.html#hub-jawa">HUB</a>
+      <a href="legal.html">Legal</a>
+      <a href="preguntas.html">Preguntas</a>
+      <a href="contacto.html">Contacto</a>
+      <a class="nav-cart" href="carrito.html" aria-label="Ver carrito">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span class="cart-count" id="cart-count" style="display:none;">0</span>
+      </a>
+      <a class="nav-user" href="mi-cuenta.html" aria-label="Ingresar a tu HUB">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="nav-user-label">Mi HUB</span>
+      </a>
+    </div>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="nav-links">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+  </div>
+</div>
+
+<main>
+  <section id="cotizador" class="section section-alt" style="padding-top:36px;">
+    <div class="section-blob" style="width:320px;height:320px;right:-110px;top:60px;background:radial-gradient(circle, rgba(169,134,90,0.14), transparent 70%);"></div>
+    <div class="wrap">
+      <div class="section-head reveal" style="margin-left:auto;margin-right:auto;text-align:center;">
+        <div class="eyebrow">Mi pedido</div>
+        <h2>Armá tu pedido</h2>
+        <p>Cargá los productos que querés importar y mirá el costo final puesto en Argentina. Si ya confirmaste tu compra con nosotros, desbloqueá tu dirección más abajo con el código que te pasamos por WhatsApp.</p>
+      </div>
+
+      <div class="stepper reveal" id="stepper">
+        <div class="step-fill" id="step-fill"></div>
+        <div class="step-dot active" data-step="1"><span class="dot">1</span><span class="lbl">Cotizás</span></div>
+        <div class="step-dot" data-step="2"><span class="dot">2</span><span class="lbl">Confirmás</span></div>
+        <div class="step-dot" data-step="3"><span class="dot">3</span><span class="lbl">Despachás</span></div>
+        <div class="step-dot" data-step="4"><span class="dot">4</span><span class="lbl">Recibís</span></div>
+      </div>
+
+      <div class="calc-shell">
+        <div class="intro">
+          Cargá el nombre, precio FOB en USD, peso y cantidad de cada producto. Vas a ver al instante el costo final puesto en Argentina, con el flete internacional ya incluido.
+        </div>
+
+        <div class="card" id="datos-cliente">
+          <div class="card-label">Tus datos</div>
+          <div style="font-size:11px; color:var(--muted); margin:-6px 0 12px;">Los usamos solo para gestionar tu pedido y contactarte por WhatsApp — no los compartimos con terceros.</div>
+          <div class="field-grid" style="grid-template-columns: repeat(2, 1fr);">
+            <div class="field">
+              <label>Nombre</label>
+              <input type="text" id="cli-nombre" placeholder="Nombre" autocomplete="given-name" />
+            </div>
+            <div class="field">
+              <label>Apellido</label>
+              <input type="text" id="cli-apellido" placeholder="Apellido" autocomplete="family-name" />
+            </div>
+            <div class="field">
+              <label>DNI</label>
+              <input type="text" inputmode="numeric" id="cli-dni" placeholder="00.000.000" />
+            </div>
+            <div class="field">
+              <label>Teléfono</label>
+              <input type="text" inputmode="tel" id="cli-telefono" placeholder="11 1234-5678" autocomplete="tel" />
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label>Email</label>
+              <input type="email" id="cli-email" placeholder="tuemail@ejemplo.com" autocomplete="email" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="productos-container"></div>
+        <button class="add-btn" id="add-btn">+ Agregar producto</button>
+
+        <div class="card resumen" id="resumen-container" style="margin-top:16px;"></div>
+
+        <button class="send-btn" id="whatsapp-pedido-btn" style="background:#25d366; color:#0b1f19;">Enviar cotización por WhatsApp</button>
+        <button class="send-btn" id="descargar-btn" style="margin-top:8px;">Descargar mi cotización</button>
+
+        <div class="note">Los precios se calculan puertas adentro con el flete internacional y costos de importación ya incluidos.</div>
+
+        <div class="card" id="confirmacion-gate" style="margin-top:20px;">
+          <div class="card-label">🔒 ¿Ya cerraste tu pedido con nosotros?</div>
+          <div style="font-size:12px; color: var(--muted); margin-bottom:12px;">Una vez que confirmemos tu compra, te vamos a pasar un código. Cargalo acá para destrabar la dirección y los datos que necesitás para tu proveedor.</div>
+          <div class="field" style="margin-bottom:12px;">
+            <label>¿Tu pedido sale de China o de Miami?</label>
+            <div class="fc-origin-options" id="origen-pedido-options">
+              <button class="fc-origin-btn active" data-origen="china" type="button">🇨🇳 China</button>
+              <button class="fc-origin-btn" data-origen="miami" type="button">🇺🇸 Miami</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Código de confirmación</label>
+            <input type="text" id="codigo-confirmacion" placeholder="Te lo pasamos por WhatsApp" />
+          </div>
+          <div id="confirmacion-error" style="font-size:11.5px; color: var(--coral); margin-top:6px; display:none;">Código incorrecto. Revisá que esté bien escrito.</div>
+          <button id="desbloquear-btn" style="width:100%; padding:11px; margin-top:12px; background:var(--paper-2); border:1px solid var(--gold); border-radius:8px; color:var(--navy); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;">Desbloquear</button>
+          <div style="font-size:10.5px; color:var(--muted); margin-top:8px;">Al desbloquear se abre WhatsApp para avisarnos que ya tenés tu código — solo tenés que tocar enviar.</div>
+        </div>
+
+        <div id="post-confirmacion" style="display:none;">
+
+          <div class="card" id="direccion-basica" style="border-color: var(--gold); border-width:1.5px;">
+            <div class="card-label" style="color: var(--navy);">📍 Dirección para tu proveedor (Alibaba)</div>
+            <div style="font-size:12px; color: var(--muted); margin-bottom:12px;">Pasale esto a tu proveedor como dirección de envío al pedir la cotización de flete.</div>
+            <div style="font-size:13.5px; line-height:1.8;">
+              <div><b>Dirección:</b><br/><span id="direccion-texto"></span></div>
+              <div style="margin-top:4px;"><b>Código postal:</b> <span id="cp-texto" class="data"></span></div>
+              <div style="margin-top:4px;"><b>Tu ID de cliente:</b> <span id="id-cliente-texto" class="data" style="color:var(--navy); font-weight:700;"></span></div>
+            </div>
+            <div style="margin-top:10px; font-size:11.5px; color:var(--gold);">⚠️ Alibaba te va a pedir estos datos al finalizar la compra — incluí tu ID de cliente en las notas del pedido si te lo permite.</div>
+          </div>
+
+          <div class="card" id="fotos-obligatorias" style="border-color: var(--gold); background: #fff8ec;">
+            <div class="card-label" style="color: #a05a00;">⚠️ Paso obligatorio antes de que tu proveedor entregue las cajas</div>
+            <div style="font-size:12.5px; color: var(--ink); line-height:1.7;">
+              Pedile a tu proveedor <b>fotos reales</b> de cada caja antes de que las entregue en el depósito, donde se vean bien:
+            </div>
+            <ul style="margin:10px 0 0; padding-left:18px; font-size:12.5px; color: var(--ink); line-height:1.9;">
+              <li>La etiqueta con el <b>tracking number</b> legible</li>
+              <li>El estado del embalaje (que no esté dañado)</li>
+              <li>La cantidad de cajas, si es más de una</li>
+            </ul>
+            <div style="margin-top:10px; font-size:11.5px; color: #a05a00;">No sirven fotos genéricas del producto ni imágenes del catálogo — tienen que ser del paquete físico real que se está enviando. Sin esto no podemos confirmar tu envío.</div>
+          </div>
+
+          <div class="card" id="tracking-trigger">
+            <div class="card-label">📦 ¿Ya despachaste tu pedido?</div>
+            <div style="font-size:12px; color: var(--muted); margin-bottom:12px;">Cuando tu proveedor te dé el número de seguimiento, cargalo acá.</div>
+            <div class="field">
+              <label>Tracking number</label>
+              <input type="text" id="trigger-tracking" placeholder="Ej: SF123456789CN" />
+            </div>
+          </div>
+
+          <div class="card" id="datos-envio" style="display:none; border-color: var(--gold);">
+            <div class="card-label" style="color: #a05a00;">📲 Confirmá el envío</div>
+            <div style="font-size:12px; color: var(--muted); margin-bottom:14px;">Completá esto y mandanos el aviso.</div>
+
+            <div class="field-grid" style="grid-template-columns: 1fr;">
+              <div class="field">
+                <label>Peso del envío (kg)</label>
+                <input type="text" inputmode="decimal" id="envio-peso" placeholder="Ej: 12.5" />
+              </div>
+            </div>
+            <div id="total-a-pagar" style="display:none; background:var(--paper-2); border:1px solid var(--gold); border-radius:8px; padding:10px 14px; margin-bottom:10px; justify-content:space-between; align-items:center;">
+              <span style="font-size:12px; color:var(--muted);">Total a pagar (según peso declarado)</span>
+              <span id="total-a-pagar-valor" style="font-size:18px; font-weight:800; color:var(--navy);"></span>
+            </div>
+            <div style="margin-bottom:10px; padding:10px 12px; background:var(--paper-2); border:1px solid var(--line); border-radius:8px; font-size:11.5px; color:var(--ink); line-height:1.6;">
+              <b style="color:var(--navy);">📌 Condiciones de pago:</b> a tu proveedor le pagás vos directamente (eso ya lo hiciste al comprar). A nosotros nos pagás este total <b>cuando la carga llega a Argentina</b> — la mercadería no se entrega sin el pago confirmado, y te vamos a pedir que compartas el comprobante de pago antes de la entrega.
+            </div>
+            <div style="font-size:12px; color: var(--muted); margin-bottom:10px;">Cuando se abra WhatsApp, adjuntá la foto del paquete directo en el chat antes de enviar.</div>
+            <div style="margin-top:8px; padding:12px; background:#fff4de; border:1px solid var(--gold); border-radius:8px; font-size:11.5px; color:#a05a00; font-weight:700;">⚠️ La foto tiene que ser real, del paquete físico con la etiqueta de tracking visible — no sirven capturas, fotos bajadas de internet ni de otro envío.</div>
+            <button id="whatsapp-btn" style="width:100%; padding:13px; background:#25d366; border:none; border-radius:8px; color:#0b1f19; font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:14px;">Enviar aviso por WhatsApp</button>
+            <button id="descargar-comprobante-btn" style="width:100%; padding:11px; margin-top:8px; background:transparent; border:1px solid var(--line); border-radius:8px; color:var(--ink); font-size:12.5px; cursor:pointer; font-family:inherit;">Descargar comprobante (con foto)</button>
+            <div style="font-size:11px; color:var(--muted); margin-top:8px;">Al enviar el mensaje de WhatsApp, adjuntá ahí mismo la foto del paquete (📎 → Galería) antes de mandarlo.</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-col" style="flex:1 1 260px;">
+        <div class="footer-brand">
+          <div class="logo-box">
+            <svg class="compass-mark on-dark" viewBox="0 0 200 200" width="46" height="46">
+              <circle class="ring" cx="100" cy="100" r="92"/>
+              <polygon class="facet-coral-l" points="100,100 100,15 121,79"/>
+              <polygon class="facet-coral-d" points="100,100 100,15 79,79"/>
+              <polygon class="facet-navy-l" points="100,100 121,79 185,100"/>
+              <polygon class="facet-navy-d" points="100,100 185,100 121,121"/>
+              <polygon class="facet-navy-l" points="100,100 121,121 100,185"/>
+              <polygon class="facet-navy-d" points="100,100 100,185 79,121"/>
+              <polygon class="facet-navy-l" points="100,100 79,121 15,100"/>
+              <polygon class="facet-navy-d" points="100,100 15,100 79,79"/>
+              <circle class="core" cx="100" cy="100" r="7"/>
+            </svg>
+          </div>
+          <div class="footer-brand-text">
+            <div class="jawa">JAWA</div>
+            <div class="logistic">— LOGISTIC —</div>
+            <div class="tagline">Air &amp; Ocean Freight</div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-col">
+        <div class="t">Contacto</div>
+        <a href="https://wa.me/5493813312280" target="_blank">WhatsApp: +54 9 381 331-2280</a>
+      </div>
+      <div class="footer-col">
+        <div class="t">Enlaces</div>
+        <a href="index.html">Volver al inicio</a>
+        <a href="mi-cuenta.html">Mi cuenta</a>
+        <a href="preguntas.html">Preguntas frecuentes</a>
+      </div>
+    </div>
+    <div class="footer-legal">
+      <!-- ⚠️ PENDIENTE: reemplazar con la razón social y CUIT reales de la empresa. -->
+      Jawa Logistic — Razón social: ⚠️ pendiente &nbsp;·&nbsp; CUIT: ⚠️ pendiente
+    </div>
+    <div class="footer-bottom">© <span id="anio-actual"></span> Jawa Logistic. Todos los derechos reservados.</div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/rates.js"></script>
+<script src="js/cotizador-core.js"></script>
+<script>
+document.getElementById("nav-toggle").addEventListener("click", () => {
+  const links = document.getElementById("nav-links");
+  const open = links.classList.toggle("open");
+  document.getElementById("nav-toggle").setAttribute("aria-expanded", open ? "true" : "false");
+});
+</script>
+<script src="js/mi-pedido.js"></script>
+</body>
+</html>
