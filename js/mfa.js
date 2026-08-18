@@ -68,13 +68,18 @@ function mostrarModalMFA(supabaseClient, modo) {
       render(`
         <div style="text-align:center; font-weight:800; font-size:15px; margin-bottom:4px; color:#16223d;">Activá la verificación en dos pasos</div>
         <p style="font-size:12.5px; color:#666; text-align:center; margin:0 0 16px;">Es obligatoria para cuentas de staff. Escaneá este código con Google Authenticator, Authy o similar.</p>
-        <div style="display:flex; justify-content:center; margin-bottom:14px;"><img src="${data.totp.qr_code}" width="200" height="200" alt="Código QR para activar 2FA" /></div>
+        <div style="display:flex; justify-content:center; margin-bottom:14px;"><img id="mfa-qr-img" width="200" height="200" alt="Código QR para activar 2FA" /></div>
         <p style="font-size:10px; color:#888; text-align:center; word-break:break-all; margin:0 0 14px;">¿No podés escanear? Cargá esta clave a mano: <b>${data.totp.secret}</b></p>
         <input id="mfa-codigo" type="text" inputmode="numeric" maxlength="6" placeholder="Código de 6 dígitos" style="width:100%; box-sizing:border-box; padding:11px 12px; border:1px solid #dde1e8; border-radius:8px; font-size:16px; text-align:center; letter-spacing:.25em; margin-bottom:10px; font-family:inherit;" />
         <button id="mfa-confirmar" type="button" style="width:100%; background:#c9502e; color:#fff; border:none; border-radius:8px; padding:11px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit;">Confirmar y activar</button>
         <div id="mfa-error" style="color:#b3261e; font-size:12px; margin-top:10px; text-align:center; min-height:14px;"></div>
         ${cerrarSesionBtn()}
       `);
+      // Asignado como propiedad de JS, no interpolado en el HTML: el data
+      // URI del QR trae comillas dobles adentro (es un <svg ...> con sus
+      // propios atributos) que rompen el atributo src="" si se arma como
+      // texto — así queda a prueba de eso.
+      el("#mfa-qr-img").src = data.totp.qr_code;
       el("#mfa-codigo").focus();
       el("#mfa-confirmar").addEventListener("click", async () => {
         const codigo = el("#mfa-codigo").value.trim();
