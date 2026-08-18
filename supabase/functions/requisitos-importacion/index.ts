@@ -1,14 +1,22 @@
 // Jawa Logistic — Edge Function: a partir del nombre/descripción de un
 // producto, estima de forma orientativa qué papeles, permisos o
-// certificaciones suele necesitar para importarlo a Argentina. Pensada para
-// la home pública (sin login) — es una herramienta de captación, no el
-// cotizador.
+// certificaciones suele necesitar para importarlo a Argentina. Herramienta
+// del HUB (hub/requisitos-importacion.html) — no el cotizador.
 //
 // LIMITACIÓN REAL, igual que clasificar-producto: no hay acceso a la
 // nomenclatura arancelaria oficial (NCM) ni a normativa vigente en tiempo
 // real — nunca se inventa un código NCM, número de resolución o norma real.
 // Lo que devuelve esta función es una ESTIMACIÓN orientativa según el tipo
 // de producto, siempre presentada como tal, nunca como dictamen oficial.
+//
+// Seguridad: el comentario original decía "pensada para la home pública sin
+// login", pero esta herramienta se terminó moviendo al HUB, que ya exige
+// sesión — así que, igual que clasificar-producto y despachante-virtual, se
+// exige acá un JWT real de cliente logueado. Sin esto, cualquiera con la
+// anon key pública podía llamarla sin límite y generar cargos reales en la
+// cuenta de Anthropic.
+
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_MODEL = "claude-opus-5";
@@ -96,6 +104,14 @@ Reglas importantes:
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return jsonResponse({ success: false, error: "Falta iniciar sesión." }, 401);
+  const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+  if (userError || !user) return jsonResponse({ success: false, error: "Sesión inválida — volvé a iniciar sesión." }, 401);
 
   let descripcion: string | undefined;
   let codigoHS: string | undefined;

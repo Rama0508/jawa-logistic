@@ -2,9 +2,19 @@
 // asistente de IA para preguntas de comercio exterior/importación a
 // Argentina de los clientes del hub. No reemplaza a un despachante de
 // aduana matriculado — el propio prompt se lo aclara al usuario.
+//
+// Seguridad: sin "Enforce JWT Verification" a nivel plataforma (rompía el
+// CORS), así que el chequeo de sesión real se hace acá adentro contra el JWT
+// que manda hub/despachante-virtual.html — sin esto, cualquiera con la anon
+// key pública podía chatear gratis (con adjuntos incluidos) a costa de la
+// cuenta de Anthropic.
+
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_MODEL = "claude-opus-5";
+const SUPABASE_URL = "https://hthyehsqfrfwdqkbqrwj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_Dlh15glcRPYtVKmvkytcbw_LGfPqN7F";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,6 +43,14 @@ interface HistorialItem { rol: "user" | "assistant"; contenido: string; }
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return jsonResponse({ success: false, error: "Falta iniciar sesión." }, 401);
+  const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+  if (userError || !user) return jsonResponse({ success: false, error: "Sesión inválida — volvé a iniciar sesión." }, 401);
+
   let mensaje: string | undefined;
   let historial: HistorialItem[] = [];
   let archivoBase64: string | undefined;
@@ -60,7 +78,6 @@ Deno.serve(async (req: Request) => {
       error: "El despachante virtual no está configurado todavía (falta ANTHROPIC_API_KEY en el proyecto de Supabase).",
     }, 500);
   }
-  console.log(`despachante-virtual: apiKey length=${apiKey.length}, prefix=${apiKey.slice(0, 8)}`);
 
   const contenido: Record<string, unknown>[] = [];
   if (archivoBase64) {

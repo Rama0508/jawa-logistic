@@ -8,6 +8,15 @@
 // función es una ESTIMACIÓN de la IA a partir del tipo de producto, nunca un
 // código NCM real ni un valor verificado. El frontend siempre debe mostrarlo
 // como "estimado, confirmar con tu despachante", nunca como dato oficial.
+//
+// Seguridad: esta función NO tiene "Enforce JWT Verification" a nivel
+// plataforma (rompía el CORS con el navegador) — así que la validación de
+// que quien llama es un cliente logueado se hace acá adentro, a mano, contra
+// el JWT real que manda hub/calculadora-importacion.html. Sin este chequeo,
+// cualquiera con la anon key (pública, está en el JS del sitio) podía llamar
+// esta función sin límite y generar cargos reales en la cuenta de Anthropic.
+
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_MODEL = "claude-opus-5";
@@ -85,6 +94,14 @@ Reglas importantes:
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return jsonResponse({ success: false, error: "Falta iniciar sesión." }, 401);
+  const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+  if (userError || !user) return jsonResponse({ success: false, error: "Sesión inválida — volvé a iniciar sesión." }, 401);
+
   let descripcion: string | undefined;
   let imagenBase64: string | undefined;
   let imagenMediaType: string | undefined;
@@ -108,7 +125,6 @@ Deno.serve(async (req: Request) => {
       error: "La clasificación por IA no está configurada todavía (falta ANTHROPIC_API_KEY en el proyecto de Supabase). Cargá los datos a mano mientras tanto.",
     }, 500);
   }
-  console.log(`clasificar-producto: apiKey length=${apiKey.length}, prefix=${apiKey.slice(0, 8)}`);
 
   const coincidenciasBiblioteca = descripcion ? await buscarBiblioteca(descripcion) : [];
   const contextoBiblioteca = coincidenciasBiblioteca.length

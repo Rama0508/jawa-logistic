@@ -441,7 +441,7 @@ try {
             if (o) {
               fetch(`${SUPABASE_URL}/functions/v1/notificar-estado-operacion`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + SUPABASE_ANON_KEY },
+                headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + sesionStaffActual.access_token },
                 body: JSON.stringify({
                   clienteEmail: o.cliente_email, clienteNombre: o.cliente_nombre,
                   codigo: o.codigo, estadoNuevo: select.value, operacionId: id,

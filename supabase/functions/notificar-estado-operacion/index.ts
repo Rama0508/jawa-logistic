@@ -9,7 +9,16 @@
 // Secrets) — cuenta gratis en resend.com. El remitente (REMITENTE más abajo)
 // tiene que ser de un dominio verificado en Resend, si no los mails caen en
 // spam o directamente Resend los rechaza — reemplazar antes de usar en serio.
+//
+// Seguridad: exige que quien llama sea un staff logueado (mismo patrón que
+// crear-preferencia) — sin esto, cualquiera con la anon key pública podía
+// mandar POST directo acá con un email cualquiera y usar la cuenta de Resend
+// de Jawa como relay de spam/phishing.
 
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const SUPABASE_URL = "https://hthyehsqfrfwdqkbqrwj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_Dlh15glcRPYtVKmvkytcbw_LGfPqN7F";
 const RESEND_API_URL = "https://api.resend.com/emails";
 const REMITENTE = "Jawa Logistic <notificaciones@jawalogistic.com>"; // ⚠️ cambiar por el dominio real verificado en Resend
 const SITE_URL = "https://jawalogistic.com"; // ⚠️ cambiar por el dominio real del sitio en producción
@@ -39,6 +48,16 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return jsonResponse({ success: false, error: "Falta iniciar sesión." }, 401);
+  const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+  if (userError || !user) return jsonResponse({ success: false, error: "Sesión inválida — volvé a iniciar sesión." }, 401);
+  const { data: perfil } = await supabaseAuth.from("perfiles").select("rol").eq("id", user.id).maybeSingle();
+  if (!perfil || perfil.rol !== "staff") return jsonResponse({ success: false, error: "No autorizado." }, 403);
 
   let clienteEmail: string | undefined;
   let clienteNombre: string | undefined;
