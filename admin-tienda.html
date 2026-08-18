@@ -118,7 +118,9 @@
     <button class="tab-btn" data-tab="pedidos">Pedidos</button>
     <button class="tab-btn" data-tab="envio">Envío</button>
     <button class="tab-btn" data-tab="proveedores">Proveedores</button>
+    <button class="tab-btn" data-tab="oportunidades">Oportunidades (home)</button>
     <button class="tab-btn" data-tab="ncm">Biblioteca NCM</button>
+    <button class="tab-btn" data-tab="guias">Guías (blog)</button>
   </div>
 
   <!-- ---------- Productos ---------- -->
@@ -220,6 +222,35 @@
     <div id="proveedores-lista"></div>
   </div>
 
+  <!-- ---------- Oportunidades (sección "cuánto podrías ganar" de la home) ---------- -->
+  <div class="tab-panel" id="tab-oportunidades">
+    <p class="sub">Los productos de la sección "Mirá cuánto podrías ganar importando" en la home (index.html). El costo puesto en Argentina y la ganancia se calculan solos en el sitio con la tarifa en vivo y el dólar de hoy — acá solo cargás los 3 datos de entrada: FOB, peso y precio real que viste en Mercado Libre.</p>
+    <button class="add-btn" id="oportunidad-nuevo-btn" type="button">+ Nuevo producto</button>
+    <div id="oportunidad-form-card" class="card" style="display:none;">
+      <div class="card-title" id="oportunidad-form-titulo">Nuevo producto</div>
+      <input type="hidden" id="oportunidad-id" />
+      <div class="field-row">
+        <div class="field span2"><label>Nombre</label><input type="text" id="oportunidad-nombre" placeholder="Ej: Anillo inteligente (smart ring)" /></div>
+        <div class="field span2"><label>Categoría</label><input type="text" id="oportunidad-categoria" placeholder="Ej: Tech / Salud" /></div>
+        <div class="field"><label>FOB (USD/unidad)</label><input type="text" inputmode="decimal" id="oportunidad-fob" placeholder="0.00" /></div>
+        <div class="field"><label>Peso (gramos)</label><input type="text" inputmode="decimal" id="oportunidad-peso" placeholder="0" /></div>
+        <div class="field"><label>Precio real en Mercado Libre (ARS)</label><input type="text" inputmode="decimal" id="oportunidad-ml" placeholder="0" /></div>
+        <div class="field"><label>Orden (menor = primero)</label><input type="number" id="oportunidad-orden" value="0" /></div>
+        <div class="field"><label>Activo (se muestra en la home)</label><select id="oportunidad-activo"><option value="true">Sí</option><option value="false">No</option></select></div>
+        <div class="field span4">
+          <label>Foto</label>
+          <input type="file" id="oportunidad-foto-input" accept="image/*" />
+          <div class="thumbs" id="oportunidad-foto-thumb"></div>
+          <div style="font-size:11px; color:var(--muted); margin-top:4px;">Usá una foto de banco de imágenes (Unsplash/Pexels) o una propia con derechos — no la foto real del proveedor de Alibaba/1688 sin permiso.</div>
+        </div>
+      </div>
+      <button class="btn-primary" id="oportunidad-guardar-btn" type="button">Guardar producto</button>
+      <button class="btn-ghost" id="oportunidad-cancelar-btn" type="button">Cancelar</button>
+      <div class="msg" id="oportunidad-form-msg"></div>
+    </div>
+    <div id="oportunidades-lista"></div>
+  </div>
+
   <!-- ---------- Biblioteca NCM ---------- -->
   <div class="tab-panel" id="tab-ncm">
     <p class="sub">Códigos HS/NCM confirmados por el despachante matriculado en operaciones reales. No inventes ni copies un código sin confirmarlo — esta biblioteca alimenta las sugerencias de IA en la calculadora y el analizador de la home, así que solo debe tener códigos reales.</p>
@@ -238,6 +269,32 @@
       <div class="msg" id="ncm-form-msg"></div>
     </div>
     <div id="ncm-lista"></div>
+  </div>
+
+  <!-- ---------- Guías (blog) ---------- -->
+  <div class="tab-panel" id="tab-guias">
+    <p class="sub">Artículos del blog público (/blog.html). Contenido educativo real sobre cómo importar — sirve para tráfico orgánico. El campo "Resumen" se usa como texto de la tarjeta y como meta description.</p>
+    <button class="add-btn" id="guia-nuevo-btn" type="button">+ Nueva guía</button>
+    <div id="guia-form-card" class="card" style="display:none;">
+      <div class="card-title" id="guia-form-titulo">Nueva guía</div>
+      <input type="hidden" id="guia-id" />
+      <div class="field-row">
+        <div class="field span4"><label>Título</label><input type="text" id="guia-titulo" placeholder="Ej: Cómo importar desde China a Argentina: guía completa 2026" /></div>
+        <div class="field span2"><label>Slug (URL, se genera solo del título si lo dejás vacío)</label><input type="text" id="guia-slug" placeholder="Ej: como-importar-desde-china-a-argentina" /></div>
+        <div class="field"><label>Publicado</label><select id="guia-publicado"><option value="true">Sí</option><option value="false">No (borrador)</option></select></div>
+        <div class="field span4"><label>Resumen (tarjeta / meta description)</label><textarea id="guia-resumen"></textarea></div>
+        <div class="field span4"><label>Contenido (HTML)</label><textarea id="guia-contenido" style="min-height:220px; font-family:monospace; font-size:12.5px;"></textarea></div>
+        <div class="field span4">
+          <label>Imagen de portada</label>
+          <input type="file" id="guia-foto-input" accept="image/*" />
+          <div class="thumbs" id="guia-foto-thumb"></div>
+        </div>
+      </div>
+      <button class="btn-primary" id="guia-guardar-btn" type="button">Guardar guía</button>
+      <button class="btn-ghost" id="guia-cancelar-btn" type="button">Cancelar</button>
+      <div class="msg" id="guia-form-msg"></div>
+    </div>
+    <div id="guias-lista"></div>
   </div>
 </div>
 
@@ -818,6 +875,133 @@ try {
   })();
 } catch (e) { console.error("admin proveedores:", e); }
 
+// ---------- Oportunidades (sección "cuánto podrías ganar" de la home) ----------
+try {
+  (function () {
+    let editando = null;
+    let fotoNueva = null;
+
+    function pNumOportunidad(v) {
+      const n = parseFloat(String(v || "").trim().replace(",", "."));
+      return isNaN(n) ? null : n;
+    }
+
+    function resetForm() {
+      editando = null;
+      fotoNueva = null;
+      document.getElementById("oportunidad-id").value = "";
+      document.getElementById("oportunidad-nombre").value = "";
+      document.getElementById("oportunidad-categoria").value = "";
+      document.getElementById("oportunidad-fob").value = "";
+      document.getElementById("oportunidad-peso").value = "";
+      document.getElementById("oportunidad-ml").value = "";
+      document.getElementById("oportunidad-orden").value = "0";
+      document.getElementById("oportunidad-activo").value = "true";
+      document.getElementById("oportunidad-foto-thumb").innerHTML = "";
+      document.getElementById("oportunidad-form-msg").classList.remove("show");
+      document.getElementById("oportunidad-form-titulo").textContent = "Nuevo producto";
+    }
+
+    document.getElementById("oportunidad-nuevo-btn").addEventListener("click", () => {
+      resetForm();
+      document.getElementById("oportunidad-form-card").style.display = "block";
+    });
+    document.getElementById("oportunidad-cancelar-btn").addEventListener("click", () => {
+      document.getElementById("oportunidad-form-card").style.display = "none";
+    });
+    document.getElementById("oportunidad-foto-input").addEventListener("change", (e) => {
+      fotoNueva = (e.target.files || [])[0] || null;
+      document.getElementById("oportunidad-foto-thumb").innerHTML = fotoNueva ? `<img src="${URL.createObjectURL(fotoNueva)}" />` : "";
+    });
+
+    async function cargarLista() {
+      const { data, error } = await supabaseClient.from("oportunidades_home").select("*").order("orden");
+      if (error) { console.error(error); return; }
+      document.getElementById("oportunidades-lista").innerHTML = (data || []).map((p) => `
+        <div class="item-card">
+          <div class="item-card-head">
+            <div>
+              <div class="nombre">${escHtml(p.nombre)} ${p.activo ? "" : '<span class="estado-pill estado-cancelado">inactivo</span>'}</div>
+              <div class="meta">${escHtml(p.categoria)} · FOB US$${p.fob_usd} · ${p.peso_g}g · ML $${Number(p.ml_precio_ars).toLocaleString("es-AR")} · orden ${p.orden}</div>
+            </div>
+            <div class="item-actions">
+              <button class="btn-ghost" data-editar="${p.id}">Editar</button>
+              <button class="btn-danger" data-borrar="${p.id}">Eliminar</button>
+            </div>
+          </div>
+        </div>
+      `).join("") || `<p class="sub">Todavía no hay productos cargados.</p>`;
+
+      document.querySelectorAll("[data-editar]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const p = data.find((x) => x.id === btn.dataset.editar);
+          if (!p) return;
+          editando = p;
+          fotoNueva = null;
+          document.getElementById("oportunidad-id").value = p.id;
+          document.getElementById("oportunidad-nombre").value = p.nombre;
+          document.getElementById("oportunidad-categoria").value = p.categoria;
+          document.getElementById("oportunidad-fob").value = p.fob_usd;
+          document.getElementById("oportunidad-peso").value = p.peso_g;
+          document.getElementById("oportunidad-ml").value = p.ml_precio_ars;
+          document.getElementById("oportunidad-orden").value = p.orden;
+          document.getElementById("oportunidad-activo").value = String(p.activo);
+          document.getElementById("oportunidad-foto-thumb").innerHTML = p.imagen_url ? `<img src="${escHtml(p.imagen_url)}" />` : "";
+          document.getElementById("oportunidad-form-titulo").textContent = "Editar producto";
+          document.getElementById("oportunidad-form-card").style.display = "block";
+        });
+      });
+      document.querySelectorAll("[data-borrar]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("¿Eliminar este producto de la home?")) return;
+          await supabaseClient.from("oportunidades_home").delete().eq("id", btn.dataset.borrar);
+          cargarLista();
+        });
+      });
+    }
+
+    document.getElementById("oportunidad-guardar-btn").addEventListener("click", async () => {
+      const msg = document.getElementById("oportunidad-form-msg");
+      msg.className = "msg";
+      const nombre = document.getElementById("oportunidad-nombre").value.trim();
+      const categoria = document.getElementById("oportunidad-categoria").value.trim();
+      const fob = pNumOportunidad(document.getElementById("oportunidad-fob").value);
+      const peso = pNumOportunidad(document.getElementById("oportunidad-peso").value);
+      const ml = pNumOportunidad(document.getElementById("oportunidad-ml").value);
+      if (!nombre || !categoria || fob === null || peso === null || ml === null) {
+        msg.textContent = "Faltan campos obligatorios (nombre, categoría, FOB, peso, precio ML).";
+        msg.classList.add("show", "error");
+        return;
+      }
+
+      let imagenUrl = editando ? editando.imagen_url : null;
+      if (fotoNueva) {
+        const urls = await subirFotos([fotoNueva], "productos", "oportunidades-home/" + slugify(nombre));
+        if (urls[0]) imagenUrl = urls[0];
+      }
+
+      const payload = {
+        nombre, categoria,
+        fob_usd: fob, peso_g: peso, ml_precio_ars: ml,
+        orden: pNumOportunidad(document.getElementById("oportunidad-orden").value) || 0,
+        activo: document.getElementById("oportunidad-activo").value === "true",
+        imagen_url: imagenUrl,
+      };
+
+      const { error } = editando
+        ? await supabaseClient.from("oportunidades_home").update(payload).eq("id", editando.id)
+        : await supabaseClient.from("oportunidades_home").insert(payload);
+
+      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("show", "error"); return; }
+      msg.textContent = "Guardado ✓"; msg.classList.add("show", "ok");
+      document.getElementById("oportunidad-form-card").style.display = "none";
+      cargarLista();
+    });
+
+    window.addEventListener("staff-listo", cargarLista, { once: false });
+  })();
+} catch (e) { console.error("admin oportunidades:", e); }
+
 // ---------- Biblioteca NCM ----------
 try {
   (function () {
@@ -913,6 +1097,121 @@ try {
     window.addEventListener("staff-listo", cargarLista, { once: false });
   })();
 } catch (e) { console.error("admin biblioteca NCM:", e); }
+
+// ---------- Guías (blog) ----------
+try {
+  (function () {
+    let editando = null;
+    let fotoNueva = null;
+
+    function resetForm() {
+      editando = null;
+      fotoNueva = null;
+      document.getElementById("guia-id").value = "";
+      document.getElementById("guia-titulo").value = "";
+      document.getElementById("guia-slug").value = "";
+      document.getElementById("guia-publicado").value = "true";
+      document.getElementById("guia-resumen").value = "";
+      document.getElementById("guia-contenido").value = "";
+      document.getElementById("guia-foto-thumb").innerHTML = "";
+      document.getElementById("guia-form-msg").classList.remove("show");
+      document.getElementById("guia-form-titulo").textContent = "Nueva guía";
+    }
+
+    document.getElementById("guia-nuevo-btn").addEventListener("click", () => {
+      resetForm();
+      document.getElementById("guia-form-card").style.display = "block";
+    });
+    document.getElementById("guia-cancelar-btn").addEventListener("click", () => {
+      document.getElementById("guia-form-card").style.display = "none";
+    });
+    document.getElementById("guia-foto-input").addEventListener("change", (e) => {
+      fotoNueva = (e.target.files || [])[0] || null;
+      document.getElementById("guia-foto-thumb").innerHTML = fotoNueva ? `<img src="${URL.createObjectURL(fotoNueva)}" />` : "";
+    });
+
+    async function cargarLista() {
+      const { data, error } = await supabaseClient.from("guias").select("*").order("creado_en", { ascending: false });
+      if (error) { console.error(error); return; }
+      document.getElementById("guias-lista").innerHTML = (data || []).map((g) => `
+        <div class="item-card">
+          <div class="item-card-head">
+            <div>
+              <div class="nombre">${escHtml(g.titulo)} ${g.publicado ? "" : '<span class="estado-pill estado-cancelado">borrador</span>'}</div>
+              <div class="meta">/blog/${escHtml(g.slug)}</div>
+            </div>
+            <div class="item-actions">
+              <button class="btn-ghost" data-editar="${g.id}">Editar</button>
+              <button class="btn-danger" data-borrar="${g.id}">Eliminar</button>
+            </div>
+          </div>
+        </div>
+      `).join("") || `<p class="sub">Todavía no hay guías cargadas.</p>`;
+
+      document.querySelectorAll("#guias-lista [data-editar]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const g = data.find((x) => x.id === btn.dataset.editar);
+          if (!g) return;
+          editando = g;
+          fotoNueva = null;
+          document.getElementById("guia-id").value = g.id;
+          document.getElementById("guia-titulo").value = g.titulo;
+          document.getElementById("guia-slug").value = g.slug;
+          document.getElementById("guia-publicado").value = String(g.publicado);
+          document.getElementById("guia-resumen").value = g.resumen;
+          document.getElementById("guia-contenido").value = g.contenido_html;
+          document.getElementById("guia-foto-thumb").innerHTML = g.imagen_url ? `<img src="${escHtml(g.imagen_url)}" />` : "";
+          document.getElementById("guia-form-titulo").textContent = "Editar guía";
+          document.getElementById("guia-form-card").style.display = "block";
+        });
+      });
+      document.querySelectorAll("#guias-lista [data-borrar]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("¿Eliminar esta guía del blog?")) return;
+          await supabaseClient.from("guias").delete().eq("id", btn.dataset.borrar);
+          cargarLista();
+        });
+      });
+    }
+
+    document.getElementById("guia-guardar-btn").addEventListener("click", async () => {
+      const msg = document.getElementById("guia-form-msg");
+      msg.className = "msg";
+      const titulo = document.getElementById("guia-titulo").value.trim();
+      const resumen = document.getElementById("guia-resumen").value.trim();
+      const contenido_html = document.getElementById("guia-contenido").value.trim();
+      if (!titulo || !resumen || !contenido_html) {
+        msg.textContent = "Faltan campos obligatorios (título, resumen, contenido).";
+        msg.classList.add("show", "error");
+        return;
+      }
+      const slug = document.getElementById("guia-slug").value.trim() || slugify(titulo);
+
+      let imagenUrl = editando ? editando.imagen_url : null;
+      if (fotoNueva) {
+        const urls = await subirFotos([fotoNueva], "productos", "guias/" + slug);
+        if (urls[0]) imagenUrl = urls[0];
+      }
+
+      const payload = {
+        titulo, slug, resumen, contenido_html,
+        publicado: document.getElementById("guia-publicado").value === "true",
+        imagen_url: imagenUrl,
+      };
+
+      const { error } = editando
+        ? await supabaseClient.from("guias").update(payload).eq("id", editando.id)
+        : await supabaseClient.from("guias").insert(payload);
+
+      if (error) { msg.textContent = "Error: " + error.message; msg.classList.add("show", "error"); return; }
+      msg.textContent = "Guardado ✓"; msg.classList.add("show", "ok");
+      document.getElementById("guia-form-card").style.display = "none";
+      cargarLista();
+    });
+
+    window.addEventListener("staff-listo", cargarLista, { once: false });
+  })();
+} catch (e) { console.error("admin guías:", e); }
 </script>
 </body>
 </html>

@@ -155,9 +155,6 @@ try {
   })();
 } catch (e) { console.error("partículas del hero:", e); }
 
-// ---------- Config oculta ----------
-const FLETE_USD_KG = 80; // tarifa interna, no se muestra en ningún lado
-
 // ---------- Config editable por vos (Jawa Logistic) ----------
 const TELEFONO_NOTIFICACION = "+54 9 381 331-2280"; // único número visible para el cliente, compartido por los dos orígenes
 // El detalle de depósitos (China/Miami) y el flujo de "Armá tu pedido" +
@@ -218,7 +215,10 @@ try {
 
       const pesoTotalKg = pesoTotalEstimadoG() / 1000;
       const pagoProveedor = fob * cant;
-      const pagoFlete = pesoTotalKg * FLETE_USD_KG;
+      // Tarifa pública en vivo (costo real del forwarder + margen, ya
+      // redondeada) — ver js/rates.js: FLETE_CLIENTE, tarifaClientePorPeso.
+      const via = document.getElementById("qq-via").value === "maritimo" ? "maritimo" : "aereo";
+      const pagoFlete = pesoTotalKg * tarifaClientePorPeso(FLETE_CLIENTE[via], pesoTotalKg);
       const total = pagoProveedor + pagoFlete;
 
       // Desglosado para que se entienda qué se le paga al proveedor y qué
@@ -229,7 +229,8 @@ try {
       document.getElementById("qq-result").style.display = "flex";
 
       const texto = `Hola! Quiero cotizar un producto con Jawa Logistic:
-${nombre ? `Producto: ${nombre}\n` : ""}FOB unitario: USD ${fmtQQ(fob)}
+${nombre ? `Producto: ${nombre}\n` : ""}Vía: ${via === "maritimo" ? "Marítimo" : "Aéreo"}
+FOB unitario: USD ${fmtQQ(fob)}
 Peso por unidad: ${pesoRaw || 0} ${unidad}
 Cantidad: ${cant}
 Peso total estimado: ${document.getElementById("qq-peso-total").value}
@@ -241,6 +242,88 @@ Total estimado: U$${fmtQQ(total)}`;
     });
   })();
 } catch (e) { console.error("cotizador rápido:", e); }
+
+// ---------- Sección "Cuánto podrías ganar" (home) ----------
+// Los productos (FOB, peso, precio real relevado en Mercado Libre, foto) se
+// cargan desde Supabase (tabla oportunidades_home) — se editan desde
+// admin-tienda.html → pestaña "Oportunidades (home)", sin tocar código. El
+// costo "puesto en Argentina" y la ganancia se recalculan EN VIVO acá abajo
+// con la tarifa pública real y el dólar de hoy, nunca están guardados fijos.
+try {
+  (async function () {
+    const grid = document.getElementById("ganancia-grid");
+    if (!grid) return;
+
+    async function cargarProductosGanancia() {
+      try {
+        const { data, error } = await supabaseClient
+          .from("oportunidades_home")
+          .select("*")
+          .eq("activo", true)
+          .order("orden");
+        if (error) throw error;
+        return (data || []).map((p) => ({
+          nombre: p.nombre, categoria: p.categoria,
+          fobUsd: Number(p.fob_usd), pesoG: Number(p.peso_g), mlArs: Number(p.ml_precio_ars),
+          img: p.imagen_url || "",
+        }));
+      } catch (e) {
+        console.error("No se pudieron cargar los productos de la sección ganancia:", e);
+        return [];
+      }
+    }
+
+    const fmtArsGan = (n) => Math.round(n || 0).toLocaleString("es-AR");
+
+    async function obtenerDolarBlueGan() {
+      try {
+        const res = await fetch("https://dolarapi.com/v1/dolares/blue");
+        const data = await res.json();
+        if (data && data.venta) return data.venta;
+      } catch (e) {}
+      return 1545; // respaldo si la API pública no responde
+    }
+
+    await SUPABASE_READY;
+    const [productos, blue] = await Promise.all([cargarProductosGanancia(), obtenerDolarBlueGan()]);
+
+    if (!productos.length) {
+      document.getElementById("oportunidades")?.remove();
+      return;
+    }
+
+    grid.innerHTML = productos.map((p) => {
+      const flete = (p.pesoG / 1000) * tarifaClientePorPeso(FLETE_CLIENTE.aereo, p.pesoG / 1000);
+      // Supuesto de impuestos: el mismo % del régimen simplificado de
+      // courier ya vigente en todo el sitio — no es la clasificación
+      // arancelaria real de este producto puntual (eso varía por NCM), es
+      // un piso conservador para no prometer un margen que después no se
+      // sostiene con impuestos reales.
+      const alicuota = (typeof COURIER_REGIMEN !== "undefined" && COURIER_REGIMEN.alicuota) || 0.5;
+      const costoConImpuestosUsd = (p.fobUsd + flete) * (1 + alicuota);
+      const costoConImpuestosArs = costoConImpuestosUsd * blue;
+      const gananciaArs = p.mlArs - costoConImpuestosArs;
+      const gananciaPct = costoConImpuestosArs > 0 ? (gananciaArs / costoConImpuestosArs) * 100 : 0;
+      return `
+        <div class="ganancia-card">
+          <div class="ganancia-img"><img src="${p.img}" alt="${escHtml(p.nombre)}" loading="lazy" /></div>
+          <div class="ganancia-body">
+            <div class="ganancia-cat">${escHtml(p.categoria)}</div>
+            <div class="ganancia-nombre">${escHtml(p.nombre)}</div>
+            <div class="ganancia-row"><span>FOB en China</span><span class="v">U$D ${p.fobUsd.toFixed(2)}/u.</span></div>
+            <div class="ganancia-row"><span>Puesto en Arg. con Jawa (est.)</span><span class="v">$${fmtArsGan(costoConImpuestosArs)}</span></div>
+            <div class="ganancia-row ml"><span>Precio en Mercado Libre</span><span class="v">$${fmtArsGan(p.mlArs)}</span></div>
+            <div class="ganancia-badge">
+              <div class="lbl">Ganancia potencial</div>
+              <div class="val">$${fmtArsGan(gananciaArs)}</div>
+              <div class="pct">${gananciaPct >= 0 ? "+" : ""}${gananciaPct.toFixed(0)}%</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  })();
+} catch (e) { console.error("sección ganancia potencial:", e); }
 
 // ---------- Año del footer ----------
 // El wizard "Armá tu pedido" + flujo post-compra y el analizador de

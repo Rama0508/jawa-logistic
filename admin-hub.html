@@ -50,6 +50,7 @@
     <button class="hub-tab-btn" data-tab="cuenta-corriente">Cuenta corriente</button>
     <button class="hub-tab-btn" data-tab="documentos">Documentos</button>
     <button class="hub-tab-btn" data-tab="chat">Chat</button>
+    <button class="hub-tab-btn" data-tab="referidos">Referidos</button>
   </div>
 
   <!-- ---------- Operaciones ---------- -->
@@ -207,6 +208,15 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ---------- Referidos ---------- -->
+  <div class="hub-tab-panel" id="tab-referidos">
+    <div class="hub-card">
+      <div class="hub-card-title">Programa de referidos</div>
+      <p class="hub-page-lead" style="margin-top:0;">Cuando la primera operación de un cliente referido llega a "Entregado", acá aparece un derecho a recompensa pendiente — revisalo y otorgalo a mano (se acredita como pago en la cuenta corriente de quien invitó).</p>
+      <div id="referidos-lista-admin"><p class="hub-empty">Cargando…</p></div>
     </div>
   </div>
 </div>
@@ -404,6 +414,10 @@ try {
             <input type="text" inputmode="decimal" data-fob="${o.id}" placeholder="FOB USD (para el Club de Importadores)" value="${o.fob_usd != null ? o.fob_usd : ""}" style="flex:1;" />
             <button class="hub-btn-ghost" data-guardar-fob="${o.id}" style="flex:none;">Guardar FOB</button>
           </div>
+          <div class="hub-field-row" style="margin-top:6px; margin-bottom:0;">
+            <input type="text" inputmode="decimal" data-ref-ml="${o.id}" placeholder="Precio ya importado en ARS (para el Dashboard de ahorro del cliente)" value="${o.precio_referencia_ml_centavos != null ? (o.precio_referencia_ml_centavos / 100) : ""}" style="flex:1;" />
+            <button class="hub-btn-ghost" data-guardar-ref-ml="${o.id}" style="flex:none;">Guardar</button>
+          </div>
           <div class="hub-item-meta" id="nota-msg-${o.id}"></div>
         </div>
       `).join("");
@@ -414,7 +428,30 @@ try {
           const select = cont.querySelector(`[data-estado="${id}"]`);
           const notaInput = cont.querySelector(`[data-nota="${id}"]`);
           const nota = notaInput ? notaInput.value.trim() : "";
+          const estadoAnterior = data.find((x) => x.id === id)?.estado;
           await supabaseClient.from("operaciones").update({ estado: select.value }).eq("id", id);
+
+          // Aviso por email al cliente — best-effort: no bloquea ni rompe el
+          // guardado del estado si el email falla (falta configurar Resend,
+          // sin conexión, etc.), solo se loguea en consola. No se avisa si
+          // el estado en realidad no cambió (ej. tocaron "Guardar" sin
+          // cambiar el select).
+          if (estadoAnterior !== select.value) {
+            const o = data.find((x) => x.id === id);
+            if (o) {
+              fetch(`${SUPABASE_URL}/functions/v1/notificar-estado-operacion`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + SUPABASE_ANON_KEY },
+                body: JSON.stringify({
+                  clienteEmail: o.cliente_email, clienteNombre: o.cliente_nombre,
+                  codigo: o.codigo, estadoNuevo: select.value, operacionId: id,
+                }),
+              }).then((r) => r.json()).then((r) => {
+                if (!r.success) console.error("No se pudo avisar por email al cliente:", r.error);
+              }).catch((e) => console.error("No se pudo avisar por email al cliente:", e));
+            }
+          }
+
           // El trigger de la base ya registra el evento del cambio de estado —
           // si staff también cargó una nota, la adjuntamos al evento recién
           // creado (el más reciente de esa operación) en vez de duplicar el insert.
@@ -457,6 +494,19 @@ try {
           msg.textContent = "✓ FOB guardado.";
         });
       });
+
+      cont.querySelectorAll("[data-guardar-ref-ml]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = btn.dataset.guardarRefMl;
+          const refInput = cont.querySelector(`[data-ref-ml="${id}"]`);
+          const msg = document.getElementById(`nota-msg-${id}`);
+          const raw = refInput ? refInput.value.trim() : "";
+          const refCentavos = raw ? Math.round(Number(raw.replace(",", ".")) * 100) : null;
+          const { error } = await supabaseClient.from("operaciones").update({ precio_referencia_ml_centavos: refCentavos }).eq("id", id);
+          if (error) { msg.textContent = "Error: " + error.message; return; }
+          msg.textContent = "✓ Precio de referencia guardado.";
+        });
+      });
     }
 
     async function cargarCotizaciones() {
@@ -465,7 +515,25 @@ try {
       if (error) { cont.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
       if (!data || !data.length) { cont.innerHTML = `<p class="hub-empty">Todavía no hay cotizaciones de clientes.</p>`; return; }
 
-      cont.innerHTML = data.map((c) => `
+      cont.innerHTML = data.map((c) => {
+        // Los productos de la cotización (con su foto, si el cliente subió
+        // una en el paso 1 de hub/calculadora-importacion.html) viven en
+        // detalle.productos — la foto se guarda como ruta en el bucket
+        // privado "cotizacion-adjuntos", no como base64, así que acá se pide
+        // un link firmado recién al tocar "Ver foto" (mismo patrón que
+        // hub/documentos.html), no se precargan todas de una.
+        const productos = (c.detalle && Array.isArray(c.detalle.productos)) ? c.detalle.productos : [];
+        const productosHtml = productos.length ? `
+          <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:6px;">
+            ${productos.map((p, i) => `
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:11.5px; color:var(--muted);">
+                <span>${escHtml(p.nombre || "Producto " + (i + 1))}${p.codigoHS ? " · HS " + escHtml(p.codigoHS) : ""}</span>
+                ${p.foto ? `<button class="hub-btn-ghost" style="font-size:10.5px; padding:2px 8px;" data-ver-foto="${escHtml(p.foto)}">📷 Ver foto</button>` : ""}
+              </div>
+            `).join("")}
+          </div>
+        ` : "";
+        return `
         <div class="hub-item">
           <div class="hub-item-head">
             <div>
@@ -476,8 +544,26 @@ try {
               ? `<span class="hub-pill hub-pill-liberado">Ya convertida</span>`
               : `<button class="hub-btn-ghost" data-convertir="${c.id}">Convertir en operación</button>`}
           </div>
+          ${productosHtml}
         </div>
-      `).join("");
+      `;
+      }).join("");
+
+      cont.querySelectorAll("[data-ver-foto]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const path = btn.dataset.verFoto;
+          const textoOriginal = btn.textContent;
+          btn.disabled = true;
+          btn.textContent = "Cargando…";
+          const { data: url, error: urlError } = await supabaseClient.storage
+            .from("cotizacion-adjuntos")
+            .createSignedUrl(path, 60);
+          btn.disabled = false;
+          btn.textContent = textoOriginal;
+          if (urlError || !url) { alert("No se pudo generar el link de la foto."); return; }
+          window.open(url.signedUrl, "_blank");
+        });
+      });
 
       cont.querySelectorAll("[data-convertir]").forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -729,6 +815,58 @@ try {
     window.addEventListener("staff-listo", cargarHilos, { once: false });
   })();
 } catch (e) { console.error("admin chat:", e); }
+
+// ---------- Referidos ----------
+try {
+  (function () {
+    async function cargarReferidosAdmin() {
+      const cont = document.getElementById("referidos-lista-admin");
+      const { data, error } = await supabaseClient.rpc("referidos_recompensas_admin_listar");
+      if (error) { cont.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
+      if (!data || !data.length) { cont.innerHTML = `<p class="hub-empty">Todavía no hay recompensas de referidos generadas.</p>`; return; }
+
+      cont.innerHTML = data.map((r) => `
+        <div class="hub-item">
+          <div class="hub-item-head">
+            <div>
+              <div class="hub-item-title">${escHtml(r.referente_nombre || r.referente_email)} <span style="color:var(--muted); font-weight:400;">invitó a</span> ${escHtml(r.referido_nombre || r.referido_email)}</div>
+              <div class="hub-item-meta">${fmtFecha(r.creado_en)}${r.operacion_codigo ? " · operación " + escHtml(r.operacion_codigo) : ""}</div>
+            </div>
+            ${r.estado === "otorgada"
+              ? `<span class="hub-pill hub-pill-liberado">Otorgada${r.monto_centavos ? " · " + fmtCentavos(r.monto_centavos) : ""}</span>`
+              : `<button class="hub-btn-primary" data-otorgar="${r.id}" data-referente="${r.referente_id}">Otorgar recompensa</button>`}
+          </div>
+        </div>
+      `).join("");
+
+      cont.querySelectorAll("[data-otorgar]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const raw = prompt("¿Cuánto le acreditamos en su cuenta corriente (ARS)?", "10000");
+          if (raw === null) return;
+          const monto = Math.round(Number(String(raw).replace(",", ".")) * 100);
+          if (!monto || monto <= 0) { alert("Monto inválido."); return; }
+
+          const referenteId = btn.dataset.referente;
+          const recompensaId = btn.dataset.otorgar;
+
+          const { error: errCC } = await supabaseClient.from("cuenta_corriente_movimientos").insert({
+            cliente_id: referenteId, tipo: "pago", monto_centavos: monto,
+            concepto: "Recompensa por referido", creado_por: sesionStaffActual.user.id,
+          });
+          if (errCC) { alert("No se pudo acreditar: " + errCC.message); return; }
+
+          const { error: errRec } = await supabaseClient.from("referidos_recompensas")
+            .update({ estado: "otorgada", monto_centavos: monto, otorgada_en: new Date().toISOString() })
+            .eq("id", recompensaId);
+          if (errRec) { alert("Se acreditó el pago, pero no se pudo marcar la recompensa como otorgada: " + errRec.message); }
+
+          cargarReferidosAdmin();
+        });
+      });
+    }
+    window.addEventListener("staff-listo", cargarReferidosAdmin, { once: false });
+  })();
+} catch (e) { console.error("admin referidos:", e); }
 </script>
 </body>
 </html>

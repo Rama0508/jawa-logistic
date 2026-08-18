@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Mis cotizaciones — Portal de cliente — Jawa Logistic</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../css/hub.css" />
+<style>
+  .mc-item { display:flex; align-items:flex-start; gap:12px; }
+  .mc-item input[type="checkbox"] { width:18px; height:18px; margin-top:2px; flex:none; }
+  .mc-compare-bar { position:sticky; bottom:0; background:var(--white); border-top:1px solid var(--line); padding:12px 0; margin-top:10px; display:flex; align-items:center; gap:12px; }
+  .mc-table { width:100%; border-collapse:collapse; font-size:13px; margin-top:14px; }
+  .mc-table th, .mc-table td { border:1px solid var(--line); padding:9px 12px; text-align:left; }
+  .mc-table th { background:var(--paper); font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); }
+  .mc-table td.num { text-align:right; font-family: ui-monospace, Menlo, monospace; }
+  .mc-table tr.destacada td { background:#eef7f0; font-weight:700; }
+</style>
+</head>
+<body>
+
+<div id="hub-shell">
+  <div id="hub-page">
+    <p class="hub-page-lead">Todas las cotizaciones que guardaste desde la calculadora de importación. Elegí 2 o 3 para compararlas lado a lado antes de decidir.</p>
+    <div class="hub-card">
+      <div class="hub-card-title">Tus cotizaciones guardadas</div>
+      <div id="mc-lista"><p class="hub-empty">Cargando…</p></div>
+      <div class="mc-compare-bar" id="mc-compare-bar" style="display:none;">
+        <span id="mc-compare-count" style="font-size:12.5px; color:var(--muted);"></span>
+        <button class="hub-btn-primary" id="mc-comparar-btn" type="button">Comparar seleccionadas</button>
+      </div>
+    </div>
+    <div class="hub-card" id="mc-resultado-card" style="display:none;">
+      <div class="hub-card-title">Comparación</div>
+      <div style="overflow-x:auto;"><div id="mc-resultado"></div></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/rates.js"></script>
+<script src="../js/cuenta.js"></script>
+<script src="../js/hub.js"></script>
+<script>
+const MC_VIA_LABEL = { aereo: "✈️ Aéreo", maritimo: "🚢 Marítimo", courier: "📦 Courier" };
+
+try {
+  (async function () {
+    await SUPABASE_READY;
+    const session = await iniciarHub("mis-cotizaciones");
+    if (!session) return;
+    const clienteId = session.user.id;
+
+    function fmtUsd(n) { return "$" + (Number(n) || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+    const cont = document.getElementById("mc-lista");
+    const { data, error } = await supabaseClient
+      .from("cotizaciones_cliente")
+      .select("id, modo, origen, fob_usd, peso_kg, total_estimado_usd, detalle, convertida_en_operacion_id, creado_en")
+      .eq("cliente_id", clienteId)
+      .order("creado_en", { ascending: false });
+    if (error) { cont.innerHTML = `<p class="hub-empty">Error: ${error.message}</p>`; return; }
+    if (!data || !data.length) {
+      cont.innerHTML = `<p class="hub-empty">Todavía no guardaste ninguna cotización — armá una en la <a href="/hub/calculadora-importacion.html">calculadora de importación</a>.</p>`;
+      return;
+    }
+
+    cont.innerHTML = data.map((c) => {
+      const esBorrador = c.detalle && c.detalle.borrador;
+      const nombresProductos = (c.detalle && Array.isArray(c.detalle.productos) ? c.detalle.productos : []).map((p) => p.nombre).filter(Boolean);
+      return `
+      <div class="hub-item mc-item">
+        <input type="checkbox" data-mc-check value="${c.id}" />
+        <div style="flex:1;">
+          <div class="hub-item-title">${MC_VIA_LABEL[c.modo] || c.modo}${c.origen ? " · " + escHtml(c.origen) : ""} ${esBorrador ? '<span class="hub-pill" style="background:var(--paper-2); color:var(--muted);">borrador</span>' : ""}${c.convertida_en_operacion_id ? '<span class="hub-pill hub-pill-liberado">ya convertida</span>' : ""}</div>
+          <div class="hub-item-meta">${nombresProductos.length ? escHtml(nombresProductos.slice(0, 3).join(", ")) + (nombresProductos.length > 3 ? ` y ${nombresProductos.length - 3} más` : "") : "Sin productos"} · ${fmtFecha(c.creado_en)}</div>
+          <div class="hub-item-meta">Total estimado: <b class="data">${fmtUsd(c.total_estimado_usd)}</b></div>
+        </div>
+      </div>
+    `;
+    }).join("");
+
+    const compareBar = document.getElementById("mc-compare-bar");
+    const compareCount = document.getElementById("mc-compare-count");
+
+    function actualizarBarra() {
+      const marcadas = cont.querySelectorAll("[data-mc-check]:checked");
+      compareBar.style.display = marcadas.length >= 2 ? "flex" : "none";
+      compareCount.textContent = `${marcadas.length} seleccionadas`;
+      if (marcadas.length > 4) {
+        // Más de 4 columnas no entra bien en pantalla — se avisa pero no se bloquea.
+        compareCount.textContent += " (con más de 4 puede verse apretado)";
+      }
+    }
+    cont.querySelectorAll("[data-mc-check]").forEach((chk) => chk.addEventListener("change", actualizarBarra));
+
+    document.getElementById("mc-comparar-btn").addEventListener("click", () => {
+      const idsMarcados = [...cont.querySelectorAll("[data-mc-check]:checked")].map((c) => c.value);
+      const seleccionadas = data.filter((c) => idsMarcados.includes(c.id));
+      if (seleccionadas.length < 2) return;
+
+      const filas = [
+        { lbl: "Vía", val: (c) => MC_VIA_LABEL[c.modo] || c.modo },
+        { lbl: "Origen", val: (c) => c.origen ? escHtml(c.origen) : "—" },
+        { lbl: "Fecha", val: (c) => fmtFecha(c.creado_en) },
+        { lbl: "FOB total", val: (c) => fmtUsd((c.detalle && c.detalle.fobTotal) ?? c.fob_usd), num: true },
+        { lbl: "Flete total", val: (c) => fmtUsd(c.detalle && c.detalle.fleteTotal), num: true },
+        { lbl: "Impuestos totales", val: (c) => fmtUsd(c.detalle && c.detalle.impuestosTotal), num: true },
+        { lbl: "Total estimado", val: (c) => fmtUsd(c.total_estimado_usd), num: true, destacada: true },
+        { lbl: "IVA recuperable (lic. Jawa)", val: (c) => (c.detalle && c.detalle.ivaRecuperableTotal) ? fmtUsd(c.detalle.ivaRecuperableTotal) : "—", num: true },
+        { lbl: "Costo real (con recupero)", val: (c) => (c.detalle && c.detalle.costoReal) ? fmtUsd(c.detalle.costoReal) : "—", num: true },
+      ];
+
+      const html = `
+        <table class="mc-table">
+          <thead><tr><th></th>${seleccionadas.map((c) => `<th>${fmtFecha(c.creado_en)}</th>`).join("")}</tr></thead>
+          <tbody>
+            ${filas.map((f) => `
+              <tr class="${f.destacada ? "destacada" : ""}">
+                <td>${f.lbl}</td>
+                ${seleccionadas.map((c) => `<td class="${f.num ? "num" : ""}">${f.val(c)}</td>`).join("")}
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+        <div style="font-size:11px; color:var(--muted); margin-top:10px;">Los valores salen de lo guardado en el momento de cada cotización — si las tarifas cambiaron desde entonces, el número real de hoy puede ser distinto. Volvé a cotizar en la calculadora si necesitás el valor actualizado.</div>
+      `;
+      document.getElementById("mc-resultado").innerHTML = html;
+      document.getElementById("mc-resultado-card").style.display = "block";
+      document.getElementById("mc-resultado-card").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  })();
+} catch (e) { console.error("mis cotizaciones:", e); }
+</script>
+</body>
+</html>

@@ -45,16 +45,55 @@ let DIVISOR_VOLUMETRICO_AEREO = 6000;
 let RATE_COURIER_USD_KG = 0;
 let COURIER_REGIMEN = { limitePesoKg: 50, limiteCifUsd: 3000, alicuota: 0.5, maxUnidadesMismaEspecie: 3 };
 
+// Tarifa de flete que ve el cliente, calculada del lado del servidor a
+// partir del costo real de un agente de carga (ej. Aerobox) marcado como
+// "tarifa pública" en admin.html — costo × 1,5, redondeado a múltiplo de 5
+// hacia arriba (ver obtener_tarifas_publicas_flete(), migración 0018). Cada
+// modo es un array de tramos [{hastaKg, tarifaKg}, ...], igual formato que
+// usa admin.html — nunca expone el costo real ni el nombre del agente, así
+// que es seguro pedirla sin login. Si no hay ningún agente marcado como
+// tarifa pública para un modo, queda como array vacío y
+// tarifaClientePorPeso() devuelve 0 (los cotizadores ya saben mostrar
+// "sin tarifa cargada" cuando la tarifa da 0).
+let FLETE_CLIENTE = { aereo: [], maritimo: [] };
+
+// Mismo criterio de selección de tramo que admin.html (elegirTramoAgente):
+// el tramo abierto (hastaKg vacío/null) es siempre el más barato y el que
+// aplica "de ahí en adelante"; entre los tramos cerrados, el primero cuyo
+// límite alcanza el peso del envío.
+function tarifaClientePorPeso(tramos, pesoKg) {
+  if (!Array.isArray(tramos) || !tramos.length) return 0;
+  const abierto = (t) => t.hastaKg === null || t.hastaKg === undefined || t.hastaKg === "";
+  const ordenados = [...tramos].sort((a, b) => {
+    const aAb = abierto(a), bAb = abierto(b);
+    if (aAb && bAb) return 0;
+    if (aAb) return 1;
+    if (bAb) return -1;
+    return Number(a.hastaKg) - Number(b.hastaKg);
+  });
+  const elegido = ordenados.find((t) => !abierto(t) && pesoKg <= Number(t.hastaKg)) || ordenados[ordenados.length - 1];
+  return elegido ? Number(elegido.tarifaKg) || 0 : 0;
+}
+
 // Se resuelve cuando las tarifas reales ya están cargadas. El resto del código
 // espera este evento antes de habilitar los botones de calcular.
 const SUPABASE_READY = (async function cargarConfiguracion() {
   try {
-    const [{ data: tarifas, error: e1 }, { data: config, error: e2 }] = await Promise.all([
+    const [{ data: tarifas, error: e1 }, { data: config, error: e2 }, { data: tarifaPublica, error: e3 }] = await Promise.all([
       supabaseClient.from("tarifas").select("id, valor"),
       supabaseClient.from("configuracion").select("clave, valor"),
+      supabaseClient.rpc("obtener_tarifas_publicas_flete"),
     ]);
     if (e1) throw e1;
     if (e2) throw e2;
+    // La tarifa pública es "mejor esfuerzo" — si la función todavía no existe
+    // (falta pegar la migración 0018) no debe tirar abajo el resto de las
+    // tarifas, los cotizadores ya saben mostrar "sin tarifa" con el array vacío.
+    if (!e3 && tarifaPublica) {
+      FLETE_CLIENTE = { aereo: tarifaPublica.aereo || [], maritimo: tarifaPublica.maritimo || [] };
+    } else if (e3) {
+      console.error("No se pudo cargar la tarifa pública de flete (¿ya corriste supabase/migrations/0018_tarifa_publica_flete.sql?):", e3);
+    }
 
     const t = Object.fromEntries((tarifas || []).map((r) => [r.id, Number(r.valor)]));
     FLETE_RATES = {

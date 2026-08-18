@@ -218,6 +218,32 @@
   .hub-teaser-actions .btn-primary:hover { box-shadow: 0 10px 22px rgba(201,80,46,0.4); }
   .hub-teaser-actions .btn-outline-white:hover { box-shadow: 0 10px 22px rgba(215,182,134,0.18); }
 
+  /* ---------- Oportunidades / "cuánto podrías ganar" (home) ---------- */
+  .ganancia-section { padding: 60px 0 10px; position:relative; z-index:2; }
+  .ganancia-head { max-width:640px; margin:0 auto 30px; text-align:center; }
+  .ganancia-head h2 { font-size: clamp(23px, 3vw, 30px); font-weight:800; margin:8px 0 10px; color:var(--navy); text-wrap:balance; }
+  .ganancia-head p { font-size:14px; line-height:1.6; color:var(--muted); margin:0; }
+  .ganancia-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:18px; margin-bottom:16px; }
+  @media (max-width:980px) { .ganancia-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width:560px) { .ganancia-grid { grid-template-columns: 1fr; } }
+  .ganancia-loading { grid-column: 1/-1; text-align:center; font-size:13px; color:var(--muted); padding:30px 0; }
+  .ganancia-card { background:var(--white); border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; transition: transform .2s ease, box-shadow .2s ease; }
+  .ganancia-card:hover { transform: translateY(-3px); box-shadow: 0 20px 40px -26px rgba(22,34,61,0.4); }
+  .ganancia-img { aspect-ratio: 4/3; background:var(--paper); overflow:hidden; }
+  .ganancia-img img { width:100%; height:100%; object-fit:cover; display:block; }
+  .ganancia-body { padding:16px 16px 18px; display:flex; flex-direction:column; gap:9px; flex:1; }
+  .ganancia-cat { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--gold); }
+  .ganancia-nombre { font-size:14.5px; font-weight:800; color:var(--navy); line-height:1.3; }
+  .ganancia-row { display:flex; justify-content:space-between; align-items:baseline; font-size:12px; color:var(--muted); border-top:1px dashed var(--line); padding-top:8px; }
+  .ganancia-row .v { font-weight:700; color:var(--ink); }
+  .ganancia-row.ml .v { color:var(--muted); text-decoration:line-through; text-decoration-color:rgba(91,100,114,0.5); }
+  .ganancia-badge { margin-top:4px; background:#eef7f0; border:1px solid #bfe3c8; border-radius:9px; padding:10px 12px; text-align:center; }
+  .ganancia-badge .lbl { font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:#1c6b34; }
+  .ganancia-badge .val { font-size:18px; font-weight:800; color:#1c6b34; }
+  .ganancia-badge .pct { font-size:11.5px; font-weight:700; color:#1c6b34; }
+  .ganancia-nota { max-width:760px; margin:0 auto; text-align:center; font-size:11.5px; font-weight:600; line-height:1.6; color:#ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.75), 0 0 14px rgba(255,255,255,0.35); padding:0 12px; }
+  .ganancia-cta { text-align:center; margin:22px 0 6px; }
+
   .hub-cta-pulse { animation: hub-cta-pulse-ring 2.6s ease-out infinite; }
   .hub-cta-pulse:hover { animation-play-state: paused; }
   @keyframes hub-cta-pulse-ring {
@@ -597,6 +623,8 @@
   .cuenta-form { display:flex; flex-direction:column; gap:6px; background:var(--white); border:1px solid var(--line); border-radius:12px; padding:26px; }
   .cuenta-form label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-top:10px; }
   .cuenta-form input { background:var(--paper); border:1px solid var(--line); border-radius:7px; padding:11px 12px; font-size:14px; font-family:inherit; color:var(--ink); }
+  .btn-google { display:inline-flex; align-items:center; gap:10px; background:var(--white); color:#3c4043; font-weight:600; font-size:14px; padding:11px 16px; border-radius:7px; border:1px solid var(--line); cursor:pointer; font-family:inherit; transition:background .2s ease, box-shadow .2s ease; }
+  .btn-google:hover { background:#f7f8f8; box-shadow:0 1px 3px rgba(0,0,0,0.12); }
   .pedidos-lista { display:flex; flex-direction:column; gap:8px; max-width:640px; }
   .pedido-row { display:grid; grid-template-columns:100px 110px 100px 1fr; gap:12px; align-items:center; background:var(--white); border:1px solid var(--line); border-radius:8px; padding:12px 16px; font-size:13px; }
   .pedido-estado { font-size:11px; font-weight:700; text-transform:uppercase; padding:3px 8px; border-radius:5px; width:fit-content; }

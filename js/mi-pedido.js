@@ -8,9 +8,6 @@
 // Requiere que antes se haya cargado: js/rates.js → js/cotizador-core.js (usa
 // avisoLimiteRegimen, definida ahí).
 
-// ---------- Config oculta ----------
-const FLETE_USD_KG = 80; // tarifa interna, no se muestra en ningún lado
-
 // ---------- Config editable por vos (Jawa Logistic) ----------
 // Cambiá estos datos según tus depósitos consolidadores reales.
 const TELEFONO_NOTIFICACION = "+54 9 381 331-2280"; // único número visible para el cliente, compartido por los dos orígenes
@@ -69,8 +66,9 @@ function calcular(p) {
   const cant = parseNum(p.cantidad);
   const fobTotal = fob * cant;
   const pesoTotalKg = pesoKg * cant;
-  const fleteTotal = pesoTotalKg * FLETE_USD_KG;
-  const costoUnit = fob + pesoKg * FLETE_USD_KG; // flete ya sumado, sin desglosar
+  const rateAereo = tarifaClientePorPeso(FLETE_CLIENTE.aereo, pesoTotalKg);
+  const fleteTotal = pesoTotalKg * rateAereo;
+  const costoUnit = fob + pesoKg * rateAereo; // flete ya sumado, sin desglosar
   return { ...p, fob, pesoKg, cant, costoUnit, costoTotal: costoUnit * cant, fobTotal, pesoTotalKg, fleteTotal };
 }
 
@@ -231,7 +229,8 @@ function datosEnvioActuales() {
   const apellido = document.getElementById("cli-apellido").value.trim();
   const peso = document.getElementById("envio-peso").value.trim();
   const tracking = document.getElementById("trigger-tracking").value.trim();
-  const total = parseNum(peso) * FLETE_USD_KG;
+  const pesoNum = parseNum(peso);
+  const total = pesoNum * tarifaClientePorPeso(FLETE_CLIENTE.aereo, pesoNum);
   return { codigo, nombre, apellido, peso, tracking, total };
 }
 
@@ -241,7 +240,7 @@ document.getElementById("envio-peso").addEventListener("input", () => {
   const valor = document.getElementById("total-a-pagar-valor");
   if (peso > 0) {
     box.style.display = "flex";
-    valor.textContent = `$${fmt(peso * FLETE_USD_KG)}`;
+    valor.textContent = `$${fmt(peso * tarifaClientePorPeso(FLETE_CLIENTE.aereo, peso))}`;
   } else {
     box.style.display = "none";
   }

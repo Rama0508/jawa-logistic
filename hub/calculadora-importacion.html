@@ -61,6 +61,7 @@ try {
     function nuevoProductoWiz() {
       return {
         id: uid(), nombre: "", codigoHS: "", codigoHSFuente: "", descripcion: "", foto: "",
+        fotoPath: "", fotoNombre: "",
         rubro: "", confianza: "", advertenciaIA: "",
         alicuotas: { die: "", iva: "21", ivaAdicional: "20", ganancias: "6", iibb: "0", tasaEstadistica: "3" },
         cantidad: "", fob: "", origen: "china",
@@ -135,15 +136,15 @@ try {
       const cbm = p.cbmManual !== "" && p.cbmManual != null ? pNum(p.cbmManual) : cbmAuto;
 
       const origen = p.origen === "miami" ? "miami" : "china";
-      const rateSea = FLETE_RATES.sea[origen] || 0;
-      const rateAir = FLETE_RATES.air[origen] || 0;
-
+      // El flete marítimo se cobra por kilo (igual que el forwarder real que
+      // cotiza este servicio), no por m³ — el CBM se sigue calculando abajo
+      // como referencia (volumen del envío), pero ya no es la base del cobro.
       const cbmCobrable = cbmCobrableMaritimo(cbm, pesoTotal);
-      const fleteMaritimo = cbmCobrable * rateSea;
+      const fleteMaritimo = pesoTotal * tarifaClientePorPeso(FLETE_CLIENTE.maritimo, pesoTotal);
 
       const pesoVolAereo = ((l * w * h) / DIVISOR_VOLUMETRICO_AEREO) * bultos;
       const pesoCobrable = pesoCobrableAereo(pesoVolAereo, pesoTotal);
-      const fleteAereo = pesoCobrable * rateAir;
+      const fleteAereo = pesoCobrable * tarifaClientePorPeso(FLETE_CLIENTE.aereo, pesoCobrable);
 
       return { cantidad, fobU, fobTotal, pesoTotal, cbm, cbmAuto, cbmCobrable, fleteMaritimo, pesoCobrable, fleteAereo, origen, cajas: bultos };
     }
@@ -362,10 +363,30 @@ try {
       render();
     }
 
+    // Guarda la foto del producto en el mismo bucket privado que ya usa el
+    // Camino B (documentos), bajo la misma convención de ruta
+    // {cliente_id}/{producto_id}/... — así el staff puede verla desde
+    // admin-hub.html y queda asociada a la cotización para siempre, no solo
+    // como base64 en localStorage. Corre en paralelo a la clasificación por
+    // IA (no la bloquea): la foto se guarda igual aunque la IA tarde o falle.
+    async function subirFotoProducto(p, file) {
+      try {
+        const path = `${clienteId}/${p.id}/foto-producto-${Date.now()}-${file.name}`.replace(/\s+/g, "_");
+        const { error } = await supabaseClient.storage.from("cotizacion-adjuntos").upload(path, file, { upsert: true });
+        if (error) { console.error("No se pudo guardar la foto del producto:", error.message); return; }
+        p.fotoPath = path;
+        p.fotoNombre = file.name;
+        guardarWiz();
+      } catch (e) {
+        console.error("No se pudo guardar la foto del producto:", e);
+      }
+    }
+
     async function analizarFoto(file) {
       if (!file || !file.type || !file.type.startsWith("image/")) return;
       const estado = document.getElementById("wiz-ia-estado");
       estado.textContent = "Analizando la foto…";
+      subirFotoProducto(productoActivo(), file);
       const reader = new FileReader();
       reader.onload = async (ev) => {
         const dataUrl = String(ev.target.result || "");
@@ -551,7 +572,10 @@ try {
         ${r.detalle.map(({ p, c, flete, impuestos, totalProducto }) => `
           <div class="wiz-producto-detalle ${detalleAbierto === p.id ? "open" : ""}" data-action="toggle-detalle" data-id="${p.id}">
             <div class="head">
-              <span>${escHtml(p.nombre)} <span style="color:var(--muted); font-weight:400;">· ${c.cantidad} u.</span>${p.codigoHS ? ` <span class="data" style="font-size:10.5px; color:var(--muted); background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:1px 6px;">HS ${escHtml(p.codigoHS)}</span>` : ""}</span>
+              <span style="display:flex; align-items:center; gap:8px;">
+                ${p.foto ? `<img src="${p.foto}" alt="" style="width:32px; height:32px; object-fit:cover; border-radius:6px; flex:none;" />` : ""}
+                ${escHtml(p.nombre)} <span style="color:var(--muted); font-weight:400;">· ${c.cantidad} u.</span>${p.codigoHS ? ` <span class="data" style="font-size:10.5px; color:var(--muted); background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:1px 6px;">HS ${escHtml(p.codigoHS)}</span>` : ""}
+              </span>
               <span class="data" style="font-weight:800;">$${fmt(totalProducto)}</span>
             </div>
             <div class="cuerpo">
@@ -566,6 +590,7 @@ try {
         <div class="wiz-actions">
           <button class="hub-btn-primary" id="wiz-solicitar" type="button">Solicitar cotización y contactar Jawa</button>
           <button class="hub-btn-ghost" id="wiz-sumar" type="button">Guardar como borrador</button>
+          <button class="hub-btn-ghost" id="wiz-informe" type="button">📄 Descargar informe</button>
         </div>
       `;
     }
@@ -583,6 +608,7 @@ try {
           productos: r.detalle.map(({ p, c, flete, impuestos }) => ({
             nombre: p.nombre, codigoHS: p.codigoHS, rubro: p.rubro, alicuotas: p.alicuotas,
             cantidad: c.cantidad, fobTotal: c.fobTotal, flete, impuestos: impuestos.total, cif: impuestos.cif,
+            foto: p.fotoPath || "",
           })),
           fobTotal: r.fobTotal, fleteTotal: r.fleteTotal, impuestosTotal: r.impuestosTotal,
           total: r.total, ivaRecuperableTotal: r.ivaRecuperableTotal, costoReal: r.costoReal,
@@ -611,6 +637,94 @@ try {
       const btn = document.getElementById("wiz-sumar");
       if (error) { console.error(error); if (btn) btn.textContent = "⚠️ No se pudo guardar"; return; }
       if (btn) { btn.textContent = "✓ Guardado en tu historial"; setTimeout(() => { if (btn) btn.textContent = "Guardar como borrador"; }, 2500); }
+    }
+
+    // Documento descargable/imprimible para el cliente — mismo patrón que el
+    // "Informe completo" interno de admin.html (Blob + <a download>), pero
+    // con la paleta pública navy/coral del sitio (no la petrolera del informe
+    // interno) y sin margen/rentabilidad, porque esta calculadora nunca
+    // maneja esos datos. Incluye la foto de cada producto (base64, ya
+    // cargada en el estado local) para que quede un comprobante visual de
+    // qué se cotizó.
+    const VIA_LABELS = { maritimo: "🚢 Marítimo", aereo: "✈️ Aéreo", courier: "📦 Courier" };
+    function generarInformeCliente() {
+      const r = calcularEnvio(viaElegida);
+      if (!r.detalle.length) { alert("Cargá al menos un producto antes de descargar el informe."); return; }
+      const fecha = new Date().toLocaleDateString("es-AR");
+
+      const productosHtml = r.detalle.map(({ p, c, flete, impuestos, totalProducto }) => `
+        <div style="padding:16px 0; border-bottom:1px solid #e4e7ee;">
+          <div style="display:flex; gap:14px;">
+            ${p.foto ? `<img src="${p.foto}" style="width:72px; height:72px; object-fit:cover; border-radius:8px; flex:none;" />` : `<div style="width:72px; height:72px; border-radius:8px; background:#f0f2f6; flex:none;"></div>`}
+            <div style="flex:1;">
+              <div style="font-size:15px; font-weight:700; color:#16223d;">${escHtml(p.nombre)}${p.codigoHS ? ` <span style="font-size:10.5px; font-weight:700; color:#5b6472; background:#f6f7fa; border:1px solid #dde1e8; border-radius:5px; padding:2px 7px;">HS ${escHtml(p.codigoHS)}</span>` : ""}</div>
+              ${p.rubro ? `<div style="font-size:11.5px; color:#5b6472; margin-top:3px;">${escHtml(p.rubro)}</div>` : ""}
+              <div style="font-size:12px; color:#171b22; margin-top:6px;">Cantidad: <b>${c.cantidad} u.</b> · FOB unitario: <b>$${fmt(c.fobU)}</b></div>
+            </div>
+            <div style="text-align:right; flex:none;">
+              <div style="font-size:9.5px; color:#5b6472; text-transform:uppercase;">Total</div>
+              <div style="font-size:17px; font-weight:700; color:#c9502e;">$${fmt(totalProducto)}</div>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:12px; font-size:11px;">
+            <div><span style="color:#5b6472;">FOB</span><br/><b>$${fmt(c.fobTotal)}</b></div>
+            <div><span style="color:#5b6472;">Flete</span><br/><b>$${fmt(flete)}</b></div>
+            <div><span style="color:#5b6472;">CIF</span><br/><b>$${fmt(impuestos.cif)}</b></div>
+            <div><span style="color:#5b6472;">${impuestos.esCourier ? "Derechos" : "Impuestos"}</span><br/><b>$${fmt(impuestos.total)}</b></div>
+          </div>
+        </div>
+      `).join("");
+
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Informe de importación — Jawa Logistic</title>
+        <style>
+          body { font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; color:#171b22; padding:32px; max-width:760px; margin:0 auto; background:#fff; }
+          @media print { button { display:none; } body { padding:16px; } }
+          .membrete { display:flex; align-items:center; gap:12px; padding-bottom:18px; border-bottom:2px solid #c9502e; margin-bottom:22px; }
+          .membrete-title { font-size:19px; font-weight:700; letter-spacing:0.5px; color:#16223d; }
+          .membrete-sub { font-size:10.5px; color:#5b6472; letter-spacing:1.5px; text-transform:uppercase; }
+        </style></head>
+        <body>
+        <button onclick="window.print()" style="margin-bottom:20px; padding:10px 18px; font-size:13px; cursor:pointer; background:#c9502e; color:#fff; border:none; border-radius:6px;">Imprimir / Guardar como PDF</button>
+        <div class="membrete">
+          <svg width="46" height="46" viewBox="0 0 236 236"><circle cx="118" cy="118" r="106" fill="#fff" stroke="#16223d" stroke-width="10"/><rect x="88" y="88" width="60" height="60" fill="#c9502e" transform="rotate(45 118 118)"/></svg>
+          <div><div class="membrete-title">JAWA LOGISTIC</div><div class="membrete-sub">China · Miami · Argentina</div></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:18px;">
+          <h1 style="font-size:19px; margin:0; color:#16223d;">Informe de tu importación</h1>
+          <span style="font-size:12px; color:#5b6472;">${fecha}</span>
+        </div>
+        <div style="font-size:12.5px; color:#171b22; margin-bottom:18px;">${VIA_LABELS[viaElegida] || viaElegida} · ${r.detalle.length} producto${r.detalle.length === 1 ? "" : "s"} · Licencia ${licencia === "jawa" ? "Jawa Logistic" : "propia"}</div>
+
+        ${productosHtml}
+
+        <div style="margin-top:22px; background:#f6f7fa; border-radius:10px; padding:16px 18px;">
+          <div style="display:flex; justify-content:space-between; font-size:12.5px; padding:4px 0;"><span>Costo de los productos (FOB)</span><b>$${fmt(r.fobTotal)}</b></div>
+          <div style="display:flex; justify-content:space-between; font-size:12.5px; padding:4px 0;"><span>Flete internacional</span><b>$${fmt(r.fleteTotal)}</b></div>
+          <div style="display:flex; justify-content:space-between; font-size:12.5px; padding:4px 0;"><span>${viaElegida === "courier" ? "Derechos (régimen simplificado)" : "Impuestos (DIE + IVA + percepciones)"}</span><b>$${fmt(r.impuestosTotal)}</b></div>
+          <div style="display:flex; justify-content:space-between; font-size:15px; font-weight:800; color:#16223d; border-top:1px solid #dde1e8; margin-top:8px; padding-top:10px;"><span>Total puesto en Argentina</span><span>$${fmt(r.total)}</span></div>
+          ${licencia === "jawa" && r.ivaRecuperableTotal > 0 ? `
+          <div style="margin-top:12px; padding-top:12px; border-top:1px dashed #dde1e8;">
+            <div style="font-size:10px; font-weight:800; letter-spacing:.5px; color:#1f8a4c; text-transform:uppercase; margin-bottom:6px;">Con licencia Jawa — si sos Responsable Inscripto</div>
+            <div style="display:flex; justify-content:space-between; font-size:12.5px; padding:2px 0; color:#1f8a4c;"><span>IVA que recuperás</span><b>$${fmt(r.ivaRecuperableTotal)}</b></div>
+            <div style="display:flex; justify-content:space-between; font-size:12.5px; padding:2px 0; color:#1f8a4c;"><span>Tu costo real de importación</span><b>$${fmt(r.costoReal)}</b></div>
+          </div>` : ""}
+        </div>
+
+        <div style="margin-top:20px; font-size:10.5px; color:#8a92a3; border-top:1px solid #dde1e8; padding-top:12px;">
+          Informe orientativo generado desde tu cuenta de Jawa Logistic — valores estimados sujetos a las tarifas de flete y el tipo de cambio vigentes al momento de la operación real. Las alícuotas de impuestos son una estimación (por IA o carga manual), no un dato oficial de la nomenclatura arancelaria — confirmalas con nuestro despachante antes de la operación.
+        </div>
+        </body></html>`;
+
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const nombreArchivo = r.detalle.length === 1
+        ? r.detalle[0].p.nombre.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-]/g, "").slice(0, 40)
+        : `importacion-${r.detalle.length}-productos`;
+      a.href = url;
+      a.download = `informe-${nombreArchivo || "importacion"}-${fecha.replace(/\//g, "-")}.html`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
     }
 
     // ---------- Render general + navegación ----------

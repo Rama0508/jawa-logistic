@@ -137,8 +137,65 @@ try {
         <div class="hub-card-title">Operaciones que suman a tu nivel</div>
         ${operacionesListHtml(operaciones)}
       </div>
+      <div class="hub-card" id="referidos-card">
+        <div class="hub-card-title">🎁 Invitá y ganá</div>
+        <p class="hub-page-lead" style="margin-top:0;">Compartí tu link — cuando la persona que invitaste complete su primera importación con Jawa, te avisamos para acordar tu recompensa.</p>
+        <div id="referidos-content"><p class="hub-empty">Cargando…</p></div>
+      </div>
     `;
+
+    await cargarReferidos(clienteId);
   })();
+
+  async function cargarReferidos(clienteId) {
+    const cont = document.getElementById("referidos-content");
+    const { data: perfil } = await supabaseClient.from("perfiles").select("codigo_referido").eq("id", clienteId).maybeSingle();
+    const codigo = perfil && perfil.codigo_referido;
+    if (!codigo) { cont.innerHTML = `<p class="hub-empty">No pudimos generar tu código todavía — probá de nuevo en unos minutos.</p>`; return; }
+
+    const link = `${location.origin}/mi-cuenta.html?ref=${codigo}`;
+    const textoWa = `¡Hola! Te invito a importar desde China con Jawa Logistic — registrate con mi código y arrancamos: ${link}`;
+
+    const { data: recompensas } = await supabaseClient
+      .from("referidos_recompensas")
+      .select("id, referido_id, estado, monto_centavos, creado_en")
+      .eq("referente_id", clienteId)
+      .order("creado_en", { ascending: false });
+
+    const listaRecompensas = (recompensas && recompensas.length)
+      ? recompensas.map((r) => `
+          <div class="hub-item">
+            <div class="hub-item-head">
+              <div class="hub-item-meta">${fmtFecha(r.creado_en)}</div>
+              ${r.estado === "otorgada"
+                ? `<span class="hub-pill hub-pill-liberado">Otorgada${r.monto_centavos ? " · " + fmtCentavos(r.monto_centavos) : ""}</span>`
+                : `<span class="hub-pill" style="background:#fff4de; color:#a05a00;">Pendiente de revisión</span>`}
+            </div>
+          </div>
+        `).join("")
+      : "";
+
+    cont.innerHTML = `
+      <div class="hub-field-row" style="margin-bottom:0;">
+        <input type="text" id="referido-link" value="${escHtml(link)}" readonly style="flex:1; font-size:12.5px;" />
+        <button class="hub-btn-ghost" id="referido-copiar-btn" type="button" style="flex:none;">Copiar link</button>
+      </div>
+      <a class="hub-btn-primary" href="https://wa.me/?text=${encodeURIComponent(textoWa)}" target="_blank" style="display:inline-block; margin-top:10px; text-decoration:none;">Compartir por WhatsApp</a>
+      <div style="font-size:11px; color:var(--muted); margin-top:8px;">Tu código: <b class="data">${escHtml(codigo)}</b></div>
+      ${listaRecompensas ? `<div style="margin-top:16px;"><div class="hub-card-title" style="margin-bottom:8px;">Tus invitaciones</div>${listaRecompensas}</div>` : ""}
+    `;
+
+    document.getElementById("referido-copiar-btn").addEventListener("click", async () => {
+      const btn = document.getElementById("referido-copiar-btn");
+      try {
+        await navigator.clipboard.writeText(link);
+        btn.textContent = "✓ Copiado";
+        setTimeout(() => { btn.textContent = "Copiar link"; }, 2000);
+      } catch (e) {
+        document.getElementById("referido-link").select();
+      }
+    });
+  }
 } catch (e) { console.error("club de importadores:", e); }
 </script>
 </body>

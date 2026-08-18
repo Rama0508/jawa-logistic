@@ -42,6 +42,9 @@
   .producto-card { border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:14px; position:relative; }
   .producto-card .del { position:absolute; top:10px; right:10px; background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer; padding:4px 8px; }
   .producto-card .del:hover { color:var(--coral); }
+  .agente-resumen-row { display:flex; align-items:center; justify-content:space-between; gap:10px; border:1px solid var(--line); border-radius:10px; padding:11px 14px; margin-bottom:8px; font-size:13px; flex-wrap:wrap; }
+  .agente-resumen-row .del { background:none; border:none; color:var(--muted); font-size:15px; cursor:pointer; padding:4px 8px; }
+  .agente-resumen-row .del:hover { color:var(--coral); }
 
   /* ---------- Foto + descripción + resultado en vivo por producto ---------- */
   .foto-drop { width:88px; height:88px; border-radius:8px; border:1.5px dashed var(--line); background:var(--paper); cursor:pointer; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; outline:none; flex:none; }
@@ -69,6 +72,11 @@
   .btn-primary { background:var(--coral); color:#fff; border:none; border-radius:8px; padding:14px 22px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; }
   .btn-primary:hover { background:var(--coral-deep); }
   .btn-ghost { background:transparent; border:1px solid var(--line); border-radius:8px; padding:12px 18px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; color:var(--ink); }
+
+  .panel-tabs { display:flex; gap:6px; margin-bottom:20px; border-bottom:1px solid var(--line); }
+  .panel-tab { background:transparent; border:none; border-bottom:2.5px solid transparent; padding:12px 18px; font-size:13.5px; font-weight:700; color:var(--muted); cursor:pointer; font-family:inherit; margin-bottom:-1px; }
+  .panel-tab.active { color:var(--navy); border-bottom-color:var(--coral); }
+  .panel-tab:hover:not(.active) { color:var(--ink); }
 
   /* ---------- Report ---------- */
   #reporte { display:none; }
@@ -182,6 +190,14 @@
   <h1>Generador de informes de costos y rentabilidad</h1>
   <p class="sub">Cargá los productos que estás evaluando importar. Calcula automáticamente flete aéreo, marítimo y courier, elegibilidad al régimen simplificado, y tu margen real contra Mercado Libre.</p>
 
+  <div class="panel-tabs">
+    <button class="panel-tab" id="tab-btn-calculo" data-panel-tab="calculo">🧮 Cálculo</button>
+    <button class="panel-tab" id="tab-btn-datos" data-panel-tab="datos">⚙️ Datos</button>
+  </div>
+
+  <div id="panel-datos" style="display:none;">
+  <p class="sub" style="margin:-4px 0 16px;">Lo que cargás acá una vez y se usa después: tarifas, dólar, agentes de carga. No hace falta volver a esta pestaña salvo que algo de esto cambie.</p>
+
   <div class="card">
     <div class="card-title">Tarifas del sitio (se aplican en todo el sitio al instante)</div>
     <p class="sub" style="margin-bottom:14px;">Estos valores son los que usa la calculadora pública y este mismo informe. Cambiarlos acá actualiza el sitio entero, sin tocar código.</p>
@@ -238,7 +254,7 @@
         </select>
       </div>
       <div class="field">
-        <label>Margen de ganancia por defecto (%)</label>
+        <label>Margen de ganancia por defecto (%) <span style="font-weight:400; text-transform:none; color:var(--muted);">— se aplica solo sobre el flete, nunca sobre el FOB ni los impuestos</span></label>
         <input type="text" inputmode="decimal" id="cfg-margen" value="40" />
       </div>
     </div>
@@ -263,16 +279,22 @@
     <p class="sub" style="margin-bottom:12px;">Cargá acá las cotizaciones reales de transportistas (ej. Aerobox) que cobran por kilo con tramos de precio, para compararlas contra tus tarifas genéricas al elegir la vía de cada producto. Es dato compartido con el resto del equipo.</p>
     <div id="agentes-admin"></div>
     <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-      <button class="add-btn" id="add-agente-admin" style="flex:1; min-width:200px;">+ Agregar agente</button>
-      <button class="btn-ghost" id="guardar-agentes-btn">Guardar agentes</button>
+      <button class="add-btn" id="add-agente-admin" style="flex:1; min-width:200px;">+ Cargar agente de carga</button>
       <span id="agentes-status" style="font-size:12px; color:var(--muted);"></span>
     </div>
   </div>
 
+  </div>
+
+  <div id="panel-calculo">
+  <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+    <button class="btn-ghost" id="recalcular-btn">🔄 Recalcular</button>
+    <button id="limpiar-todo-btn" style="flex:none; padding:0 16px; height:44px; background:transparent; border:1px solid var(--line); border-radius:8px; color:var(--muted); font-size:13px; cursor:pointer; font-family:inherit;">🗑️ Empezar de nuevo</button>
+    <span id="recalcular-status" style="font-size:12px; color:var(--green);"></span>
+  </div>
   <div id="productos-admin"></div>
   <div style="display:flex; gap:10px;">
     <button class="add-btn" id="add-producto-admin" style="flex:1;">+ Agregar producto</button>
-    <button id="limpiar-todo-btn" style="flex:none; padding:0 16px; background:transparent; border:1px solid var(--line); border-radius:8px; color:var(--muted); font-size:13px; cursor:pointer; font-family:inherit;">Limpiar todo</button>
   </div>
 
   <div id="acumulado-courier-container"></div>
@@ -307,7 +329,9 @@
       <div class="stat-card"><div class="lbl">FOB total</div><div class="val" id="stat-fob">$0</div></div>
       <div class="stat-card"><div class="lbl">Flete a pagar</div><div class="val" id="stat-flete">$0</div></div>
       <div class="stat-card"><div class="lbl">Impuestos (courier/agente)</div><div class="val" id="stat-impuestos">$0</div></div>
-      <div class="stat-card"><div class="lbl">Costo total</div><div class="val" id="stat-costo">$0</div></div>
+      <div class="stat-card"><div class="lbl">Costo total (nominal)</div><div class="val" id="stat-costo">$0</div></div>
+      <div class="stat-card"><div class="lbl">Recuperable (RI)</div><div class="val" id="stat-recuperable">$0</div></div>
+      <div class="stat-card"><div class="lbl">Costo total real (neto)</div><div class="val" id="stat-costo-real">$0</div></div>
       <div class="stat-card"><div class="lbl">Blue / MEP usados</div><div class="val" id="stat-blue">$0</div></div>
     </div>
 
@@ -335,10 +359,13 @@
     <button class="btn-ghost no-print" onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
     <div class="print-note">Informe generado con fines internos — valores estimados, sujetos a variación de tarifas y tipo de cambio.</div>
   </div>
+
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/rates.js"></script>
+<script src="js/cotizador-core.js"></script>
 <script>
 // ---------- Login ----------
 (function () {
@@ -402,6 +429,31 @@
 })();
 </script>
 <script>
+// ---------- Pestañas: Datos vs. Cálculo ----------
+// Separación pedida por el usuario: "Datos" (tarifas, dólar, agentes de
+// carga — se toca de vez en cuando) vs. "Cálculo" (productos, comparativo,
+// informe — es lo que se usa todos los días). Arranca siempre en "Cálculo"
+// para no interponer configuración entre el usuario y su trabajo diario;
+// se recuerda la última pestaña elegida en localStorage para las visitas
+// siguientes dentro de la misma sesión de trabajo.
+(function initPanelTabs() {
+  const KEY = "jawa_admin_tab";
+  const panels = { calculo: document.getElementById("panel-calculo"), datos: document.getElementById("panel-datos") };
+  const botones = { calculo: document.getElementById("tab-btn-calculo"), datos: document.getElementById("tab-btn-datos") };
+  function mostrarTab(tab) {
+    Object.keys(panels).forEach((k) => {
+      panels[k].style.display = k === tab ? "block" : "none";
+      botones[k].classList.toggle("active", k === tab);
+    });
+    try { localStorage.setItem(KEY, tab); } catch (e) {}
+  }
+  botones.calculo.addEventListener("click", () => mostrarTab("calculo"));
+  botones.datos.addEventListener("click", () => mostrarTab("datos"));
+  let inicial = "calculo";
+  try { if (localStorage.getItem(KEY) === "datos") inicial = "datos"; } catch (e) {}
+  mostrarTab(inicial);
+})();
+
 // ---------- Estado ----------
 function uidA() { return Math.random().toString(36).slice(2, 9); }
 function nuevoProductoAdmin() {
@@ -409,7 +461,8 @@ function nuevoProductoAdmin() {
     id: uidA(), nombre: "", codigoHS: "", cantidad: "", fob: "",
     pesoModo: "total", peso: "", pesoTotalRef: "", pesoTotalRefCantidad: "", pesoUnidad: "kg",
     largo: "", ancho: "", alto: "", dimUnidad: "cm", unidadesPorCaja: "",
-    margen: "40", precioML: "", metodo: "auto",
+    prodLargo: "", prodAncho: "", prodAlto: "",
+    margen: "40", precioML: "", precioVentaPropio: "", metodo: "auto",
     foto: "", descripcion: "",
     fleteCourierManual: "", seguroCourier: "",
     agenteElegidoId: "", escenarioAgenteElegido: "actual",
@@ -468,6 +521,11 @@ function guardarPresupuestos() {
 // Supabase (tabla agentes_carga, 0006_agentes_carga.sql) y se carga una vez
 // que las tarifas están listas (ver SUPABASE_READY.then más abajo).
 let agentes = [];
+
+// Qué productos tienen la tabla comparativa de vías expandida (todas las
+// filas) en vez del resumen de 2 filas por defecto — por id de producto, se
+// mantiene entre renders para no colapsarse solo cada vez que se escribe algo.
+let viasExpandidas = new Set();
 
 // Una vez que se generó el informe una vez, se mantiene sincronizado solo
 // con cada cambio de datos — no hace falta acordarse de volver a tocar
@@ -534,9 +592,16 @@ function calcularAgente(agente, pesoTotal, fobTotal) {
   const baseCalculo = agente.baseImpuestos === "cif" ? fobTotal + flete : fobTotal;
   const impuestos = baseCalculo * (pNumA(agente.alicuotaImpuestos) / 100);
   const handling = pNumA(agente.handling);
+  // % recuperable como crédito fiscal (RI con factura discriminada) — pedido
+  // 2026-08-18: pasa de ser solo informativo a restarse de verdad del costo
+  // ("costo real"/neto de recupero), igual que la calculadora de referencia
+  // del socio del usuario. Solo aplica sobre impuestos, nunca sobre
+  // handling/flete/FOB (ahí no hay nada que recuperar).
+  const recuperable = impuestos * (pNumA(agente.porcentajeRecuperable) / 100);
   const total = fobTotal + flete + impuestos + handling;
+  const totalReal = total - recuperable;
   const hayDatos = tramos.some((t) => pNumA(t.tarifaKg) > 0) && pesoTotal > 0;
-  return { tramoAplicado, tarifaAplicada, flete, baseCalculo, impuestos, handling, total, hayDatos };
+  return { tramoAplicado, tarifaAplicada, flete, baseCalculo, impuestos, handling, recuperable, total, totalReal, hayDatos };
 }
 
 // "¿Cuántas unidades necesito para entrar en el tramo más barato?" — solo
@@ -552,7 +617,11 @@ function proyeccionAgente(agente, pesoUnitKg, fobUnit) {
   const pesoProyectado = cantidadMinima * pesoUnitKg;
   const fobProyectado = cantidadMinima * fobUnit;
   const resultado = calcularAgente({ ...agente, tramos: [tramoBarato] }, pesoProyectado, fobProyectado);
-  return { cantidadMinima, pesoProyectado, fobProyectado, ...resultado, costoUnitProyectado: cantidadMinima > 0 ? resultado.total / cantidadMinima : 0 };
+  return {
+    cantidadMinima, pesoProyectado, fobProyectado, ...resultado,
+    costoUnitProyectado: cantidadMinima > 0 ? resultado.total / cantidadMinima : 0,
+    costoUnitRealProyectado: cantidadMinima > 0 ? resultado.totalReal / cantidadMinima : 0,
+  };
 }
 
 // "Qué pasaría si pido X cajas de Y unidades cada una" — mismo cálculo de
@@ -562,7 +631,11 @@ function simulacionAgente(agente, cajasSimuladas, unidadesPorCajaSim, pesoUnitKg
   const pesoSimulado = cantidadSimulada * pesoUnitKg;
   const fobSimulado = cantidadSimulada * fobUnit;
   const resultado = calcularAgente(agente, pesoSimulado, fobSimulado);
-  return { cantidadSimulada, pesoSimulado, fobSimulado, ...resultado, costoUnitSimulado: cantidadSimulada > 0 ? resultado.total / cantidadSimulada : 0 };
+  return {
+    cantidadSimulada, pesoSimulado, fobSimulado, ...resultado,
+    costoUnitSimulado: cantidadSimulada > 0 ? resultado.total / cantidadSimulada : 0,
+    costoUnitRealSimulado: cantidadSimulada > 0 ? resultado.totalReal / cantidadSimulada : 0,
+  };
 }
 
 // Info del agente+escenario que el producto tiene elegido — centraliza el
@@ -580,8 +653,11 @@ function getAgenteElegidoInfo(p, rMin) {
     if (!proy) return null;
     return {
       nombreAgente: agente.nombre, escenario, escenarioTxt: `Proyección — ${proy.cantidadMinima} u. para el tramo más barato`,
-      costoUnit: proy.costoUnitProyectado, totalEscenario: proy.total, unidadesEscenario: proy.cantidadMinima,
-      fobEscenario: proy.fobProyectado, fleteEscenario: proy.flete, impuestosEscenario: proy.impuestos + proy.handling,
+      costoUnit: proy.costoUnitProyectado, costoUnitReal: proy.costoUnitRealProyectado,
+      totalEscenario: proy.total, totalRealEscenario: proy.totalReal, unidadesEscenario: proy.cantidadMinima,
+      fobEscenario: proy.fobProyectado, fleteEscenario: proy.flete, tarifaAplicada: proy.tarifaAplicada,
+      impuestosSoloEscenario: proy.impuestos, handlingEscenario: proy.handling, impuestosEscenario: proy.impuestos + proy.handling,
+      recuperableEscenario: proy.recuperable, porcentajeRecuperable: pNumA(agente.porcentajeRecuperable), alicuotaPct: pNumA(agente.alicuotaImpuestos),
       hayDatos: proy.hayDatos,
     };
   }
@@ -589,16 +665,22 @@ function getAgenteElegidoInfo(p, rMin) {
     const sim = simulacionAgente(agente, p.cajasSimuladas, p.unidadesPorCajaSimuladas, pesoUnitKg, fobUnit);
     return {
       nombreAgente: agente.nombre, escenario, escenarioTxt: `Simulación — ${sim.cantidadSimulada} u. (${pNumA(p.cajasSimuladas)} caja${pNumA(p.cajasSimuladas) === 1 ? "" : "s"})`,
-      costoUnit: sim.costoUnitSimulado, totalEscenario: sim.total, unidadesEscenario: sim.cantidadSimulada,
-      fobEscenario: sim.fobSimulado, fleteEscenario: sim.flete, impuestosEscenario: sim.impuestos + sim.handling,
+      costoUnit: sim.costoUnitSimulado, costoUnitReal: sim.costoUnitRealSimulado,
+      totalEscenario: sim.total, totalRealEscenario: sim.totalReal, unidadesEscenario: sim.cantidadSimulada,
+      fobEscenario: sim.fobSimulado, fleteEscenario: sim.flete, tarifaAplicada: sim.tarifaAplicada,
+      impuestosSoloEscenario: sim.impuestos, handlingEscenario: sim.handling, impuestosEscenario: sim.impuestos + sim.handling,
+      recuperableEscenario: sim.recuperable, porcentajeRecuperable: pNumA(agente.porcentajeRecuperable), alicuotaPct: pNumA(agente.alicuotaImpuestos),
       hayDatos: sim.hayDatos,
     };
   }
   const act = calcularAgente(agente, rMin.pesoTotal, fobUnit * rMin.cantidad);
   return {
     nombreAgente: agente.nombre, escenario: "actual", escenarioTxt: "Actual",
-    costoUnit: rMin.cantidad > 0 ? act.total / rMin.cantidad : 0, totalEscenario: act.total, unidadesEscenario: rMin.cantidad,
-    fobEscenario: fobUnit * rMin.cantidad, fleteEscenario: act.flete, impuestosEscenario: act.impuestos + act.handling,
+    costoUnit: rMin.cantidad > 0 ? act.total / rMin.cantidad : 0, costoUnitReal: rMin.cantidad > 0 ? act.totalReal / rMin.cantidad : 0,
+    totalEscenario: act.total, totalRealEscenario: act.totalReal, unidadesEscenario: rMin.cantidad,
+    fobEscenario: fobUnit * rMin.cantidad, fleteEscenario: act.flete, tarifaAplicada: act.tarifaAplicada,
+    impuestosSoloEscenario: act.impuestos, handlingEscenario: act.handling, impuestosEscenario: act.impuestos + act.handling,
+    recuperableEscenario: act.recuperable, porcentajeRecuperable: pNumA(agente.porcentajeRecuperable), alicuotaPct: pNumA(agente.alicuotaImpuestos),
     hayDatos: act.hayDatos,
   };
 }
@@ -608,13 +690,27 @@ function calcularMetodos(p, origen) {
   const fobU = pNumA(p.fob);
   const pesoTotal = pesoTotalKgDe(p);
 
-  // Marítimo: las medidas son de LA CAJA (el bulto que te manda el
-  // proveedor), no del producto individual — "unidades por caja" es el dato
-  // que te pasa el proveedor (ej. "esta caja trae 100 unidades"). Con eso se
-  // calcula cuántas cajas hacen falta para la cantidad total del pedido.
+  // Marítimo: las medidas de la CAJA son las del bulto que te manda el
+  // proveedor. "Unidades por caja" se puede cargar a mano (si el proveedor
+  // te lo dice, ej. "esta caja trae 100 unidades") o calcular solo: si
+  // cargás además las medidas del PRODUCTO individual, se prueban las 6
+  // orientaciones posibles (mejorEmpaque, compartida con los cotizadores
+  // públicos en js/cotizador-core.js) y se usa la que más unidades entran —
+  // división entera eje por eje, no por volumen total (los productos no se
+  // "licúan" para llenar huecos). El valor manual, si está cargado, siempre
+  // gana — el cálculo automático es solo para cuando no lo sabés de memoria.
   const factorDim = p.dimUnidad === "mm" ? 0.1 : 1; // convierte a cm
   const l = pNumA(p.largo) * factorDim, w = pNumA(p.ancho) * factorDim, h = pNumA(p.alto) * factorDim;
-  const unidadesPorCaja = pNumA(p.unidadesPorCaja);
+  const prodL = pNumA(p.prodLargo) * factorDim, prodW = pNumA(p.prodAncho) * factorDim, prodH = pNumA(p.prodAlto) * factorDim;
+  const unidadesPorCajaManual = pNumA(p.unidadesPorCaja);
+  let empaque = null;
+  let empaqueFallido = false; // true = se intentó calcular y el producto NO entra (distinto de "faltan medidas")
+  let unidadesPorCaja = unidadesPorCajaManual;
+  if (!(unidadesPorCaja > 0) && prodL > 0 && prodW > 0 && prodH > 0 && l > 0 && w > 0 && h > 0) {
+    empaque = mejorEmpaque(l, w, h, prodL, prodW, prodH);
+    if (empaque) unidadesPorCaja = empaque.total;
+    else empaqueFallido = true;
+  }
   const m3PorCaja = (l * w * h) / 1000000;
   const cajas = unidadesPorCaja > 0 ? Math.ceil(cantidad / unidadesPorCaja) : (cantidad > 0 ? 1 : 0);
   const cbm = cajas * m3PorCaja;
@@ -679,7 +775,9 @@ function calcularMetodos(p, origen) {
       label: `🚚 ${a.nombre}`,
       medida: c.tramoAplicado ? `${pesoTotal.toFixed(2)}kg × $${fmtA(c.tarifaAplicada)}/kg` : "—",
       fleteU: cantidad > 0 ? c.flete / cantidad : 0, impuestosU: cantidad > 0 ? (c.impuestos + c.handling) / cantidad : 0,
-      costoU: cantidad > 0 ? c.total / cantidad : 0, total: c.total, disponible: c.hayDatos,
+      costoU: cantidad > 0 ? c.total / cantidad : 0, costoRealU: cantidad > 0 ? c.totalReal / cantidad : 0,
+      recuperableU: cantidad > 0 ? c.recuperable / cantidad : 0,
+      total: c.total, disponible: c.hayDatos,
       // PDF 8.6: cuánto más barato/caro sale este agente contra la tarifa
       // aérea genérica del usuario, con el mismo peso y FOB reales.
       diferenciaVsAereoGenerico: costoAvionGenerico - c.total,
@@ -694,11 +792,31 @@ function calcularMetodos(p, origen) {
   if (p.metodo === "agente") {
     const info = getAgenteElegidoInfo(p, { cantidad, fobU, pesoTotal });
     if (info && info.hayDatos) {
+      const unidadesEsc = info.unidadesEscenario;
+      const pesoUnitKgAgente = cantidad > 0 ? pesoTotal / cantidad : 0;
+      const costoAvionGenericoEscenario = info.fobEscenario + (pesoUnitKgAgente * unidadesEsc) * rateAir;
       metodos.agente = {
         label: `🚚 ${info.nombreAgente}`, medida: info.escenarioTxt,
-        fleteU: info.unidadesEscenario > 0 ? info.fleteEscenario / info.unidadesEscenario : 0,
-        impuestosU: info.unidadesEscenario > 0 ? info.impuestosEscenario / info.unidadesEscenario : 0,
-        costoU: info.costoUnit, total: info.totalEscenario, disponible: true,
+        fleteU: unidadesEsc > 0 ? info.fleteEscenario / unidadesEsc : 0,
+        impuestosU: unidadesEsc > 0 ? info.impuestosEscenario / unidadesEsc : 0,
+        handlingU: unidadesEsc > 0 ? info.handlingEscenario / unidadesEsc : 0,
+        costoU: info.costoUnit, costoRealU: info.costoUnitReal,
+        recuperableU: unidadesEsc > 0 ? info.recuperableEscenario / unidadesEsc : 0,
+        porcentajeRecuperable: info.porcentajeRecuperable,
+        total: info.totalEscenario, disponible: true,
+        // Desglose completo EN TOTALES (no por unidad) del escenario elegido
+        // — mismo formato "CON LO CARGADO AHORA" que ya usa el socio del
+        // usuario en su propia calculadora (pedido 2026-08-18).
+        desglose: {
+          nombreAgente: info.nombreAgente, unidades: unidadesEsc,
+          fob: info.fobEscenario, tarifaAplicada: info.tarifaAplicada,
+          flete: info.fleteEscenario, alicuotaPct: info.alicuotaPct,
+          impuestos: info.impuestosSoloEscenario, handling: info.handlingEscenario,
+          totalNominal: info.totalEscenario, totalReal: info.totalRealEscenario,
+          costoUnitNominal: info.costoUnit, costoUnitReal: info.costoUnitReal,
+          recuperable: info.recuperableEscenario, porcentajeRecuperable: info.porcentajeRecuperable,
+          costoAvionGenerico: costoAvionGenericoEscenario, ahorroVsAvion: costoAvionGenericoEscenario - info.totalEscenario,
+        },
       };
     }
   }
@@ -708,9 +826,9 @@ function calcularMetodos(p, origen) {
   // abajo. Es solo informativa (badge 🏆), nunca reemplaza la elección real.
   function getMejorOpcionGlobal() {
     const candidatos = [];
-    if (metodos.aereo.disponible) candidatos.push({ tipo: "aereo", label: metodos.aereo.label, costoU: metodos.aereo.costoU });
-    if (metodos.courier.disponible) candidatos.push({ tipo: "courier", label: metodos.courier.label, costoU: metodos.courier.costoU });
-    metodosAgentes.forEach((a) => { if (a.disponible) candidatos.push({ tipo: "agente", label: a.label, costoU: a.costoU }); });
+    if (metodos.aereo.disponible) candidatos.push({ tipo: "aereo", filaId: "aereo", label: metodos.aereo.label, costoU: metodos.aereo.costoU });
+    if (metodos.courier.disponible) candidatos.push({ tipo: "courier", filaId: "courier", label: metodos.courier.label, costoU: metodos.courier.costoU });
+    metodosAgentes.forEach((a) => { if (a.disponible) candidatos.push({ tipo: "agente", filaId: "agente:" + a.id, label: a.label, costoU: a.costoU }); });
     if (!candidatos.length) return null;
     return candidatos.reduce((mejor, c) => (c.costoU < mejor.costoU ? c : mejor));
   }
@@ -741,7 +859,7 @@ function calcularMetodos(p, origen) {
 
   return {
     cantidad, fobU, pesoTotal, cbm, toneladas, cifTotal, courierElegible, seguroCourierTotal,
-    m3PorCaja, cajas, unidadesPorCaja,
+    m3PorCaja, cajas, unidadesPorCaja, unidadesPorCajaManual, empaque, empaqueFallido, rateAir,
     metodos, elegido, masBarataKey, metodosAgentes, mejorOpcionGlobal,
   };
 }
@@ -757,12 +875,63 @@ function pagoAhoraYDespues(r) {
   const fobTotal = r.fobU * r.cantidad;
   const fleteTotal = seleccionado.fleteU * r.cantidad;
   const seguroTotal = r.elegido === "courier" ? r.seguroCourierTotal : 0;
-  const impuestosTotal = seleccionado.impuestosU * r.cantidad;
+  // El handling de un agente de carga se le paga AL AGENTE junto con el
+  // flete (no es un derecho aduanero) — impuestosU lo trae mezclado adentro
+  // (ver calcularMetodos/getAgenteElegidoInfo) así que hay que sacarlo de
+  // "al llegar" y sumarlo a "ahora", si no el total pagado hoy queda
+  // subestimado en el monto del handling.
+  const handlingTotal = (seleccionado.handlingU || 0) * r.cantidad;
+  const impuestosTotal = seleccionado.impuestosU * r.cantidad - handlingTotal;
   return {
-    fobTotal, fleteTotal, seguroTotal,
-    ahora: fobTotal + fleteTotal + seguroTotal,
+    fobTotal, fleteTotal, seguroTotal, handlingTotal,
+    ahora: fobTotal + fleteTotal + seguroTotal + handlingTotal,
     alLlegar: impuestosTotal,
   };
+}
+
+// ---------- Venta y ganancia: el margen se aplica SOLO sobre el flete ----------
+// Decisión del usuario (2026-08-17): Jawa no gana nada en el producto (FOB)
+// ni en impuestos/handling — esos siempre se trasladan al costo tal cual. El
+// margen vive únicamente en el flete (lo que Jawa arma/revende como servicio
+// de transporte). impuestosU ya incluye el handling cuando el método es un
+// agente de carga (ver calcularAgente/getAgenteElegidoInfo), así que
+// restarlo junto con fobU deja exactamente el flete (+ seguro, en courier)
+// como base del margen, sin tener que tocar la composición interna de cada
+// método. Los agentes de carga (ej. Aerobox) usan su propio margen (campo
+// margenPct), no el margen general/por-producto.
+// tasaVia (blue o MEP según la vía elegida) es opcional — solo hace falta si
+// el producto tiene un precio de venta propio fijo cargado en ARS (más fácil
+// para el usuario que pensar en porcentaje, ver pedido 2026-08-18). Sin
+// tasaVia, o sin precio propio cargado, se sigue calculando por margen %
+// como antes.
+function calcularVentaYGanancia(r, p, margenGeneral, tasaVia) {
+  const seleccionado = r.metodos[r.elegido];
+  // Pedido 2026-08-18: si el método tiene "costo real" (agentes de carga con
+  // % recuperable cargado), la venta y la ganancia se calculan sobre ESE
+  // costo neto, no sobre el nominal — Jawa recupera ese crédito fiscal más
+  // adelante contra AFIP, así que puede vender más barato sin resignar
+  // ganancia real. El margen en sí sigue siendo solo sobre el flete nominal
+  // (eso no cambió): baseConMargen usa costoU, no costoReal.
+  const costoBase = seleccionado.costoRealU != null ? seleccionado.costoRealU : seleccionado.costoU;
+  const baseConMargen = seleccionado.costoU - r.fobU - seleccionado.impuestosU;
+  const precioPropioArs = pNumA(p.precioVentaPropio);
+  if (precioPropioArs > 0 && tasaVia) {
+    const ventaU = precioPropioArs / tasaVia;
+    const gananciaU = ventaU - costoBase;
+    // Margen "equivalente" — a qué % sobre el flete equivale este precio
+    // fijo, solo para que el resto de las pantallas/informes (pensados en
+    // términos de %) sigan mostrando un número coherente en vez de romperse.
+    const margen = baseConMargen !== 0 ? (gananciaU / baseConMargen) * 100 : 0;
+    return { margen, seleccionado, ventaU, gananciaU, esPrecioFijo: true };
+  }
+  let margen = pNumA(p.margen) || margenGeneral;
+  if (r.elegido === "agente") {
+    const agenteElegido = agentes.find((a) => a.id === p.agenteElegidoId);
+    if (agenteElegido) margen = pNumA(agenteElegido.margenPct) || 0;
+  }
+  const gananciaU = baseConMargen * (margen / 100);
+  const ventaU = costoBase + gananciaU;
+  return { margen, seleccionado, ventaU, gananciaU, esPrecioFijo: false };
 }
 
 // ---------- Comparativo en vivo por producto ----------
@@ -775,50 +944,82 @@ function renderLiveResultado(p, rPrecalculado) {
   const blue = pNumA(document.getElementById("cfg-blue").value) || 0;
   const mep = pNumA(document.getElementById("cfg-mep").value) || blue;
   const r = rPrecalculado || calcularMetodos(p, origen);
-  const margen = pNumA(p.margen) || margenGeneral;
-  const seleccionado = r.metodos[r.elegido];
-  const ventaU = seleccionado.costoU * (1 + margen / 100);
-  const gananciaU = ventaU - seleccionado.costoU;
   const tasaVia = (r.elegido === "courier" || r.elegido === "agente") ? mep : blue;
+  const { margen, seleccionado, ventaU, gananciaU, esPrecioFijo } = calcularVentaYGanancia(r, p, margenGeneral, tasaVia);
 
-  const filas = ["aereo", "maritimo", "courier"].map((key) => {
-    const met = r.metodos[key];
-    const isSel = key === r.elegido;
-    return `<tr class="${isSel ? "selected" : ""}">
-      <td>${met.label}${isSel ? " ✓" : ""}${!met.disponible ? " (sin datos)" : ""}</td>
-      <td class="num">${met.medida}</td>
-      <td class="num">$${fmtA(met.fleteU)}</td>
-      <td class="num">${met.impuestosU > 0 ? "$" + fmtA(met.impuestosU) : "—"}</td>
-      <td class="num">$${fmtA(met.costoU)}</td>
-    </tr>`;
-  }).join("") + r.metodosAgentes.map((a) => {
-    // El agente elegido usa el costo de su escenario real (actual/proyección/
-    // simulación, vía metodos.agente); los demás agentes siempre se muestran
-    // en su escenario "actual" — es solo referencia comparativa.
-    const isSel = r.elegido === "agente" && p.agenteElegidoId === a.id;
-    const met = isSel && r.metodos.agente ? r.metodos.agente : a;
-    const vsAereo = a.disponible
-      ? `<br/><span style="font-size:9.5px; font-weight:400; color:var(--muted);">${a.diferenciaVsAereoGenerico >= 0 ? `$${fmtA(a.diferenciaVsAereoGenerico)} más barato` : `$${fmtA(Math.abs(a.diferenciaVsAereoGenerico))} más caro`} que tu aéreo genérico</span>`
-      : "";
-    return `<tr class="${isSel ? "selected" : ""}">
-      <td>${met.label}${isSel ? " ✓" : ""}${!a.disponible ? " (sin tramos con tarifa)" : ""}${vsAereo}</td>
-      <td class="num">${met.medida}</td>
-      <td class="num">$${fmtA(met.fleteU)}</td>
-      <td class="num">${met.impuestosU > 0 ? "$" + fmtA(met.impuestosU) : "—"}</td>
-      <td class="num">$${fmtA(met.costoU)}</td>
-    </tr>`;
-  }).join("");
+  function filaVia(filaId, label, medida, fleteU, impuestosU, costoU, isSel, extraNota) {
+    return { filaId, isSel, html: `<tr class="${isSel ? "selected" : ""}">
+      <td>${label}${isSel ? " ✓" : ""}${extraNota || ""}</td>
+      <td class="num">${medida}</td>
+      <td class="num">$${fmtA(fleteU)}</td>
+      <td class="num">${impuestosU > 0 ? "$" + fmtA(impuestosU) : "—"}</td>
+      <td class="num">$${fmtA(costoU)}</td>
+    </tr>` };
+  }
+
+  const elegidoFilaId = r.elegido === "agente" ? "agente:" + p.agenteElegidoId : r.elegido;
+  const todasLasFilas = [
+    ...["aereo", "maritimo", "courier"].map((key) => {
+      const met = r.metodos[key];
+      return filaVia(key, met.label, met.medida, met.fleteU, met.impuestosU, met.costoU, key === r.elegido, !met.disponible ? " (sin datos)" : "");
+    }),
+    ...r.metodosAgentes.map((a) => {
+      // El agente elegido usa el costo de su escenario real (actual/proyección/
+      // simulación, vía metodos.agente); los demás agentes siempre se muestran
+      // en su escenario "actual" — es solo referencia comparativa.
+      const isSel = r.elegido === "agente" && p.agenteElegidoId === a.id;
+      const met = isSel && r.metodos.agente ? r.metodos.agente : a;
+      const vsAereo = a.disponible
+        ? `<br/><span style="font-size:9.5px; font-weight:400; color:var(--muted);">${a.diferenciaVsAereoGenerico >= 0 ? `$${fmtA(a.diferenciaVsAereoGenerico)} más barato` : `$${fmtA(Math.abs(a.diferenciaVsAereoGenerico))} más caro`} que tu aéreo genérico</span>`
+        : "";
+      return filaVia("agente:" + a.id, met.label, met.medida, met.fleteU, met.impuestosU, met.costoU, isSel, (!a.disponible ? " (sin tramos con tarifa)" : "") + vsAereo);
+    }),
+  ];
+
+  const expandida = viasExpandidas.has(p.id);
+  const filasAMostrar = expandida
+    ? todasLasFilas
+    : todasLasFilas.filter((f) => f.filaId === elegidoFilaId || (r.mejorOpcionGlobal && f.filaId === r.mejorOpcionGlobal.filaId));
+  const filas = filasAMostrar.map((f) => f.html).join("");
 
   const trofeo = r.mejorOpcionGlobal
     ? `<div style="font-size:11px; color:var(--muted); margin-top:6px;">🏆 Mejor opción global (aéreo/courier/agentes, sin marítimo): <b style="color:var(--navy);">${r.mejorOpcionGlobal.label}</b> a $${fmtA(r.mejorOpcionGlobal.costoU)}/u.</div>`
     : "";
+  const verTodas = !expandida && todasLasFilas.length > filasAMostrar.length
+    ? `<button class="btn-ghost" data-toggle-vias="${p.id}" style="padding:4px 10px; font-size:11px; margin-top:6px;">Ver todas las vías (${todasLasFilas.length})</button>`
+    : expandida
+      ? `<button class="btn-ghost" data-toggle-vias="${p.id}" style="padding:4px 10px; font-size:11px; margin-top:6px;">Mostrar solo lo elegido</button>`
+      : "";
 
   return `
     <table class="metodos-mini">
       <thead><tr><th>Vía</th><th>Medida</th><th>Flete u.</th><th>Imp. u.</th><th>Costo u.</th></tr></thead>
       <tbody>${filas}</tbody>
     </table>
+    ${verTodas}
     ${trofeo}
+    ${(() => {
+      const d = seleccionado.desglose;
+      if (!d) return "";
+      return `
+      <div style="margin-top:8px; padding:12px 14px; background:var(--paper); border-radius:8px; border:1px solid var(--line);">
+        <div style="font-size:9.5px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px;">Con lo cargado ahora — ${fmtInt(d.unidades)} unidades (${escHtml(d.nombreAgente)})</div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; padding:2px 0;"><span>FOB</span><b>$${fmtA(d.fob)}</b></div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; padding:2px 0;"><span>Tramo aplicado</span><b>$${fmtA(d.tarifaAplicada)}/kg</b></div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; padding:2px 0;"><span>Flete</span><b>$${fmtA(d.flete)}</b></div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; padding:2px 0;"><span>Impuestos (${d.alicuotaPct}% FOB)</span><b>$${fmtA(d.impuestos)}</b></div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; padding:2px 0;"><span>Handling / otros</span><b>$${fmtA(d.handling)}</b></div>
+        <div style="display:flex; justify-content:space-between; font-size:13.5px; font-weight:800; color:var(--navy); border-top:1px solid var(--line); margin-top:6px; padding-top:6px;"><span>Total (nominal)</span><span>$${fmtA(d.totalNominal)}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--muted); padding-top:2px;"><span>Costo por unidad (nominal)</span><span>$${fmtA(d.costoUnitNominal)}</span></div>
+        ${d.recuperable > 0 ? `
+        <div style="margin-top:8px; padding:8px 10px; background:#eef7f0; border-radius:6px; border:1px solid #bfe3c8;">
+          <div style="display:flex; justify-content:space-between; font-size:11.5px; color:#1c6b34;"><span>Recuperable como crédito fiscal (${d.porcentajeRecuperable}% de impuestos, sos RI)</span><b>− $${fmtA(d.recuperable)}</b></div>
+          <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:800; color:#1c6b34; margin-top:4px;"><span>Costo real (neto de recupero)</span><span>$${fmtA(d.totalReal)}</span></div>
+          <div style="font-size:10.5px; color:#1c6b34; margin-top:2px;">$${fmtA(d.costoUnitReal)} por unidad, después de recuperar el IVA/percepciones contra tus ventas.</div>
+        </div>` : ""}
+        ${d.costoAvionGenerico > 0 ? `<div style="font-size:11px; color:var(--muted); margin-top:8px;">vs. tu Avión genérico ($${fmtA(r.rateAir)}/kg): $${fmtA(d.costoAvionGenerico)} total — este agente sale ${d.ahorroVsAvion >= 0 ? `<b style="color:var(--green);">$${fmtA(d.ahorroVsAvion)} más barato</b>` : `<b style="color:var(--coral-deep);">$${fmtA(Math.abs(d.ahorroVsAvion))} más caro</b>`}</div>` : ""}
+      </div>`;
+    })()}
     <div class="riesgo-badge ${r.courierElegible ? "ok" : "no"}">
       ${r.courierElegible ? "🟢" : "🔴"} Courier: peso ${fmtA(r.pesoTotal)}/${COURIER_REGIMEN.limitePesoKg}kg · CIF $${fmtA(r.cifTotal)}/$${fmtInt(COURIER_REGIMEN.limiteCifUsd)}
     </div>
@@ -831,7 +1032,7 @@ function renderLiveResultado(p, rPrecalculado) {
           <div>
             <div style="font-size:10px; color:var(--muted);">Total a pagar HOY</div>
             <div style="font-size:16px; font-weight:800; color:var(--navy);">$${fmtA(pago.ahora)}</div>
-            <div style="font-size:9.5px; color:var(--muted);">Producto $${fmtA(pago.fobTotal)} + Envío $${fmtA(pago.fleteTotal + pago.seguroTotal)}</div>
+            <div style="font-size:9.5px; color:var(--muted);">Producto $${fmtA(pago.fobTotal)} + Envío $${fmtA(pago.fleteTotal + pago.seguroTotal + pago.handlingTotal)}</div>
           </div>
           <div style="text-align:right;">
             <div style="font-size:10px; color:var(--muted);">Impuestos (al llegar)</div>
@@ -842,11 +1043,32 @@ function renderLiveResultado(p, rPrecalculado) {
       </div>`;
     })()}
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); font-size:12.5px;">
-      <span>Costo u. <b>$${fmtA(seleccionado.costoU)}</b></span>
-      <span>Venta u. (margen ${margen.toFixed(0)}%) <b style="color:var(--coral-deep);">$${fmtA(ventaU)}</b></span>
-      <span>Ganancia u. <b style="color:var(--green);">$${fmtA(gananciaU)}</b></span>
+      <span>Costo u. (nominal) <b>$${fmtA(seleccionado.costoU)}</b></span>
+      ${seleccionado.recuperableU > 0 ? `<span style="color:var(--muted);">Costo real u. <span style="color:var(--muted); font-weight:400;">(−$${fmtA(seleccionado.recuperableU)} recuperable)</span> <b style="color:var(--ink);">$${fmtA(seleccionado.costoRealU)}</b></span>` : ""}
+      <span>Venta u. en la página (${esPrecioFijo ? "precio fijo cargado" : `margen ${margen.toFixed(0)}% s/flete`}) <b style="color:var(--coral-deep);">$${fmtA(ventaU)}</b></span>
+      <span>Ganancia u. en la página <b style="color:var(--green);">$${fmtA(gananciaU)}</b></span>
     </div>
     <div style="font-size:10.5px; color:var(--muted); margin-top:4px;">≈ $${fmtInt(ventaU * tasaVia)} ARS venta u. al ${r.elegido === "courier" || r.elegido === "agente" ? "MEP" : "blue"} de hoy ($${fmtA(tasaVia)})</div>
+    ${(() => {
+      const precioMLars = pNumA(p.precioML);
+      if (!precioMLars) return "";
+      const precioMLusd = precioMLars / blue;
+      const gananciaMLu = precioMLusd - seleccionado.costoU;
+      const margenMLpct = precioMLusd > 0 ? (gananciaMLu / precioMLusd) * 100 : 0;
+      return `
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-top:6px; padding-top:8px; border-top:1px dashed var(--line); font-size:12.5px;">
+        <span style="color:var(--muted);">Si lo vendés al precio ref. de ML ($${fmtInt(precioMLars)} ARS ≈ $${fmtA(precioMLusd)} USD)</span>
+        <span>Ganancia u. en ML <b style="color:${gananciaMLu >= 0 ? "var(--green)" : "var(--coral-deep)"};">$${fmtA(gananciaMLu)}</b> <span style="color:var(--muted); font-weight:400;">(${margenMLpct.toFixed(1)}%)</span></span>
+      </div>
+      `;
+    })()}
+    ${(() => {
+      if (r.elegido !== "agente") return "";
+      const agenteElegido = agentes.find((a) => a.id === p.agenteElegidoId);
+      const rec = agenteElegido ? pNumA(agenteElegido.porcentajeRecuperable) : 0;
+      if (!rec) return "";
+      return `<div style="font-size:10px; color:var(--muted); margin-top:2px;">ℹ️ De los impuestos de ${escHtml(agenteElegido.nombre)}, ~${rec.toFixed(2)}% se asume recuperable como crédito fiscal (RI con factura discriminada) — ya está descontado en el "Costo real u." de arriba, y es lo que se usa para calcular la venta/ganancia.</div>`;
+    })()}
   `;
 }
 
@@ -963,6 +1185,11 @@ function renderFormulario() {
               <option value="g" ${p.pesoUnidad === "g" ? "selected" : ""}>g</option>
             </select>
           </div>
+          ${p.pesoModo !== "unidad" && p.pesoTotalRefCantidad !== "" && pNumA(p.pesoTotalRefCantidad) !== pNumA(p.cantidad) ? `
+            <div style="margin-top:6px; font-size:11px; color:var(--coral-deep); background:#fdf1ec; border:1px solid #f3d2c2; border-radius:6px; padding:7px 9px;">
+              ⚠️ Este peso se cargó con cantidad = ${fmtInt(pNumA(p.pesoTotalRefCantidad))}, pero ahora la cantidad dice ${fmtInt(pNumA(p.cantidad))}. Si el peso TOTAL real no cambió, volvé a escribir el mismo número acá para recalcular bien el peso por unidad.
+            </div>
+          ` : ""}
         </div>
       </div>
 
@@ -983,7 +1210,7 @@ function renderFormulario() {
       <div style="margin-top:10px; padding:12px; background:var(--paper); border-radius:8px; border:1px solid var(--line);">
         <div style="font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px;">🚢 Marítimo — SOLO referencia, no se elige solo</div>
         <div style="font-size:11px; color:var(--muted); margin-bottom:8px;">Se muestra para comparar el número, pero el sistema nunca lo va a elegir automáticamente aunque salga más barato — si querés usarlo en un pedido puntual, elegilo a mano abajo en "Vía a usar".</div>
-        <div style="font-size:10.5px; color:var(--muted); margin-bottom:8px;">Las medidas son de <b>la caja</b> que te manda el proveedor (ej. "esta caja trae 100 unidades") — no del producto individual. Si te dan las medidas de una caja de 1 sola unidad, poné 1 en "Unidades por caja".</div>
+        <div style="font-size:10.5px; color:var(--muted); margin-bottom:8px;">Las medidas de "la caja" son las del bulto que te manda el proveedor. "Unidades por caja": si lo sabés, cargalo directo; si no, dejalo vacío y cargá las medidas del <b>producto individual</b> más abajo — se calcula solo probando cómo entra mejor.</div>
         <div class="field-row" style="grid-template-columns: repeat(2,1fr);">
           <div class="field">
             <label>Unidad de medida</label>
@@ -993,8 +1220,8 @@ function renderFormulario() {
             </select>
           </div>
           <div class="field">
-            <label>Unidades por caja</label>
-            <input type="text" inputmode="decimal" data-field="unidadesPorCaja" data-id="${p.id}" value="${p.unidadesPorCaja}" placeholder="Ej: 100" />
+            <label>Unidades por caja <span style="font-weight:400; text-transform:none; color:var(--muted);">— vacío = se calcula solo</span></label>
+            <input type="text" inputmode="decimal" data-field="unidadesPorCaja" data-id="${p.id}" value="${p.unidadesPorCaja}" placeholder="${c.empaque ? c.empaque.total : "Ej: 100"}" />
           </div>
         </div>
         <div class="field-row">
@@ -1011,13 +1238,36 @@ function renderFormulario() {
             <input type="text" inputmode="decimal" data-field="alto" data-id="${p.id}" value="${p.alto}" placeholder="0" />
           </div>
         </div>
+        <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:10px 0 4px;">Medidas del producto individual (opcional, para calcular "unidades por caja" solo)</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Largo producto (${p.dimUnidad === "mm" ? "mm" : "cm"})</label>
+            <input type="text" inputmode="decimal" data-field="prodLargo" data-id="${p.id}" value="${p.prodLargo}" placeholder="0" ${pNumA(p.unidadesPorCaja) > 0 ? "disabled" : ""} />
+          </div>
+          <div class="field">
+            <label>Ancho producto (${p.dimUnidad === "mm" ? "mm" : "cm"})</label>
+            <input type="text" inputmode="decimal" data-field="prodAncho" data-id="${p.id}" value="${p.prodAncho}" placeholder="0" ${pNumA(p.unidadesPorCaja) > 0 ? "disabled" : ""} />
+          </div>
+          <div class="field">
+            <label>Alto producto (${p.dimUnidad === "mm" ? "mm" : "cm"})</label>
+            <input type="text" inputmode="decimal" data-field="prodAlto" data-id="${p.id}" value="${p.prodAlto}" placeholder="0" ${pNumA(p.unidadesPorCaja) > 0 ? "disabled" : ""} />
+          </div>
+        </div>
+        ${c.empaque ? `
+          <div style="font-size:10.5px; color:var(--muted); margin-top:4px;">${c.empaque.lados[0]}cm ÷ ${c.empaque.medidas[0]}cm = ${c.empaque.conteos[0]} &nbsp;|&nbsp; ${c.empaque.lados[1]}cm ÷ ${c.empaque.medidas[1]}cm = ${c.empaque.conteos[1]} &nbsp;|&nbsp; ${c.empaque.lados[2]}cm ÷ ${c.empaque.medidas[2]}cm = ${c.empaque.conteos[2]}</div>
+          <div style="font-size:11px; color:var(--ink); margin-top:2px;">${c.empaque.conteos[0]} × ${c.empaque.conteos[1]} × ${c.empaque.conteos[2]} = <b>${c.empaque.total} unidades por caja</b> (mejor orientación, calculado)</div>
+        ` : (c.empaqueFallido ? `<div style="font-size:10.5px; color:var(--coral-deep); margin-top:4px;">⚠️ El producto no entra en la caja con esas medidas — revisá los datos.</div>` : "")}
         ${c.cajas > 0 ? `<div style="font-size:11px; color:var(--muted); margin-top:6px;">${c.cajas} caja(s) × ${fmtA(c.m3PorCaja)} m³ c/u = <b style="color:var(--ink);">${fmtA(c.cbm)} m³</b> totales</div>` : ""}
       </div>
 
       <div class="field-row" style="margin-top:10px;">
         <div class="field">
           <label>Margen (%) — vacío usa el general</label>
-          <input type="text" inputmode="decimal" data-field="margen" data-id="${p.id}" value="${p.margen}" placeholder="40" />
+          <input type="text" inputmode="decimal" data-field="margen" data-id="${p.id}" value="${p.margen}" placeholder="40" ${pNumA(p.precioVentaPropio) > 0 ? "disabled" : ""} />
+        </div>
+        <div class="field">
+          <label>Precio de venta en la página (ARS, opcional) <span style="font-weight:400; text-transform:none; color:var(--muted);">— si lo cargás, pisa el margen</span></label>
+          <input type="text" inputmode="decimal" data-field="precioVentaPropio" data-id="${p.id}" value="${p.precioVentaPropio}" placeholder="Ej: 12000" />
         </div>
         <div class="field">
           <label>Precio ref. Mercado Libre (ARS, opcional)</label>
@@ -1140,6 +1390,13 @@ document.getElementById("productos-admin").addEventListener("change", (e) => {
 });
 
 document.getElementById("productos-admin").addEventListener("click", (e) => {
+  const toggleVias = e.target.getAttribute("data-toggle-vias");
+  if (toggleVias) {
+    if (viasExpandidas.has(toggleVias)) viasExpandidas.delete(toggleVias);
+    else viasExpandidas.add(toggleVias);
+    renderFormulario();
+    return;
+  }
   const zona = e.target.closest(".foto-drop");
   if (zona) {
     const input = zona.querySelector('input[type="file"]');
@@ -1220,6 +1477,21 @@ document.getElementById("add-producto-admin").addEventListener("click", () => {
 });
 
 let limpiarConfirmando = false;
+// Todo ya se recalcula solo al tipear (cada campo tiene su listener que
+// llama a renderFormulario) — este botón existe igual porque el usuario lo
+// pidió como confirmación visible de que los datos nuevos (sobre todo los
+// que se cambian en la pestaña "Datos", que no se ve mientras estás en
+// "Cálculo") ya se aplicaron a todo: el comparativo, los presupuestos y el
+// informe en pantalla si ya se había generado antes.
+document.getElementById("recalcular-btn").addEventListener("click", () => {
+  renderFormulario();
+  renderPresupuestos();
+  if (informeGenerado) generarInforme();
+  const status = document.getElementById("recalcular-status");
+  status.textContent = "✓ Recalculado con los datos actuales";
+  setTimeout(() => { if (status.textContent === "✓ Recalculado con los datos actuales") status.textContent = ""; }, 2500);
+});
+
 document.getElementById("limpiar-todo-btn").addEventListener("click", () => {
   const btn = document.getElementById("limpiar-todo-btn");
   if (!limpiarConfirmando) {
@@ -1230,7 +1502,7 @@ document.getElementById("limpiar-todo-btn").addEventListener("click", () => {
     setTimeout(() => {
       if (limpiarConfirmando) {
         limpiarConfirmando = false;
-        btn.textContent = "Limpiar todo";
+        btn.textContent = "🗑️ Empezar de nuevo";
         btn.style.color = "var(--muted)";
         btn.style.borderColor = "var(--line)";
       }
@@ -1246,7 +1518,7 @@ document.getElementById("limpiar-todo-btn").addEventListener("click", () => {
   document.getElementById("reporte").style.display = "none";
   renderFormulario();
   renderPresupuestos();
-  btn.textContent = "Limpiar todo";
+  btn.textContent = "🗑️ Empezar de nuevo";
   btn.style.color = "var(--muted)";
   btn.style.borderColor = "var(--line)";
 });
@@ -1338,11 +1610,12 @@ function getAsignadoTotal(productoId) {
 function getStockInfo() {
   const origen = document.getElementById("cfg-origen").value;
   const margenGeneral = pNumA(document.getElementById("cfg-margen").value) || 0;
+  const blue = pNumA(document.getElementById("cfg-blue").value) || 0;
+  const mep = pNumA(document.getElementById("cfg-mep").value) || blue;
   return productos.filter((p) => p.nombre && pNumA(p.cantidad) > 0).map((p) => {
     const r = calcularMetodos(p, origen);
-    const margen = pNumA(p.margen) || margenGeneral;
-    const seleccionado = r.metodos[r.elegido];
-    const ventaUnit = seleccionado.costoU * (1 + margen / 100);
+    const tasaVia = (r.elegido === "courier" || r.elegido === "agente") ? mep : blue;
+    const { ventaU: ventaUnit } = calcularVentaYGanancia(r, p, margenGeneral, tasaVia);
     const cant = pNumA(p.cantidad);
     const asignado = getAsignadoTotal(p.id);
     return { id: p.id, nombre: p.nombre, foto: p.foto, descripcion: p.descripcion, cant, ventaUnit, asignado, disponible: cant - asignado };
@@ -1642,7 +1915,7 @@ try {
 
 // ---------- Agentes de carga (CRUD) ----------
 function nuevoAgenteLocal() {
-  return { id: null, nombre: "", tramos: [{ hastaKg: "", tarifaKg: "" }], alicuotaImpuestos: 50, baseImpuestos: "fob", handling: "" };
+  return { id: null, nombre: "", tramos: [{ hastaKg: "", tarifaKg: "" }], alicuotaImpuestos: 50, baseImpuestos: "fob", handling: "", margenPct: 50, porcentajeRecuperable: "", modoPublico: "" };
 }
 
 try {
@@ -1655,6 +1928,9 @@ try {
           .map((t) => ({ hastaKg: t.hastaKg === null || t.hastaKg === undefined ? "" : t.hastaKg, tarifaKg: t.tarifaKg })),
         alicuotaImpuestos: a.alicuota_impuestos, baseImpuestos: a.base_impuestos || "fob",
         handling: a.handling || "",
+        margenPct: a.margen_pct != null ? a.margen_pct : 50,
+        porcentajeRecuperable: a.porcentaje_recuperable || "",
+        modoPublico: a.modo_publico || "",
       }));
     } else if (error) {
       console.error("No se pudieron cargar los agentes de carga:", error);
@@ -1664,6 +1940,42 @@ try {
   });
 } catch (e) { console.error("cargar agentes de carga:", e); }
 
+// Los agentes ya guardados se muestran COLAPSADOS (una fila resumen) para no
+// tapar la pantalla con formularios abiertos todo el tiempo — el usuario
+// pidió explícitamente que esta sección "no moleste". Solo se abre el
+// formulario completo del agente que se está cargando o editando en ese
+// momento (agenteAbiertoIdx); uno nuevo (sin id todavía) siempre se muestra
+// abierto porque todavía no tiene nada que resumir. agenteSnapshot guarda
+// cómo estaba el agente antes de tocarlo, para poder "Cancelar" sin perder
+// lo que ya tenía guardado.
+let agenteAbiertoIdx = null;
+let agenteSnapshot = null;
+
+function abrirAgentePara(idx) {
+  agenteAbiertoIdx = idx;
+  agenteSnapshot = JSON.stringify(agentes[idx]);
+  renderAgentesAdmin();
+}
+
+function cancelarEdicionAgente(idx) {
+  const a = agentes[idx];
+  if (a && !a.id) {
+    agentes.splice(idx, 1); // era nuevo, nunca se guardó — se descarta entero
+  } else if (agenteSnapshot) {
+    agentes[idx] = JSON.parse(agenteSnapshot);
+  }
+  agenteAbiertoIdx = null;
+  agenteSnapshot = null;
+  renderAgentesAdmin();
+  renderFormulario();
+}
+
+function resumenTramosAgente(a) {
+  const ordenados = ordenarTramos(a.tramos);
+  if (!ordenados.length || !ordenados.some((t) => pNumA(t.tarifaKg) > 0)) return "sin tarifa cargada";
+  return ordenados.map((t) => tramoEstaAbierto(t) ? `$${pNumA(t.tarifaKg)}/kg en adelante` : `hasta ${t.hastaKg}kg $${pNumA(t.tarifaKg)}/kg`).join(" · ");
+}
+
 function renderAgentesAdmin() {
   const cont = document.getElementById("agentes-admin");
   if (!cont) return;
@@ -1671,9 +1983,22 @@ function renderAgentesAdmin() {
     cont.innerHTML = `<div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Todavía no cargaste ningún agente.</div>`;
     return;
   }
-  cont.innerHTML = agentes.map((a, ai) => `
+  cont.innerHTML = agentes.map((a, ai) => {
+    const abierto = ai === agenteAbiertoIdx || !a.id;
+    if (!abierto) {
+      return `
+        <div class="agente-resumen-row">
+          <div><b>${escHtml(a.nombre || "(sin nombre)")}</b> <span style="color:var(--muted);">— ${resumenTramosAgente(a)} · impuestos ${a.alicuotaImpuestos}% · margen ${a.margenPct}% s/flete</span>${a.modoPublico ? ` <span class="hub-pill" style="background:var(--gold-bright); color:var(--navy); font-size:10px; padding:2px 8px; border-radius:20px; font-weight:800;">${a.modoPublico === "aereo" ? "✈️ tarifa pública" : "🚢 tarifa pública"}</span>` : ""}</div>
+          <div style="display:flex; gap:6px; flex:none;">
+            <button class="btn-ghost" data-agente-editar="${ai}" style="padding:5px 12px; font-size:12px;">✏️ Editar</button>
+            <button class="del" data-agente-del="${ai}" title="Eliminar agente">✕</button>
+          </div>
+        </div>
+      `;
+    }
+    return `
     <div class="producto-card">
-      <button class="del" data-agente-del="${ai}" title="Eliminar agente">✕</button>
+      ${a.id ? `<button class="del" data-agente-del="${ai}" title="Eliminar agente">✕</button>` : ""}
       <div class="field-row" style="grid-template-columns: 2fr 1fr 1fr 1fr;">
         <div class="field">
           <label>Nombre del agente</label>
@@ -1695,17 +2020,91 @@ function renderAgentesAdmin() {
           <input type="text" inputmode="decimal" data-agente-field="handling" data-agente-idx="${ai}" value="${a.handling}" placeholder="0" />
         </div>
       </div>
-      <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:10px 0 6px;">Tramos por kg — dejá "Hasta kg" vacío en el tramo que quede último para que sea el tramo abierto (siempre el más barato)</div>
+      <div class="field-row" style="grid-template-columns: 1fr 1fr; margin-top:8px;">
+        <div class="field">
+          <label>Margen sobre el flete (%) <span style="font-weight:400; text-transform:none; color:var(--muted);">— lo único en lo que Jawa gana con este agente</span></label>
+          <input type="text" inputmode="decimal" data-agente-field="margenPct" data-agente-idx="${ai}" value="${a.margenPct}" placeholder="50" />
+        </div>
+        <div class="field">
+          <label>% recuperable como crédito fiscal <span style="font-weight:400; text-transform:none; color:var(--muted);">— se resta del costo (te da el "costo real")</span></label>
+          <input type="text" inputmode="decimal" data-agente-field="porcentajeRecuperable" data-agente-idx="${ai}" value="${a.porcentajeRecuperable}" placeholder="0" />
+        </div>
+      </div>
+      <div class="field" style="margin-top:8px;">
+        <label>Tarifa pública (sitio para clientes) <span style="font-weight:400; text-transform:none; color:var(--muted);">— el precio que ve el cliente sale de este agente: costo × 1,5, redondeado a múltiplo de 5. El cliente nunca ve el nombre del agente, solo "Aéreo"/"Marítimo".</span></label>
+        <select data-agente-field="modoPublico" data-agente-idx="${ai}">
+          <option value="" ${!a.modoPublico ? "selected" : ""}>No usar como tarifa pública</option>
+          <option value="aereo" ${a.modoPublico === "aereo" ? "selected" : ""}>✈️ Es la tarifa pública de Aéreo</option>
+          <option value="maritimo" ${a.modoPublico === "maritimo" ? "selected" : ""}>🚢 Es la tarifa pública de Marítimo</option>
+        </select>
+      </div>
+      <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:10px 0 2px;">Tramos por kg</div>
+      <div style="font-size:11px; color:var(--muted); margin-bottom:6px;">Dejá "Hasta kg" vacío en el tramo que quede último para que sea el tramo abierto (siempre el más barato, aplica de ahí en adelante).</div>
+      <div class="field-row" style="grid-template-columns: 1fr 90px 30px; margin-bottom:2px;">
+        <label style="font-size:10px; color:var(--muted);">Hasta (kg)</label>
+        <label style="font-size:10px; color:var(--muted);">USD por kg</label>
+        <span></span>
+      </div>
       ${a.tramos.map((t, ti) => `
         <div class="presupuesto-item-row">
-          <input type="text" inputmode="decimal" placeholder="Hasta (kg) — vacío = en adelante" data-tramo-field="hastaKg" data-agente-idx="${ai}" data-tramo-idx="${ti}" value="${t.hastaKg}" style="flex:1;" />
+          <input type="text" inputmode="decimal" placeholder="Vacío = en adelante" data-tramo-field="hastaKg" data-agente-idx="${ai}" data-tramo-idx="${ti}" value="${t.hastaKg}" style="flex:1;" />
           <input type="text" inputmode="decimal" placeholder="USD/kg" data-tramo-field="tarifaKg" data-agente-idx="${ai}" data-tramo-idx="${ti}" value="${t.tarifaKg}" style="width:90px;" />
           <button class="del-btn" data-tramo-del="${ai}::${ti}">✕</button>
         </div>
       `).join("")}
       <button data-agente-addtramo="${ai}" style="background:transparent; border:1px dashed var(--line); border-radius:6px; color:var(--muted); font-size:11px; padding:5px 10px; cursor:pointer; font-family:inherit; margin-top:4px;">+ agregar tramo</button>
+      <div style="display:flex; gap:10px; align-items:center; margin-top:14px; padding-top:12px; border-top:1px solid var(--line);">
+        <button class="btn-primary" data-agente-guardar="${ai}" style="padding:9px 18px; font-size:13px;">✓ Guardar y cerrar</button>
+        <button class="btn-ghost" data-agente-cancelar="${ai}" style="padding:9px 16px; font-size:13px;">Cancelar</button>
+        <span id="agente-status-${ai}" style="font-size:12px; color:var(--muted);"></span>
+      </div>
     </div>
-  `).join("");
+  `;
+  }).join("");
+}
+
+function payloadAgente(a) {
+  return {
+    nombre: a.nombre || "(sin nombre)",
+    tramos: a.tramos.map((t) => ({ hastaKg: t.hastaKg === "" ? null : pNumA(t.hastaKg), tarifaKg: pNumA(t.tarifaKg) })),
+    alicuota_impuestos: pNumA(a.alicuotaImpuestos) || 0,
+    base_impuestos: a.baseImpuestos === "cif" ? "cif" : "fob",
+    handling: pNumA(a.handling) || 0,
+    margen_pct: pNumA(a.margenPct) || 0,
+    porcentaje_recuperable: pNumA(a.porcentajeRecuperable) || 0,
+    modo_publico: a.modoPublico || null,
+  };
+}
+
+async function guardarUnAgente(idx) {
+  const a = agentes[idx];
+  if (!a) return;
+  const statusEl = document.getElementById(`agente-status-${idx}`);
+  if (statusEl) statusEl.textContent = "Guardando…";
+  try {
+    const payload = payloadAgente(a);
+    if (a.id) {
+      const { error } = await supabaseClient.from("agentes_carga").update(payload).eq("id", a.id);
+      if (error) throw error;
+    } else {
+      const { data, error } = await supabaseClient.from("agentes_carga").insert(payload).select("id").single();
+      if (error) throw error;
+      a.id = data.id;
+    }
+    agenteAbiertoIdx = null;
+    agenteSnapshot = null;
+    renderAgentesAdmin();
+    renderFormulario();
+  } catch (err) {
+    // 23505 = índice único violado — ya hay otro agente marcado como tarifa
+    // pública de ese mismo modo (aéreo o marítimo). Solo puede haber uno.
+    const esDuplicadoModoPublico = err && err.code === "23505" && /modo_publico/.test(err.message || "");
+    if (statusEl) {
+      statusEl.textContent = esDuplicadoModoPublico
+        ? "⚠️ Ya hay otro agente marcado como tarifa pública para ese modo — sacale la marca primero."
+        : "⚠️ No se pudo guardar: " + (err.message || "revisá tu conexión.");
+    }
+  }
 }
 
 async function eliminarAgenteLocal(idx) {
@@ -1719,6 +2118,8 @@ async function eliminarAgenteLocal(idx) {
   }
   status.textContent = "";
   agentes.splice(idx, 1);
+  agenteAbiertoIdx = null;
+  agenteSnapshot = null;
   renderAgentesAdmin();
   renderFormulario();
 }
@@ -1752,6 +2153,12 @@ document.getElementById("agentes-admin").addEventListener("change", (e) => {
 document.getElementById("agentes-admin").addEventListener("click", (e) => {
   const del = e.target.getAttribute("data-agente-del");
   if (del !== null) { eliminarAgenteLocal(Number(del)); return; }
+  const editar = e.target.getAttribute("data-agente-editar");
+  if (editar !== null) { abrirAgentePara(Number(editar)); return; }
+  const guardar = e.target.getAttribute("data-agente-guardar");
+  if (guardar !== null) { guardarUnAgente(Number(guardar)); return; }
+  const cancelar = e.target.getAttribute("data-agente-cancelar");
+  if (cancelar !== null) { cancelarEdicionAgente(Number(cancelar)); return; }
   const addTramo = e.target.getAttribute("data-agente-addtramo");
   if (addTramo !== null) {
     agentes[Number(addTramo)].tramos.push({ hastaKg: "", tarifaKg: "" });
@@ -1769,35 +2176,7 @@ document.getElementById("agentes-admin").addEventListener("click", (e) => {
 
 document.getElementById("add-agente-admin").addEventListener("click", () => {
   agentes.push(nuevoAgenteLocal());
-  renderAgentesAdmin();
-});
-
-document.getElementById("guardar-agentes-btn").addEventListener("click", async () => {
-  const status = document.getElementById("agentes-status");
-  status.textContent = "Guardando…";
-  try {
-    for (const a of agentes) {
-      const payload = {
-        nombre: a.nombre || "(sin nombre)",
-        tramos: a.tramos.map((t) => ({ hastaKg: t.hastaKg === "" ? null : pNumA(t.hastaKg), tarifaKg: pNumA(t.tarifaKg) })),
-        alicuota_impuestos: pNumA(a.alicuotaImpuestos) || 0,
-        base_impuestos: a.baseImpuestos === "cif" ? "cif" : "fob",
-        handling: pNumA(a.handling) || 0,
-      };
-      if (a.id) {
-        const { error } = await supabaseClient.from("agentes_carga").update(payload).eq("id", a.id);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabaseClient.from("agentes_carga").insert(payload).select("id").single();
-        if (error) throw error;
-        a.id = data.id;
-      }
-    }
-    status.textContent = "✓ Guardado — ya se está usando en la comparativa de todos los productos.";
-    renderFormulario();
-  } catch (err) {
-    status.textContent = "⚠️ No se pudo guardar: " + (err.message || "revisá tu conexión.");
-  }
+  abrirAgentePara(agentes.length - 1);
 });
 
 // ---------- Generar informe ----------
@@ -1811,13 +2190,12 @@ function calcularResultadosInforme(origen, blue, mep, margenGeneral) {
 
   const resultados = validos.map((p) => {
     const r = calcularMetodos(p, origen);
-    const margen = pNumA(p.margen) || margenGeneral;
-    const seleccionado = r.metodos[r.elegido];
-    const ventaU = seleccionado.costoU * (1 + margen / 100);
-    const gananciaTotal = (ventaU - seleccionado.costoU) * r.cantidad;
+    const tasaVia = (r.elegido === "courier" || r.elegido === "agente") ? mep : blue;
+    const { margen, seleccionado, ventaU, gananciaU, esPrecioFijo } = calcularVentaYGanancia(r, p, margenGeneral, tasaVia);
+    const gananciaTotal = gananciaU * r.cantidad;
     const precioMLars = pNumA(p.precioML);
     const precioML = precioMLars > 0 ? precioMLars / blue : 0; // Mercado Libre lista en pesos — se convierte con el blue
-    return { p, r, margen, seleccionado, ventaU, gananciaTotal, precioML, precioMLars };
+    return { p, r, margen, esPrecioFijo, seleccionado, ventaU, gananciaTotal, precioML, precioMLars };
   });
 
   // Conversión dual (PDF secciones 10/12): los productos que se van por
@@ -1836,11 +2214,13 @@ function calcularResultadosInforme(origen, blue, mep, margenGeneral) {
     acc.flete += fleteTotalX + (x.r.elegido === "courier" ? x.r.seguroCourierTotal : 0);
     acc.impuestos += x.seleccionado.impuestosU * x.r.cantidad;
     acc.costo += x.seleccionado.costoU * x.r.cantidad;
+    acc.recuperable += (x.seleccionado.recuperableU || 0) * x.r.cantidad;
+    acc.costoReal += (x.seleccionado.costoRealU != null ? x.seleccionado.costoRealU : x.seleccionado.costoU) * x.r.cantidad;
     acc.ganancia += x.gananciaTotal;
     acc.hoyARS += (fobTotalX + fleteTotalX) * tasaProducto;
     acc.gananciaARS += x.gananciaTotal * tasaProducto;
     return acc;
-  }, { unidades: 0, peso: 0, volumen: 0, fob: 0, flete: 0, impuestos: 0, costo: 0, ganancia: 0, hoyARS: 0, gananciaARS: 0 });
+  }, { unidades: 0, peso: 0, volumen: 0, fob: 0, flete: 0, impuestos: 0, costo: 0, recuperable: 0, costoReal: 0, ganancia: 0, hoyARS: 0, gananciaARS: 0 });
 
   return { resultados, totales };
 }
@@ -1869,6 +2249,8 @@ function generarInforme(opts) {
   document.getElementById("stat-flete").textContent = "$" + fmtA(totales.flete);
   document.getElementById("stat-impuestos").textContent = "$" + fmtA(totales.impuestos);
   document.getElementById("stat-costo").textContent = "$" + fmtA(totales.costo);
+  document.getElementById("stat-recuperable").textContent = "-$" + fmtA(totales.recuperable);
+  document.getElementById("stat-costo-real").textContent = "$" + fmtA(totales.costoReal);
   document.getElementById("stat-blue").textContent = `$${fmtA(blue)} / $${fmtA(mep)}`;
   document.getElementById("stat-ganancia").textContent = "$" + fmtA(totales.ganancia);
   document.getElementById("stat-ganancia-ars").textContent = `≈ $${fmtInt(totales.gananciaARS)} ARS — blue $${fmtA(blue)} para aéreo/marítimo, MEP $${fmtA(mep)} para courier/agente`;
@@ -1995,13 +2377,13 @@ function generarInforme(opts) {
               <div><div class="lbl">Total a pagar HOY</div><div class="val">$${fmtA(pago.ahora)}</div></div>
               <div><div class="lbl">Impuestos (al llegar)</div><div class="val" style="color:${pago.alLlegar > 0 ? "var(--gold)" : "var(--muted)"};">$${fmtA(pago.alLlegar)}</div></div>
             </div>
-            <div style="font-size:11px; color:var(--muted);">Producto $${fmtA(pago.fobTotal)} + Envío $${fmtA(pago.fleteTotal + pago.seguroTotal)} se pagan al despachar — ${pago.alLlegar > 0 ? "los impuestos recién se pagan cuando la carga llega a Argentina." : "esta vía no tiene impuestos en este modelo."}</div>
+            <div style="font-size:11px; color:var(--muted);">Producto $${fmtA(pago.fobTotal)} + Envío $${fmtA(pago.fleteTotal + pago.seguroTotal + pago.handlingTotal)} se pagan al despachar — ${pago.alLlegar > 0 ? "los impuestos recién se pagan cuando la carga llega a Argentina." : "esta vía no tiene impuestos en este modelo."}</div>
           </div>`;
         })()}
 
         <div class="costo-venta-row">
           <div class="cv-box"><div class="lbl">Costo final u.</div><div class="val">$${fmtA(x.seleccionado.costoU)}</div></div>
-          <div class="cv-box"><div class="lbl">Venta u. (margen ${x.margen.toFixed(0)}%)</div><div class="val">$${fmtA(x.ventaU)}</div></div>
+          <div class="cv-box"><div class="lbl">Venta u. (${x.esPrecioFijo ? "precio fijo cargado" : `margen ${x.margen.toFixed(0)}% s/flete`})</div><div class="val">$${fmtA(x.ventaU)}</div></div>
           <div class="cv-box ganancia"><div class="lbl">Ganancia total</div><div class="val">$${fmtA(x.gananciaTotal)}</div></div>
         </div>
 
@@ -2096,8 +2478,8 @@ function descargarInformeCompleto() {
       </div>
 
       <div style="display:flex; justify-content:space-between; align-items:center; background:#f0e4d0; border-radius:6px; padding:8px 12px; margin-bottom:10px;">
-        <span style="font-size:11px; color:#6b5d47; text-transform:uppercase; letter-spacing:0.5px;">Margen de ganancia aplicado</span>
-        <span style="font-size:18px; font-weight:700; color:#B5622E;">${x.margen.toFixed(0)}%</span>
+        <span style="font-size:11px; color:#6b5d47; text-transform:uppercase; letter-spacing:0.5px;">${x.esPrecioFijo ? "Precio de venta fijo cargado — margen equivalente" : "Margen de ganancia aplicado (solo sobre el flete)"}</span>
+        <span style="font-size:18px; font-weight:700; color:#B5622E;">${x.esPrecioFijo ? "$" + fmtA(x.ventaU) : x.margen.toFixed(0) + "%"}</span>
       </div>
 
       <table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:10px;">

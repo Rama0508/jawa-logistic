@@ -90,17 +90,28 @@
           <h2 id="cuenta-titulo">Ingresá a tu cuenta</h2>
         </div>
         <div class="cuenta-form">
-          <div id="cuenta-nombre-field" style="display:none;">
-            <label>Nombre</label>
-            <input type="text" id="cuenta-nombre" placeholder="Tu nombre" />
-          </div>
-          <label>Email</label>
-          <input type="email" id="cuenta-email" placeholder="tuemail@ejemplo.com" />
-          <label>Contraseña</label>
-          <input type="password" id="cuenta-password" placeholder="••••••••" />
-          <div id="cuenta-error" class="link-box-error" style="margin-top:10px;"></div>
-          <div id="cuenta-info" class="link-box-error" style="margin-top:10px; background:#eef7f0; border-color:#bfe3c8; color:#1c6b34; display:none;"></div>
-          <button class="btn-primary" id="cuenta-submit-btn" type="button" style="width:100%; justify-content:center; margin-top:14px;">Ingresar</button>
+          <button class="btn-google" id="cuenta-google-btn" type="button" style="width:100%; justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.95H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.05l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.59-2.59C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg>
+            Continuar con Google
+          </button>
+          <div style="text-align:center; margin:14px 0 4px; font-size:11px; color:var(--muted);">— o —</div>
+          <form id="cuenta-form" autocomplete="on">
+            <div id="cuenta-nombre-field" style="display:none;">
+              <label>Nombre</label>
+              <input type="text" id="cuenta-nombre" name="name" autocomplete="name" placeholder="Tu nombre" />
+            </div>
+            <label>Email</label>
+            <input type="email" id="cuenta-email" name="email" autocomplete="email" placeholder="tuemail@ejemplo.com" />
+            <label>Contraseña</label>
+            <input type="password" id="cuenta-password" name="password" autocomplete="current-password" placeholder="••••••••" />
+            <div id="cuenta-referido-field" style="display:none;">
+              <label>Código de invitación <span style="font-weight:400; text-transform:none; color:var(--muted);">(opcional)</span></label>
+              <input type="text" id="cuenta-referido" placeholder="Ej: A3B7K9" style="text-transform:uppercase;" />
+            </div>
+            <div id="cuenta-error" class="link-box-error" style="margin-top:10px;"></div>
+            <div id="cuenta-info" class="link-box-error" style="margin-top:10px; background:#eef7f0; border-color:#bfe3c8; color:#1c6b34; display:none;"></div>
+            <button class="btn-primary" id="cuenta-submit-btn" type="submit" style="width:100%; justify-content:center; margin-top:14px;">Ingresar</button>
+          </form>
           <p style="text-align:center; font-size:12.5px; margin-top:16px; color:var(--muted);">
             <a href="#" id="cuenta-toggle-modo">¿No tenés cuenta? Registrate</a>
           </p>
@@ -153,22 +164,56 @@ try {
     await SUPABASE_READY;
 
     let modoRegistro = false;
+
+    // Si llegó con un link de invitación (?ref=CODIGO), precarga el código
+    // y arranca directo en modo "Creá tu cuenta" — no tiene sentido
+    // mostrarle primero la pantalla de login a alguien que todavía no
+    // tiene cuenta y vino específicamente a registrarse invitado.
+    const codigoDeLaUrl = new URLSearchParams(location.search).get("ref");
+    if (codigoDeLaUrl) {
+      document.getElementById("cuenta-referido").value = codigoDeLaUrl.trim().toUpperCase();
+    }
+
     const toggleBtn = document.getElementById("cuenta-toggle-modo");
     toggleBtn.addEventListener("click", (e) => {
       e.preventDefault();
       modoRegistro = !modoRegistro;
       document.getElementById("cuenta-titulo").textContent = modoRegistro ? "Creá tu cuenta" : "Ingresá a tu cuenta";
       document.getElementById("cuenta-nombre-field").style.display = modoRegistro ? "block" : "none";
+      document.getElementById("cuenta-referido-field").style.display = modoRegistro ? "block" : "none";
       document.getElementById("cuenta-submit-btn").textContent = modoRegistro ? "Crear cuenta" : "Ingresar";
+      // "new-password" vs "current-password" es la señal que usan los
+      // navegadores para decidir si SUGERIR una contraseña nueva o
+      // AUTOCOMPLETAR la guardada — con el mismo valor todo el tiempo, el
+      // autocompletado en el paso de login funciona peor.
+      document.getElementById("cuenta-password").setAttribute("autocomplete", modoRegistro ? "new-password" : "current-password");
       toggleBtn.textContent = modoRegistro ? "¿Ya tenés cuenta? Ingresá" : "¿No tenés cuenta? Registrate";
       document.getElementById("cuenta-error").classList.remove("show");
       document.getElementById("cuenta-info").style.display = "none";
     });
+    if (codigoDeLaUrl) toggleBtn.click(); // arranca directo en "Creá tu cuenta" con el código ya cargado
 
-    document.getElementById("cuenta-submit-btn").addEventListener("click", async () => {
+    // Además del autocompletado por atributos (arriba) y de que ahora vive
+    // dentro de un <form> con submit real, se pide explícitamente al
+    // navegador que ofrezca guardar la contraseña vía Credential Management
+    // API — necesario porque este login nunca hace una navegación real (todo
+    // pasa por Supabase vía fetch), y varios navegadores solo disparan el
+    // cartel de "¿Guardar contraseña?" con esta señal explícita en ese caso.
+    // Sin soporte (Safari/Firefox) esto no hace nada — no rompe el login.
+    function ofrecerGuardarContraseña(email, password, nombre) {
+      if (!window.PasswordCredential) return;
+      try {
+        const cred = new PasswordCredential({ id: email, password, name: nombre || email });
+        navigator.credentials.store(cred);
+      } catch (e) { /* best-effort, nunca debe romper el login */ }
+    }
+
+    document.getElementById("cuenta-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
       const email = document.getElementById("cuenta-email").value.trim();
       const password = document.getElementById("cuenta-password").value;
       const nombre = document.getElementById("cuenta-nombre").value.trim();
+      const codigoReferido = document.getElementById("cuenta-referido").value.trim();
       const errEl = document.getElementById("cuenta-error");
       const infoEl = document.getElementById("cuenta-info");
       errEl.classList.remove("show");
@@ -176,7 +221,7 @@ try {
       if (!email || !password) return;
 
       const resultado = modoRegistro
-        ? await registrarCliente(email, password, nombre)
+        ? await registrarCliente(email, password, nombre, codigoReferido)
         : await iniciarSesionCliente(email, password);
 
       if (!resultado.ok) {
@@ -184,12 +229,26 @@ try {
         errEl.classList.add("show");
         return;
       }
+      ofrecerGuardarContraseña(email, password, nombre);
       if (resultado.necesitaConfirmacion) {
         infoEl.textContent = "Te mandamos un email para confirmar tu cuenta — revisalo antes de ingresar.";
         infoEl.style.display = "block";
         return;
       }
       mostrarSegunSesion(await obtenerSesionActual());
+    });
+
+    document.getElementById("cuenta-google-btn").addEventListener("click", async () => {
+      const errEl = document.getElementById("cuenta-error");
+      errEl.classList.remove("show");
+      const params = new URLSearchParams(location.search);
+      const resultado = await iniciarSesionGoogle(params.get("volver"));
+      if (!resultado.ok) {
+        errEl.textContent = resultado.error;
+        errEl.classList.add("show");
+      }
+      // Si salió bien no hay nada más que hacer acá: el navegador ya está
+      // yéndose a la pantalla de consentimiento de Google.
     });
 
     document.getElementById("cuenta-logout").addEventListener("click", async (e) => {

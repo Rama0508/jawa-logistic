@@ -184,16 +184,21 @@ try {
       const pl = pNum("sea-pl"), pw = pNum("sea-pw"), ph = pNum("sea-ph");
       const unidadesManual = pNum("sea-punits");
 
-      if (!l || !w || !h) { alert("Cargá largo, ancho y alto de cada bulto."); return; }
+      // El peso ahora es obligatorio (antes no lo era): el flete marítimo se
+      // cobra por kilo, no por m³ — sin peso no hay con qué calcular el costo.
+      if (!l || !w || !h || !pesoKg) { alert("Cargá largo, ancho, alto y el peso de cada bulto."); return; }
 
       // Volumen del bulto: cm³ → m³ se divide por 1.000.000 (100cm × 100cm × 100cm = 1 m³)
+      // El CBM se sigue mostrando como referencia (bultos, espacio que ocupa),
+      // pero el flete que paga el cliente se cobra por KILO, no por m³ — la
+      // tarifa pública sale del costo real del forwarder (Aerobox), que
+      // cotiza así (ver js/rates.js: FLETE_CLIENTE, tarifaClientePorPeso).
       const cbmPorBulto = (l * w * h) / 1000000;
       const cbmTotal = cbmPorBulto * qty;
       const toneladas = pesoKg / 1000;
       const cbmCobrable = Math.max(cbmTotal, toneladas, CBM_MINIMO);
-      const rate = FLETE_RATES.sea[origenSea];
-      // Regla de 3 simple: si 1 CBM cuesta "rate", cbmCobrable CBM cuestan cbmCobrable × rate
-      const costoFlete = cbmCobrable * rate;
+      const rate = tarifaClientePorPeso(FLETE_CLIENTE.maritimo, pesoKg);
+      const costoFlete = pesoKg * rate;
       const total = costoFlete + fob;
 
       // Guarda el lead aunque el cliente no llegue a mandar el WhatsApp (no bloquea la UI).
@@ -221,8 +226,8 @@ try {
         <div class="fc-result-row math">${l}cm × ${w}cm × ${h}cm = ${(l*w*h).toLocaleString("es-AR")}cm³ ÷ 1.000.000 = ${cbmPorBulto.toFixed(3)} m³ por bulto</div>
         <div class="fc-result-row"><span>CBM real del envío (${qty} bulto${qty === 1 ? "" : "s"})</span><span class="v">${cbmTotal.toFixed(3)} m³</span></div>
         <div class="fc-result-row"><span>Equivalente en peso</span><span class="v">${toneladas.toFixed(3)} ton</span></div>
-        <div class="fc-result-row"><span>CBM a cobrar (mínimo ${CBM_MINIMO})</span><span class="v">${cbmCobrable.toFixed(3)} m³</span></div>
-        <div class="fc-result-row math">${cbmCobrable.toFixed(3)} m³ × $${fmt(rate)}/m³ (${origenLabel(origenSea)}) = $${fmt(costoFlete)}</div>
+        <div class="fc-result-row"><span>Peso a cobrar</span><span class="v">${fmt(pesoKg)} kg</span></div>
+        <div class="fc-result-row math">${fmt(pesoKg)} kg × $${fmt(rate)}/kg (${origenLabel(origenSea)}) = $${fmt(costoFlete)}</div>
         ${sinTarifa ? `<div class="fc-result-row warn">⚠️ Tarifa no configurada todavía para este origen</div>` : ""}
         ${avisoLimiteRegimen(pesoKg, fob, unidadesTotales)}
         <div class="fc-result-total"><span class="lbl">Total estimado (flete + FOB)</span><span class="val">$${fmt(total)}</span></div>
@@ -262,7 +267,7 @@ try {
       const pesoVolPorBulto = (l * w * h) / DIVISOR_VOLUMETRICO_AEREO;
       const pesoVolTotal = pesoVolPorBulto * qty;
       const pesoCobrable = Math.max(pesoReal, pesoVolTotal);
-      const rate = FLETE_RATES.air[origenAir];
+      const rate = tarifaClientePorPeso(FLETE_CLIENTE.aereo, pesoCobrable);
       const costoFlete = pesoCobrable * rate;
       const total = costoFlete + fob;
 
