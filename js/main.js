@@ -83,11 +83,15 @@ try {
     const slides = document.querySelectorAll("#hero-bg .hero-bg-slide");
     if (!slides.length) return;
     let i = 0;
+    // En el celular la foto del hero ocupa casi toda la pantalla — cambiar
+    // cada 2s ahí se siente mucho más brusco que en una compu, donde el
+    // hero es una fracción chica del campo visual. Más lento solo en mobile.
+    const intervaloMs = window.matchMedia("(max-width: 700px)").matches ? 4500 : 2000;
     setInterval(() => {
       slides[i].classList.remove("active");
       i = (i + 1) % slides.length;
       slides[i].classList.add("active");
-    }, 2000);
+    }, intervaloMs);
   })();
 } catch (e) { console.error("slideshow del hero:", e); }
 

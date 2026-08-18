@@ -790,3 +790,20 @@
   .float-wa svg { width:28px; height:28px; }
   .float-wa .ping { position:absolute; inset:0; border-radius:50%; background:#25d366; animation: wa-ping 2.4s ease-out infinite; }
   @keyframes wa-ping { 0% { transform:scale(1); opacity:.55; } 100% { transform:scale(1.7); opacity:0; } }
+
+  /* ---------- Menos movimiento en el celular ----------
+     Lo que en una compu se ve prolijo (la franja de auspiciantes
+     deslizándose, el ping del WhatsApp flotante, el pulso del botón del
+     HUB) en un celular queda fijo en pantalla, mucho más cerca de la cara
+     y ocupando buena parte del ancho — eso es lo que marea. Se atenúa o
+     ralentiza en vez de sacarlo del todo, para no perder la función
+     (los auspicios siguen rotando, solo que sin apuro). */
+  @media (max-width: 700px) {
+    :root { --ad-marquee-h: 40px; }
+    .ad-marquee-track { animation-duration: 85s; }
+    .float-wa .ping { animation: none; }
+    .hub-cta-pulse { animation: none; }
+    .hero-shimmer { animation: none; }
+    .lane-divider::before { animation-duration: 8s; }
+    .testi-quote { animation: none; }
+  }
