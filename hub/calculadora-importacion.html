@@ -204,7 +204,7 @@ try {
             ${i > 0 ? `<div class="wiz-step-sep"></div>` : ""}
             <div class="wiz-step ${s.n === paso ? "active" : s.n < paso ? "done" : ""}">
               <div class="wiz-step-dot">${s.n < paso ? "✓" : s.n}</div>
-              <div class="wiz-step-label">${s.n}. ${s.label}<br/><span style="font-weight:400; text-transform:none;">${s.sub}</span></div>
+              <div class="wiz-step-label">${s.label}<br/><span>${s.sub}</span></div>
             </div>
           `).join("")}
         </div>
@@ -233,8 +233,8 @@ try {
         ${renderChips()}
         <div class="hub-card-title">Elegí cómo cargar este producto</div>
         <div class="wiz-paths">
-          <div class="wiz-path-card">
-            <div class="wiz-path-label">Camino A</div>
+          <div class="wiz-path-card wiz-path-featured">
+            <div class="wiz-path-label">Camino A · Recomendado</div>
             <div class="wiz-path-title">No tengo los papeles</div>
             <div class="wiz-path-sub">Describí el producto y la IA lo clasifica</div>
             <div class="hub-field">

@@ -268,7 +268,7 @@ try {
             ${i > 0 ? `<div class="wiz-step-sep"></div>` : ""}
             <div class="wiz-step ${s.n === paso ? "active" : s.n < paso ? "done" : ""}">
               <div class="wiz-step-dot">${s.n < paso ? "✓" : s.n}</div>
-              <div class="wiz-step-label">${s.n}. ${s.label}</div>
+              <div class="wiz-step-label">${s.label}</div>
             </div>
           `).join("")}
         </div>

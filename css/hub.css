@@ -347,23 +347,65 @@ a { color: inherit; }
 .hub-chat-input-row textarea { flex: 1; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; font-family: inherit; resize: vertical; min-height: 44px; max-height: 140px; }
 .hub-chat-hilo { cursor: pointer; }
 
-/* ---------- Calculadora de importación (wizard de 4 pasos) ---------- */
-.wiz-steps { display: flex; align-items: center; gap: 6px; margin-bottom: 22px; overflow-x: auto; }
-.wiz-step { display: flex; align-items: center; gap: 8px; flex: none; }
-.wiz-step-dot { width: 26px; height: 26px; border-radius: 50%; background: var(--paper-2); border: 1.5px solid var(--line); color: var(--muted); font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex: none; }
-.wiz-step.active .wiz-step-dot { background: var(--coral); border-color: var(--coral); color: var(--white); }
-.wiz-step.done .wiz-step-dot { background: var(--green); border-color: var(--green); color: var(--white); }
-.wiz-step-label { font-size: 11.5px; font-weight: 700; color: var(--muted); white-space: nowrap; }
-.wiz-step.active .wiz-step-label { color: var(--navy); }
-.wiz-step-sep { width: 28px; height: 1.5px; background: var(--line); flex: none; }
+/* ---------- Calculadora de importación (wizard de 4 pasos) ----------
+   Stepper en forma de "ruta" (chevrons pegados) a propósito, en vez del
+   típico círculo-numerado-con-línea de cualquier wizard SaaS genérico —
+   evoca la idea de tramo/etapa de un envío. */
+.wiz-steps { display: flex; margin-bottom: 24px; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 26px -20px rgba(22,34,61,0.45); }
+.wiz-step {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px 11px 24px;
+  margin-left: -13px;
+  background: var(--paper-2);
+  clip-path: polygon(0 0, calc(100% - 13px) 0, 100% 50%, calc(100% - 13px) 100%, 0 100%, 13px 50%);
+}
+.wiz-step:first-child { margin-left: 0; padding-left: 16px; clip-path: polygon(0 0, calc(100% - 13px) 0, 100% 50%, calc(100% - 13px) 100%, 0 100%); }
+.wiz-step.done { background: var(--navy-light); }
+.wiz-step.active { background: var(--coral); }
+.wiz-step-dot { width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.5); color: var(--muted); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex: none; }
+.wiz-step.done .wiz-step-dot, .wiz-step.active .wiz-step-dot { background: rgba(255,255,255,0.25); color: var(--white); }
+.wiz-step-label { font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.35; }
+.wiz-step-label span { opacity: .75; }
+.wiz-step.done .wiz-step-label, .wiz-step.active .wiz-step-label { color: var(--white); }
+.wiz-step-sep { display: none; }
+@media (max-width: 700px) { .wiz-step-label { display: none; } .wiz-step { padding: 11px 10px 11px 20px; flex: none; width: 46px; justify-content: center; } .wiz-step:first-child { width: 40px; } }
 
-.wiz-paths { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+/* ---------- "Camino A / Camino B": asimétricas a propósito (una
+   destacada, oscura, la otra simple) en vez de dos cards gemelas — el
+   patrón de "dos cards idénticas lado a lado" es el que hace que cualquier
+   wizard de carga con 2 caminos se vea igual a cualquier otro. ---------- */
+.wiz-paths { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
 @media (max-width: 700px) { .wiz-paths { grid-template-columns: 1fr; } }
-.wiz-path-card { border: 1.5px solid var(--line); border-radius: 12px; padding: 16px; }
+.wiz-path-card { border: 1.5px solid var(--line); border-radius: 14px; padding: 18px; background: var(--paper); }
 .wiz-path-card.disabled { opacity: .6; }
-.wiz-path-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 2px; }
+.wiz-path-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 2px; }
 .wiz-path-title { font-size: 14px; font-weight: 800; color: var(--navy); margin-bottom: 4px; }
 .wiz-path-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+
+.wiz-path-card.wiz-path-featured {
+  background: linear-gradient(155deg, var(--navy-2) 0%, var(--navy) 78%);
+  border: none;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 18px 36px -22px rgba(22,34,61,0.6);
+}
+.wiz-path-card.wiz-path-featured::after {
+  content: ""; position: absolute; right: -60px; top: -60px; width: 190px; height: 190px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(201,80,46,0.4), transparent 70%); pointer-events: none;
+}
+.wiz-path-card.wiz-path-featured > * { position: relative; z-index: 1; }
+.wiz-path-card.wiz-path-featured .wiz-path-label { color: var(--gold-bright); }
+.wiz-path-card.wiz-path-featured .wiz-path-title { color: var(--white); }
+.wiz-path-card.wiz-path-featured .wiz-path-sub { color: rgba(255,255,255,0.78); }
+.wiz-path-card.wiz-path-featured input[type="text"] { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: var(--white); }
+.wiz-path-card.wiz-path-featured input[type="text"]::placeholder { color: rgba(255,255,255,0.5); }
+.wiz-path-card.wiz-path-featured .hub-btn-ghost { border-color: rgba(255,255,255,0.32); color: var(--white); }
+.wiz-path-card.wiz-path-featured .hub-btn-ghost:hover { border-color: var(--gold-bright); }
 
 .wiz-doc-upload-row { display: flex; flex-direction: column; gap: 8px; }
 .wiz-doc-slot { display: flex; align-items: center; gap: 10px; border: 1.5px dashed var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; background: var(--paper); }
