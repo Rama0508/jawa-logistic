@@ -101,7 +101,7 @@ function renderHubShell(tabActiva, session, contenidoPagina) {
     <div class="hub-layout">
       <aside class="hub-sidebar" id="hub-sidebar">
         <a class="hub-brand" href="/hub/index.html">
-          <svg width="28" height="28" viewBox="0 0 200 200">
+          <svg width="32" height="32" viewBox="0 0 200 200">
             <circle cx="100" cy="100" r="92" fill="none" stroke="#ffffff" stroke-width="7"/>
             <polygon points="100,100 100,15 121,79" fill="#c9502e"/>
             <polygon points="100,100 100,15 79,79" fill="#a23f22"/>
