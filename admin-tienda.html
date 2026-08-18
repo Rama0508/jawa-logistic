@@ -300,6 +300,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/rates.js"></script>
+<script src="js/mfa.js"></script>
 <script>
 // ---------- Login (mismo criterio que admin.html: valida rol staff) ----------
 (function () {
@@ -326,6 +327,7 @@
       loginError.classList.add("show");
       return;
     }
+    await exigirMFA(supabaseClient);
     loginScreen.style.display = "none";
     toolContent.style.display = "block";
     logoutBtn.style.display = "inline-block";
