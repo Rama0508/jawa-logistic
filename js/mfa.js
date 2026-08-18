@@ -43,6 +43,16 @@ function mostrarModalMFA(supabaseClient, modo) {
 
     async function iniciarEnroll() {
       render(`<p style="font-size:13px; color:#666; text-align:center;">Preparando verificación en dos pasos…</p>`);
+
+      // Si quedó un factor sin terminar de verificar de un intento anterior
+      // (ej: se cerró la pestaña antes de escanear el QR), Supabase rechaza
+      // dar de alta uno nuevo con el mismo nombre — se limpia antes de pedir uno.
+      const { data: previos } = await supabaseClient.auth.mfa.listFactors();
+      const sinVerificar = ((previos && previos.all) || []).filter((f) => f.status !== "verified");
+      for (const f of sinVerificar) {
+        await supabaseClient.auth.mfa.unenroll({ factorId: f.id });
+      }
+
       const { data, error } = await supabaseClient.auth.mfa.enroll({ factorType: "totp" });
       if (error) {
         render(`
