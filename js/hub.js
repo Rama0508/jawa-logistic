@@ -136,7 +136,7 @@ function renderHubShell(tabActiva, session, contenidoPagina) {
             <div class="hub-bell-dropdown" id="hub-bell-dropdown"></div>
           </div>
         </div>
-        <div class="hub-content" id="hub-page">${contenidoPagina || ""}</div>
+        <main class="hub-content" id="hub-page">${contenidoPagina || ""}</main>
       </div>
     </div>
   `;
