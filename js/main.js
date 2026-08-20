@@ -165,6 +165,65 @@ const TELEFONO_NOTIFICACION = "+54 9 381 331-2280"; // único número visible pa
 // post-compra vive en js/mi-pedido.js (mi-pedido.html) desde que se sacó
 // ese wizard de la home — acá solo queda la cotización rápida del hero.
 
+// ---------- Cotizador rápido (hero): pegar link del producto ----------
+// A diferencia del resto del widget (100% público, sin login), esto llama a
+// la Edge Function extract-product, que usa IA y cuesta crédito de Anthropic
+// por cada pedido — por eso se exige sesión, igual que el resto de las
+// funciones de IA del proyecto (despachante-virtual, clasificar-producto).
+// Un visitante sin cuenta ve el mismo cartel que ya usa esta sección para el
+// desglose completo ("iniciá sesión"), no un error confuso.
+try {
+  (function () {
+    const linkBtn = document.getElementById("qq-link-btn");
+    if (!linkBtn) return;
+    const linkInput = document.getElementById("qq-link");
+    const linkMsg = document.getElementById("qq-link-msg");
+
+    linkBtn.addEventListener("click", async () => {
+      const url = linkInput.value.trim();
+      linkMsg.classList.remove("error");
+      if (!url) { linkMsg.textContent = "Pegá primero el link del producto."; linkMsg.classList.add("error"); return; }
+      if (!supabaseClient) { linkMsg.textContent = "No se pudo conectar. Recargá la página."; linkMsg.classList.add("error"); return; }
+
+      linkBtn.disabled = true;
+      linkBtn.textContent = "Buscando…";
+      linkMsg.textContent = "";
+      try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+          linkMsg.innerHTML = 'Iniciá sesión para usar la lectura automática de links — <a href="mi-cuenta.html" style="color:var(--navy); font-weight:700;">entrá acá →</a>';
+          return;
+        }
+        const resp = await fetch(EXTRACT_PRODUCT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + session.access_token },
+          body: JSON.stringify({ url }),
+        });
+        const data = await resp.json();
+        if (!data.success) {
+          linkMsg.textContent = "⚠️ " + (data.error || "No pudimos leer ese link. Cargá los datos a mano.");
+          linkMsg.classList.add("error");
+          return;
+        }
+        if (data.titulo) document.getElementById("qq-nombre").value = data.titulo;
+        if (data.precio) document.getElementById("qq-fob").value = data.precio.toFixed(2);
+        if (data.pesoEncontrado && data.pesoKg) {
+          document.getElementById("qq-peso").value = Math.round(data.pesoKg * 1000);
+          document.getElementById("qq-peso-unidad").value = "g";
+          document.getElementById("qq-peso").dispatchEvent(new Event("input"));
+        }
+        linkMsg.textContent = "✓ " + (data.advertencia || "Datos cargados — revisalos y completá la cantidad.");
+      } catch (e) {
+        linkMsg.textContent = "⚠️ No se pudo conectar con el servicio de lectura de links.";
+        linkMsg.classList.add("error");
+      } finally {
+        linkBtn.disabled = false;
+        linkBtn.textContent = "🔗 Autocompletar";
+      }
+    });
+  })();
+} catch (e) { console.error("qq link autocompletar:", e); }
+
 // ---------- Cotizador rápido (hero) ----------
 try {
   (function () {

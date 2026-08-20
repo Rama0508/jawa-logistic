@@ -64,12 +64,23 @@ try {
       btn.disabled = true;
       btn.textContent = "Buscando…";
       try {
+        // La lectura de links usa IA (cuesta crédito de Anthropic por cada
+        // pedido) — igual que el resto de las funciones de IA del sitio, se
+        // exige sesión real acá para que no cualquiera con la anon key
+        // pública pueda llamarla gratis sin límite.
+        if (!supabaseClient) { errorBox.textContent = "No se pudo conectar. Recargá la página."; errorBox.classList.add("show"); return; }
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+          errorBox.innerHTML = 'Iniciá sesión para usar la lectura automática de links — <a href="mi-cuenta.html">entrá acá →</a>';
+          errorBox.classList.add("show");
+          return;
+        }
         const resp = await fetch(EXTRACT_PRODUCT_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "apikey": SUPABASE_ANON_KEY,
-            "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+            "Authorization": "Bearer " + session.access_token,
           },
           body: JSON.stringify({ url }),
         });

@@ -460,7 +460,7 @@
 function uidA() { return Math.random().toString(36).slice(2, 9); }
 function nuevoProductoAdmin() {
   return {
-    id: uidA(), nombre: "", codigoHS: "", cantidad: "", fob: "",
+    id: uidA(), nombre: "", codigoHS: "", cantidad: "", fob: "", linkProducto: "",
     pesoModo: "total", peso: "", pesoTotalRef: "", pesoTotalRefCantidad: "", pesoUnidad: "kg",
     largo: "", ancho: "", alto: "", dimUnidad: "cm", unidadesPorCaja: "",
     prodLargo: "", prodAncho: "", prodAlto: "",
@@ -502,6 +502,10 @@ try {
 function guardarProductos() {
   try { localStorage.setItem(PRODUCTOS_KEY, JSON.stringify(productos)); } catch (e) {}
 }
+
+// No se persiste (a propósito) — es feedback transitorio de la última
+// lectura de link por producto, se pisa/limpia en cada intento.
+let linkErrores = {};
 
 function uidP() { return Math.random().toString(36).slice(2, 9); }
 function nuevoPresupuesto() {
@@ -1120,6 +1124,68 @@ function renderAcumuladoCourier() {
   `;
 }
 
+// Lee el link (Alibaba/1688/AliExpress/...) vía la Edge Function
+// extract-product y precarga nombre, foto, FOB, peso y medidas — separando
+// medidas de la CAJA (data.producto.caja) de las del PRODUCTO individual
+// (data.producto.unidad), porque acá sí distinguimos ambas (a diferencia del
+// cotizador público, que solo tiene un juego de medidas del bulto).
+async function extraerLinkAdmin(id) {
+  const p = productos.find((x) => x.id === id);
+  if (!p) return;
+  const input = document.querySelector(`[data-field="linkProducto"][data-id="${id}"]`);
+  const url = input ? input.value.trim() : "";
+  if (!url) { linkErrores[id] = "Pegá primero el link del producto."; renderFormulario(); return; }
+  const btn = document.querySelector(`[data-extraer-link="${id}"]`);
+  if (btn) { btn.disabled = true; btn.textContent = "Leyendo…"; }
+  delete linkErrores[id];
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) { linkErrores[id] = "Sesión inválida — volvé a iniciar sesión."; renderFormulario(); return; }
+    const resp = await fetch(EXTRACT_PRODUCT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + session.access_token },
+      body: JSON.stringify({ url }),
+    });
+    const data = await resp.json();
+    if (!data.success) {
+      linkErrores[id] = data.error || "No pudimos leer ese link. Cargá los datos a mano.";
+      renderFormulario();
+      return;
+    }
+    p.linkProducto = url;
+    if (data.titulo) p.nombre = data.titulo;
+    if (data.imagen) p.foto = data.imagen;
+    if (data.precio) p.fob = String(data.precio);
+    if (data.pesoEncontrado && data.pesoKg) {
+      p.pesoModo = "unidad";
+      p.peso = String(Math.round(data.pesoKg * 1000));
+      p.pesoUnidad = "g";
+    }
+    const caja = data.producto && data.producto.caja;
+    const unidad = data.producto && data.producto.unidad;
+    if (caja && caja.largoCm != null && caja.anchoCm != null && caja.altoCm != null) {
+      p.dimUnidad = "cm";
+      p.largo = String(caja.largoCm);
+      p.ancho = String(caja.anchoCm);
+      p.alto = String(caja.altoCm);
+    }
+    if (unidad && unidad.largoCm != null && unidad.anchoCm != null && unidad.altoCm != null) {
+      p.prodLargo = String(unidad.largoCm);
+      p.prodAncho = String(unidad.anchoCm);
+      p.prodAlto = String(unidad.altoCm);
+    }
+    if (data.producto && data.producto.piezasPorCaja) p.unidadesPorCaja = String(data.producto.piezasPorCaja);
+    guardarProductos();
+    renderFormulario();
+  } catch (e) {
+    linkErrores[id] = "No se pudo conectar con el servicio de lectura de links.";
+    renderFormulario();
+  } finally {
+    const btnFinal = document.querySelector(`[data-extraer-link="${id}"]`);
+    if (btnFinal) { btnFinal.disabled = false; btnFinal.textContent = "🔗 Extraer"; }
+  }
+}
+
 // ---------- Render formulario ----------
 function renderFormulario() {
   const cont = document.getElementById("productos-admin");
@@ -1131,6 +1197,11 @@ function renderFormulario() {
     div.className = "producto-card";
     div.innerHTML = `
       ${productos.length > 1 ? `<button class="del" data-del="${p.id}">✕</button>` : ""}
+      <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <input type="text" data-field="linkProducto" data-id="${p.id}" value="${escHtml(p.linkProducto || "")}" placeholder="Pegá el link del producto (Alibaba, 1688, AliExpress...) y extraé los datos" style="flex:1; background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:9px 10px; font-size:12.5px; font-family:inherit; color:var(--ink);" />
+        <button type="button" class="btn-ghost" data-extraer-link="${p.id}" style="flex:none; padding:9px 14px; font-size:12px; white-space:nowrap;">🔗 Extraer</button>
+      </div>
+      ${linkErrores[p.id] ? `<div style="font-size:11px; color:var(--coral-deep); margin:-4px 0 10px;">⚠️ ${escHtml(linkErrores[p.id])}</div>` : ""}
       <div style="display:flex; gap:12px; margin-bottom:12px; align-items:flex-start;">
         <div>
           <label style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); display:block; margin-bottom:4px;">Foto</label>
@@ -1413,6 +1484,8 @@ document.getElementById("productos-admin").addEventListener("click", (e) => {
     renderPresupuestos();
     return;
   }
+  const extraerLinkId = e.target.getAttribute("data-extraer-link");
+  if (extraerLinkId) { extraerLinkAdmin(extraerLinkId); return; }
   const ncmId = e.target.getAttribute("data-guardar-ncm");
   if (ncmId) {
     const p = productos.find((x) => x.id === ncmId);

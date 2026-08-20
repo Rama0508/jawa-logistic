@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Jawa Logistic — Air &amp; Ocean Freight · China → Argentina</title>
 <meta name="description" content="Importá desde China a Argentina con precio cerrado: flete internacional incluido, depósito propio en Guangzhou, gestión 100% por WhatsApp y seguimiento hasta la entrega." />
 <meta property="og:title" content="Jawa Logistic — Air & Ocean Freight · China → Argentina" />
@@ -31,15 +31,15 @@
       <span class="ad-logo">⚡</span>
       <span class="ad-copy"><span class="ad-brand">CeluExpress</span><span class="ad-tagline">Reparación y venta · Envíos a todo Tucumán</span><span class="ad-phone">📞 381 620-7743</span></span>
     </a>
-    <a class="ad-panel ad-panel-web" href="https://wa.me/5493813528234?text=Hola!%20Vi%20el%20anuncio%20en%20Jawa%20Logistic%20y%20quiero%20consultar." target="_blank" rel="noopener" aria-hidden="true">
+    <a class="ad-panel ad-panel-web" href="https://wa.me/5493813528234?text=Hola!%20Vi%20el%20anuncio%20en%20Jawa%20Logistic%20y%20quiero%20consultar." target="_blank" rel="noopener" aria-hidden="true" tabindex="-1">
       <span class="ad-logo">&lt;/&gt;</span>
       <span class="ad-copy"><span class="ad-brand">Desarrollo Web</span><span class="ad-tagline">Páginas · Software a medida · Chatbots</span><span class="ad-phone">📞 381 352-8234</span></span>
     </a>
-    <a class="ad-panel ad-panel-tecnocel" href="https://wa.me/5493814559021?text=Hola!%20Vi%20el%20anuncio%20de%20TecnoCel%20en%20Jawa%20Logistic." target="_blank" rel="noopener" aria-hidden="true">
+    <a class="ad-panel ad-panel-tecnocel" href="https://wa.me/5493814559021?text=Hola!%20Vi%20el%20anuncio%20de%20TecnoCel%20en%20Jawa%20Logistic." target="_blank" rel="noopener" aria-hidden="true" tabindex="-1">
       <span class="ad-logo">📱</span>
       <span class="ad-copy"><span class="ad-brand">TecnoCel Tucumán</span><span class="ad-tagline">Celulares nuevos y usados · Cuotas sin interés</span><span class="ad-phone">📞 381 455-9021</span></span>
     </a>
-    <a class="ad-panel ad-panel-celuexpress" href="https://wa.me/5493816207743?text=Hola!%20Vi%20el%20anuncio%20de%20CeluExpress%20en%20Jawa%20Logistic." target="_blank" rel="noopener" aria-hidden="true">
+    <a class="ad-panel ad-panel-celuexpress" href="https://wa.me/5493816207743?text=Hola!%20Vi%20el%20anuncio%20de%20CeluExpress%20en%20Jawa%20Logistic." target="_blank" rel="noopener" aria-hidden="true" tabindex="-1">
       <span class="ad-logo">⚡</span>
       <span class="ad-copy"><span class="ad-brand">CeluExpress</span><span class="ad-tagline">Reparación y venta · Envíos a todo Tucumán</span><span class="ad-phone">📞 381 620-7743</span></span>
     </a>
@@ -233,38 +233,43 @@
     <div class="quick-quote">
       <div class="qq-eyebrow">Cotización rápida</div>
       <p style="font-size:12.5px; color:var(--muted); margin:-6px 0 16px; text-align:center;">Esto es una estimación de un solo producto. Para el desglose completo de costos (aranceles, IVA, tasas, todo el detalle) y armar tu pedido real, <a href="mi-cuenta.html" style="color:var(--navy); font-weight:700;">iniciá sesión en tu HUB →</a></p>
+      <div class="qq-link-row">
+        <input type="text" id="qq-link" placeholder="Pegá el link del producto (Alibaba, 1688, AliExpress...)" />
+        <button class="qq-link-btn" id="qq-link-btn" type="button">🔗 Autocompletar</button>
+      </div>
+      <div class="qq-link-msg" id="qq-link-msg"></div>
       <div class="qq-body">
         <div class="qq-field">
-          <label>Vía</label>
+          <label for="qq-via">Vía</label>
           <select id="qq-via">
             <option value="aereo">✈️ Aéreo</option>
             <option value="maritimo">🚢 Marítimo</option>
           </select>
         </div>
         <div class="qq-field">
-          <label>Nombre del producto</label>
+          <label for="qq-nombre">Nombre del producto</label>
           <input type="text" id="qq-nombre" placeholder="Ej: auriculares bluetooth" />
         </div>
         <div class="qq-field">
-          <label>FOB unitario (USD) <span class="qq-tooltip" tabindex="0" title="Es el precio del producto que te da tu proveedor (Alibaba, 1688, etc.), antes del flete internacional — el número que aparece en la cotización o en la ficha del producto.">?</span></label>
+          <label for="qq-fob">FOB unitario (USD) <span class="qq-tooltip" tabindex="0" title="Es el precio del producto que te da tu proveedor (Alibaba, 1688, etc.), antes del flete internacional — el número que aparece en la cotización o en la ficha del producto.">?</span></label>
           <input type="text" inputmode="decimal" id="qq-fob" placeholder="0.00" />
         </div>
         <div class="qq-field">
-          <label>Peso por unidad</label>
+          <label for="qq-peso">Peso por unidad</label>
           <div class="qq-peso-row">
             <input type="text" inputmode="decimal" id="qq-peso" placeholder="0" />
-            <select id="qq-peso-unidad">
+            <select id="qq-peso-unidad" aria-label="Unidad de peso">
               <option value="g">g</option>
               <option value="kg">kg</option>
             </select>
           </div>
         </div>
         <div class="qq-field">
-          <label>Cantidad</label>
+          <label for="qq-cantidad">Cantidad</label>
           <input type="text" inputmode="decimal" id="qq-cantidad" placeholder="1" />
         </div>
         <div class="qq-field">
-          <label>Peso total (estimado)</label>
+          <label for="qq-peso-total">Peso total (estimado)</label>
           <input type="text" id="qq-peso-total" value="0 g" readonly />
         </div>
         <button class="qq-btn" id="qq-calcular" type="button">Calcular</button>
@@ -431,9 +436,9 @@
   <svg viewBox="0 0 24 24" fill="#ffffff"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2zm5.8 14.2c-.24.68-1.4 1.3-1.94 1.36-.5.06-1.12.08-1.8-.11-.42-.12-.96-.3-1.65-.6-2.9-1.26-4.8-4.16-4.94-4.36-.14-.2-1.17-1.56-1.17-2.98 0-1.42.74-2.12 1-2.41.26-.29.58-.36.77-.36h.55c.18 0 .42-.03.65.5.24.55.8 1.9.87 2.04.07.14.12.3.02.49-.1.19-.15.3-.3.47-.15.17-.31.37-.44.5-.15.14-.3.3-.13.6.17.3.76 1.26 1.64 2.04 1.13 1 2.08 1.32 2.38 1.47.3.15.48.13.65-.08.18-.2.75-.87.95-1.17.2-.3.4-.24.67-.14.28.1 1.76.83 2.06.98.3.15.5.22.58.35.08.13.08.75-.16 1.43z"/></svg>
 </a>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/rates.js"></script>
-<script src="js/tienda.js"></script>
-<script src="js/main.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="js/rates.js" defer></script>
+<script src="js/tienda.js" defer></script>
+<script src="js/main.js" defer></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex, nofollow" />
 <title>Calculadora de importación — Portal de cliente — Jawa Logistic</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
@@ -49,6 +49,7 @@ try {
     const TELEFONO_JAWA = "+54 9 381 331-2280";
     const CLASIFICAR_PRODUCTO_URL = `${SUPABASE_URL}/functions/v1/clasificar-producto`;
     const WIZ_KEY = "jawa_hub_calc_importacion_v1";
+    // EXTRACT_PRODUCT_URL viene de js/rates.js (compartida con index.html y servicios.html)
 
     function pNum(v) {
       const n = parseFloat(String(v || "").trim().replace(",", "."));
@@ -61,7 +62,7 @@ try {
     function nuevoProductoWiz() {
       return {
         id: uid(), nombre: "", codigoHS: "", codigoHSFuente: "", descripcion: "", foto: "",
-        fotoPath: "", fotoNombre: "",
+        fotoPath: "", fotoNombre: "", linkProducto: "",
         rubro: "", confianza: "", advertenciaIA: "",
         alicuotas: { die: "", iva: "21", ivaAdicional: "20", ganancias: "6", iibb: "0", tasaEstadistica: "3" },
         cantidad: "", fob: "", origen: "china",
@@ -236,7 +237,12 @@ try {
           <div class="wiz-path-card wiz-path-featured">
             <div class="wiz-path-label">Camino A · Recomendado</div>
             <div class="wiz-path-title">No tengo los papeles</div>
-            <div class="wiz-path-sub">Describí el producto y la IA lo clasifica</div>
+            <div class="wiz-path-sub">Pegá el link del producto — la IA completa nombre, FOB, peso, medidas y la clasificación</div>
+            <div class="hub-field">
+              <input type="text" id="wiz-link" placeholder="Link de Alibaba, 1688, AliExpress..." value="${escHtml(p.linkProducto || "")}" />
+            </div>
+            <button class="hub-btn-primary" id="wiz-extraer-link" type="button" style="width:100%;">🔗 Extraer del link →</button>
+            <div style="text-align:center; margin:10px 0 4px; font-size:11px; color:var(--muted);">— o describilo vos —</div>
             <div class="hub-field">
               <input type="text" id="wiz-descripcion" placeholder="ej: parlantes bluetooth" value="${escHtml(p.descripcion || p.nombre)}" />
             </div>
@@ -281,6 +287,66 @@ try {
           <div class="wiz-note">✓ <b>${escHtml(p.nombre)}</b> ya tiene una clasificación cargada (rubro: ${escHtml(p.rubro)}). Podés continuar al paso 2 para revisarla, o volver a analizar.</div>
         ` : ""}
       `;
+    }
+
+    // Lee el link (Alibaba/1688/AliExpress/...) vía la Edge Function
+    // extract-product y precarga nombre/FOB/peso/medidas — después encadena
+    // "Analizar con IA" (clasificar-producto) usando el título extraído como
+    // descripción, así el link también completa el rubro y las alícuotas sin
+    // duplicar esa lógica acá.
+    async function extraerDeLink() {
+      const p = productoActivo();
+      const url = document.getElementById("wiz-link").value.trim();
+      const estado = document.getElementById("wiz-ia-estado");
+      if (!url) { estado.textContent = "Pegá primero el link del producto."; return; }
+      const btn = document.getElementById("wiz-extraer-link");
+      btn.disabled = true; btn.textContent = "Leyendo el link…";
+      estado.textContent = "";
+      try {
+        const resp = await fetch(EXTRACT_PRODUCT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + session.access_token },
+          body: JSON.stringify({ url }),
+        });
+        const data = await resp.json();
+        if (!data.success) {
+          estado.textContent = "⚠️ " + (data.error || "No pudimos leer ese link. Cargá los datos a mano.");
+          return;
+        }
+        p.linkProducto = url;
+        if (data.titulo) { p.nombre = data.titulo; p.descripcion = data.titulo; }
+        if (data.imagen) p.foto = data.imagen;
+        if (data.precio) p.fob = String(data.precio);
+        if (data.pesoEncontrado && data.pesoKg) {
+          p.pesoModo = "unidad";
+          p.peso = String(Math.round(data.pesoKg * 1000));
+          p.pesoUnidad = "g";
+        }
+        if (data.medidasEncontradas) {
+          p.largo = String(Number(data.largoCm).toFixed(1));
+          p.ancho = String(Number(data.anchoCm).toFixed(1));
+          p.alto = String(Number(data.altoCm).toFixed(1));
+        }
+        guardarWiz();
+        if (data.titulo) {
+          // Ojo: no se re-renderiza acá a propósito (analizarConIA lee el
+          // valor en vivo de #wiz-descripcion, y un render() de por medio le
+          // haría perder el foco al usuario) — así que el título extraído se
+          // escribe directo en el input existente antes de encadenar.
+          const descInput = document.getElementById("wiz-descripcion");
+          if (descInput) descInput.value = data.titulo;
+          estado.textContent = "✓ Datos leídos del link — clasificando con IA…";
+          await analizarConIA();
+        } else {
+          estado.textContent = "✓ " + (data.advertencia || "Datos cargados — revisalos antes de continuar.");
+          render();
+        }
+      } catch (e) {
+        estado.textContent = "⚠️ No se pudo conectar con el servicio de lectura de links.";
+      } finally {
+        const btnFinal = document.getElementById("wiz-extraer-link");
+        if (btnFinal) { btnFinal.disabled = false; btnFinal.textContent = "🔗 Extraer del link →"; }
+      }
     }
 
     async function analizarConIA() {
@@ -792,6 +858,7 @@ try {
     document.getElementById("wiz-content").addEventListener("click", (e) => {
       const action = e.target.closest("[data-action]") ? e.target.closest("[data-action]").getAttribute("data-action") : null;
       if (!action) {
+        if (e.target.id === "wiz-extraer-link") { extraerDeLink(); }
         if (e.target.id === "wiz-analizar-ia") { analizarConIA(); }
         if (e.target.id === "wiz-cargar-sin-ia") { cargarSinIA(); }
         if (e.target.id === "wiz-solicitar") { solicitarCotizacion(); }

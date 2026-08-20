@@ -5,9 +5,9 @@
     --ink:#171b22;
     --paper:#f6f7fa;
     --paper-2:#eceff4;
-    --coral:#c9502e;
+    --coral:#c54e2d;
     --coral-deep:#a23f22;
-    --gold:#a9865a;
+    --gold:#8c6f4b;
     --gold-bright:#d7b686;
     --line:#dde1e8;
     --muted:#5b6472;
@@ -275,6 +275,15 @@
   .quick-quote { background:var(--white); border-radius:14px; box-shadow:0 24px 54px -22px rgba(0,0,0,0.5); padding:22px 24px; margin:-64px auto 0; max-width:860px; text-align:left; color:var(--ink); }
   @media (max-width:700px) { .quick-quote { margin-top:-40px; } }
   .qq-eyebrow { font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--coral); margin-bottom:14px; }
+  .qq-link-row { display:flex; gap:8px; margin-bottom:14px; }
+  .qq-link-row input { flex:1; background:var(--paper); border:1px solid var(--line); border-radius:7px; padding:11px 12px; font-size:13.5px; font-family:inherit; color:var(--ink); min-width:0; }
+  .qq-link-row input:focus { outline:none; border-color:var(--navy); }
+  .qq-link-btn { background:var(--navy); color:#fff; border:none; border-radius:7px; padding:0 16px; font-size:12.5px; font-weight:800; cursor:pointer; font-family:inherit; white-space:nowrap; flex:none; }
+  .qq-link-btn:hover { opacity:.9; }
+  .qq-link-btn:disabled { opacity:.6; cursor:default; }
+  .qq-link-msg { font-size:11.5px; color:var(--muted); margin:-8px 0 14px; min-height:14px; }
+  .qq-link-msg.error { color:var(--coral-deep); }
+  @media (max-width:700px) { .qq-link-row { flex-direction:column; } .qq-link-btn { width:100%; } }
   .qq-body { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; align-items:end; }
   .qq-field { display:flex; flex-direction:column; gap:5px; }
   .qq-field label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); display:flex; align-items:center; }
@@ -775,14 +784,14 @@
   .footer-brand { display:flex; align-items:center; gap:14px; }
   .footer-brand .logo-box { width:46px; height:46px; }
   .footer-brand-text .jawa { font-family: var(--font-display); font-size:20px; font-weight:700; color: var(--white); letter-spacing:.02em; line-height:1; }
-  .footer-brand-text .logistic { font-size:11px; font-weight:700; letter-spacing:.2em; color: var(--coral); margin-top:4px; }
+  .footer-brand-text .logistic { font-size:11px; font-weight:700; letter-spacing:.2em; color: var(--gold-bright); margin-top:4px; }
   .footer-brand-text .tagline { font-size:10px; font-weight:700; letter-spacing:.16em; color: var(--gold-bright); margin-top:6px; text-transform:uppercase; }
   .footer-grid { display:flex; flex-wrap:wrap; gap:32px; justify-content:space-between; padding: 46px 0 26px; }
   .footer-col .t { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color: var(--gold-bright); margin-bottom:12px; }
   .footer-col a, .footer-col div.line { display:block; font-size:13px; line-height:2.1; color: rgba(255,255,255,0.75); text-decoration:none; }
   .footer-col a:hover { color: var(--white); }
-  .footer-legal { font-size:11px; color: rgba(255,255,255,0.4); text-align:center; padding: 18px 0 0; border-top:1px solid rgba(255,255,255,0.12); }
-  .footer-bottom { font-size:11px; color: rgba(255,255,255,0.45); text-align:center; padding: 8px 0 24px; }
+  .footer-legal { font-size:11px; color: rgba(255,255,255,0.55); text-align:center; padding: 18px 0 0; border-top:1px solid rgba(255,255,255,0.12); }
+  .footer-bottom { font-size:11px; color: rgba(255,255,255,0.55); text-align:center; padding: 8px 0 24px; }
 
   /* Floating WhatsApp */
   .float-wa { position:fixed; bottom:22px; right:22px; z-index:50; width:56px; height:56px; border-radius:50%; background:#25d366; display:flex; align-items:center; justify-content:center; box-shadow: 0 8px 20px -6px rgba(0,0,0,0.4); text-decoration:none; opacity:0; transform: translateY(12px) scale(.9); transition: opacity .3s ease, transform .3s ease; }

@@ -56,6 +56,32 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+// x-forwarded-for trae la cadena completa de proxies (cliente, primero) —
+// solo nos interesa el primero, la IP real de quien hizo el pedido.
+function obtenerIp(req: Request): string {
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim();
+  return req.headers.get("x-real-ip") || "desconocida";
+}
+
+// Límite anti-abuso: 5 usos por cuenta Y 5 por IP cada 7 días (lo que se
+// alcance primero) — ver supabase/migrations/0023_limite_uso_ia.sql. Sin
+// esto, un cliente (o alguien con varias cuentas desde la misma conexión)
+// podía llamar esta función sin tope y comerse el crédito de Anthropic.
+async function dentroDelLimite(tipo: string, userId: string, ip: string): Promise<boolean> {
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/rpc/chequear_limite_ia`, {
+      method: "POST",
+      headers: { "content-type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + SUPABASE_ANON_KEY },
+      body: JSON.stringify({ p_tipo: tipo, p_user_id: userId, p_ip: ip }),
+    });
+    if (!resp.ok) return true; // si el chequeo falla, no bloqueamos al usuario por un problema nuestro
+    return await resp.json();
+  } catch {
+    return true;
+  }
+}
+
 const ALICUOTAS_SCHEMA = {
   type: "object",
   properties: {
@@ -101,6 +127,14 @@ Deno.serve(async (req: Request) => {
   });
   const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
   if (userError || !user) return jsonResponse({ success: false, error: "Sesión inválida — volvé a iniciar sesión." }, 401);
+
+  const permitido = await dentroDelLimite("clasificar_producto", user.id, obtenerIp(req));
+  if (!permitido) {
+    return jsonResponse({
+      success: false,
+      error: "Llegaste al límite de 5 clasificaciones por IA por semana. Probá de nuevo la semana que viene, o cargá los datos a mano.",
+    }, 429);
+  }
 
   let descripcion: string | undefined;
   let imagenBase64: string | undefined;
