@@ -792,6 +792,9 @@
   .footer-col a:hover { color: var(--white); }
   .footer-legal { font-size:11px; color: rgba(255,255,255,0.55); text-align:center; padding: 18px 0 0; border-top:1px solid rgba(255,255,255,0.12); }
   .footer-bottom { font-size:11px; color: rgba(255,255,255,0.55); text-align:center; padding: 8px 0 24px; }
+  .footer-credit { font-size:11px; color: rgba(255,255,255,0.55); text-align:center; padding: 0 0 24px; }
+  .footer-credit a { color: var(--gold-bright); text-decoration:none; font-weight:600; }
+  .footer-credit a:hover { text-decoration:underline; }
 
   /* Floating WhatsApp */
   .float-wa { position:fixed; bottom:22px; right:22px; z-index:50; width:56px; height:56px; border-radius:50%; background:#25d366; display:flex; align-items:center; justify-content:center; box-shadow: 0 8px 20px -6px rgba(0,0,0,0.4); text-decoration:none; opacity:0; transform: translateY(12px) scale(.9); transition: opacity .3s ease, transform .3s ease; }
