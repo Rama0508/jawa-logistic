@@ -364,6 +364,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="js/rates.js"></script>
 <script src="js/mfa.js"></script>
 <script src="js/cotizador-core.js"></script>
@@ -1843,12 +1845,45 @@ function enviarPresupuestoWhatsapp(id) {
   window.open(url, "_blank");
 }
 
+// Arma un contenedor fuera de pantalla con el HTML dado, lo convierte a PDF
+// con html2pdf (html2canvas + jsPDF por debajo) y lo descarga. Compartido
+// entre descargarPresupuesto y descargarInformeCompleto.
+async function descargarComoPdf(innerHtml, nombreArchivo, onMounted) {
+  const cont = document.createElement("div");
+  // Nada de opacity:0 ni position:fixed con offset negativo para "ocultarlo" — probado a mano:
+  // html2canvas captura en blanco o recortado con esos trucos. Va en el flujo normal del
+  // documento (al final del body), así quede fuera de la vista sin romper la captura.
+  cont.style.cssText = "width:800px; background:#fff;";
+  cont.innerHTML = innerHtml;
+  document.body.appendChild(cont);
+  try {
+    if (onMounted) onMounted(cont);
+    // Deja que los <canvas> de Chart.js terminen de dibujar antes de la
+    // captura — con animation:false pintan sync, pero un tick de margen
+    // evita capturas a medio dibujar en navegadores más lentos.
+    await new Promise((r) => setTimeout(r, 60));
+    await html2pdf()
+      .set({
+        margin: [10, 10],
+        filename: nombreArchivo,
+        image: { type: "jpeg", quality: 0.95 },
+        html2canvas: { useCORS: true },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["css", "legacy"] },
+      })
+      .from(cont)
+      .save();
+  } finally {
+    document.body.removeChild(cont);
+  }
+}
+
 function descargarPresupuesto(id) {
   const d = datosPresupuesto(id);
   if (!d.items.length) { alert("Agregá al menos un producto con cantidad antes de descargar."); return; }
   const fecha = new Date().toLocaleDateString("es-AR");
   const itemsHtml = d.items.map((i) => `
-    <div style="display:flex; gap:16px; padding:16px 0; border-bottom:1px solid #eee;">
+    <div style="display:flex; gap:16px; padding:16px 0; border-bottom:1px solid #eee; page-break-inside:avoid;">
       ${i.foto ? `<img src="${escHtml(i.foto)}" style="width:90px; height:90px; object-fit:cover; border-radius:8px; flex:none;" />` : `<div style="width:90px; height:90px; border-radius:8px; background:#f2ede0; flex:none;"></div>`}
       <div style="flex:1;">
         <div style="font-weight:700; font-size:15px; color:#16223d;">${escHtml(i.nombre)}</div>
@@ -1859,19 +1894,11 @@ function descargarPresupuesto(id) {
         </div>
       </div>
     </div>`).join("");
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Presupuesto — ${escHtml(d.cliente)}</title>
-    <style>
-      body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; color:#171b22; padding: 32px; max-width:720px; margin:0 auto; background:#fff; }
-      @media print { button { display: none; } body { padding:0; } }
-      .membrete { display:flex; align-items:center; gap:12px; padding-bottom:18px; border-bottom:2px solid #c9502e; margin-bottom:22px; }
-      .membrete-title { font-size:20px; font-weight:800; letter-spacing:1px; }
-      .membrete-sub { font-size:11px; color:#5b6472; letter-spacing:2px; text-transform:uppercase; }
-    </style></head>
-    <body>
-      <button onclick="window.print()" style="margin-bottom:20px;padding:10px 18px;font-size:13px;cursor:pointer;background:#c9502e;color:#fff;border:none;border-radius:6px;">Imprimir / Guardar como PDF</button>
-      <div class="membrete">
+  const html = `
+    <div style="font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; color:#171b22; padding: 20px; background:#fff;">
+      <div style="display:flex; align-items:center; gap:12px; padding-bottom:18px; border-bottom:2px solid #c9502e; margin-bottom:22px;">
         <svg width="46" height="46" viewBox="0 0 236 236"><circle cx="118" cy="118" r="106" fill="#ffffff" stroke="#16223d" stroke-width="10"/><rect x="88" y="88" width="60" height="60" fill="#c9502e" transform="rotate(45 118 118)"/></svg>
-        <div><div class="membrete-title">JAWA LOGISTIC</div><div class="membrete-sub">China · Miami · Argentina</div></div>
+        <div><div style="font-size:20px; font-weight:800; letter-spacing:1px;">JAWA LOGISTIC</div><div style="font-size:11px; color:#5b6472; letter-spacing:2px; text-transform:uppercase;">China · Miami · Argentina</div></div>
       </div>
       <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px;">
         <h1 style="font-size:19px; margin:0;">Presupuesto</h1>
@@ -1883,13 +1910,11 @@ function descargarPresupuesto(id) {
         <div style="font-size:20px; font-weight:700;">Total: <span style="color:#c9502e;">$${fmtA(d.total)}</span></div>
       </div>
       <div style="margin-top:32px; font-size:10.5px; color:#a89a80; border-top:1px solid #eee; padding-top:12px;">Presupuesto sujeto a confirmación de stock — Jawa Logistic.</div>
-    </body></html>`;
-  const blob = new Blob([html], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = `presupuesto-${d.cliente.toLowerCase().replace(/\s+/g, "-")}.html`;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+    </div>`;
+  descargarComoPdf(html, `presupuesto-${d.cliente.toLowerCase().replace(/\s+/g, "-")}.pdf`).catch((err) => {
+    console.error("No se pudo generar el presupuesto en PDF:", err);
+    alert("No se pudo generar el PDF. Probá de nuevo.");
+  });
 }
 
 // ---------- Charts (canvas) ----------
@@ -2482,7 +2507,7 @@ document.getElementById("generar-informe").addEventListener("click", () => {
 // del panel interno, a diferencia de "Generar informe" (que queda en
 // pantalla). Reusa calcularResultadosInforme() para no duplicar la lógica
 // de costos/conversión dual blue-MEP.
-function descargarInformeCompleto() {
+async function descargarInformeCompleto() {
   const origen = document.getElementById("cfg-origen").value;
   const blue = pNumA(document.getElementById("cfg-blue").value) || 1;
   const mep = pNumA(document.getElementById("cfg-mep").value) || blue;
@@ -2647,31 +2672,20 @@ function descargarInformeCompleto() {
     ? `Informe — ${resultados[0].p.nombre} — Jawa Logistic`
     : `Informe — ${resultados[0].p.nombre} y ${resultados.length - 1} más — Jawa Logistic`;
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${escHtml(tituloInforme)}</title>
-    <style>
-      body { font-family: ui-monospace, Menlo, monospace; color:#2C2416; padding: 32px; max-width:820px; margin:0 auto; background:#fff; position:relative; }
-      @media print { button { display: none; } body { padding:16px; } }
-      .membrete { display:flex; align-items:center; gap:12px; padding-bottom:18px; border-bottom:2px solid #B5622E; margin-bottom:24px; }
-      .membrete-title { font-size:20px; font-weight:700; letter-spacing:1px; }
-      .membrete-sub { font-size:11px; color:#8a7a5f; letter-spacing:2px; text-transform:uppercase; }
-      .watermark { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 0; pointer-events: none; overflow: hidden; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 60px; transform: rotate(-30deg) scale(1.4); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .watermark span { font-size: 22px; font-weight: 700; letter-spacing: 2px; color: #B5622E; opacity: 0.07; white-space: nowrap; }
-      .contenido { position: relative; z-index: 1; }
-    </style></head>
-    <body>
-      <div class="watermark">${Array(60).fill("<span>JAWA LOGISTIC</span>").join("")}</div>
-      <div class="contenido">
-      <button onclick="window.print()" style="margin-bottom:20px;padding:10px 18px;font-size:13px;cursor:pointer;background:#B5622E;color:#fff;border:none;border-radius:6px;">Imprimir / Guardar como PDF</button>
+  const html = `
+    <div style="font-family: ui-monospace, Menlo, monospace; color:#2C2416; padding: 24px; background:#fff; position:relative;">
+      <div style="position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; display:flex; flex-wrap:wrap; align-content:flex-start; justify-content:center; gap:60px; transform:rotate(-30deg) scale(1.4);">${Array(200).fill('<span style="font-size:22px; font-weight:700; letter-spacing:2px; color:#B5622E; opacity:0.07; white-space:nowrap;">JAWA LOGISTIC</span>').join("")}</div>
+      <div style="position:relative; z-index:1;">
 
-      <div class="membrete">
+      <div style="display:flex; align-items:center; gap:12px; padding-bottom:18px; border-bottom:2px solid #B5622E; margin-bottom:24px;">
         <svg width="52" height="52" viewBox="0 0 236 236">
           <circle cx="118" cy="118" r="112" fill="#7a1f22" stroke="#e0942f" stroke-width="4"/>
           <path d="M 54,137 Q 78,52 118,74 Q 150,93 182,103" fill="none" stroke="#f0913b" stroke-width="7" stroke-linecap="round"/>
           <circle cx="54" cy="137" r="8" fill="#e0942f"/><circle cx="118" cy="74" r="7" fill="#fff"/><circle cx="182" cy="103" r="8" fill="#ffd98a"/>
         </svg>
         <div>
-          <div class="membrete-title">JAWA LOGISTIC</div>
-          <div class="membrete-sub">China · Miami · Argentina</div>
+          <div style="font-size:20px; font-weight:700; letter-spacing:1px;">JAWA LOGISTIC</div>
+          <div style="font-size:11px; color:#8a7a5f; letter-spacing:2px; text-transform:uppercase;">China · Miami · Argentina</div>
         </div>
       </div>
 
@@ -2744,54 +2758,60 @@ function descargarInformeCompleto() {
       <div style="margin-top:20px; font-size:10.5px; color:#a89a80; border-top:1px solid #eee; padding-top:12px;">
         Informe generado con fines internos — valores estimados sujetos a variación de tarifas de flete y tipo de cambio. Dólar blue: $${fmtA(blue)} — Dólar MEP: $${fmtA(mep)}.
       </div>
-
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"><\/script>
-      <script>
-        new Chart(document.getElementById("chartTorta"), {
-          type: "doughnut",
-          data: {
-            labels: ["FOB (proveedor)", "Flete"],
-            datasets: [{ data: [${totales.fob}, ${totales.flete}], backgroundColor: ["#B5622E", "#0F6E56"], borderWidth: 0 }]
-          },
-          options: { plugins: { legend: { display: false } }, cutout: "62%" }
-        });
-
-        new Chart(document.getElementById("chartBarras"), {
-          type: "bar",
-          data: {
-            labels: ${JSON.stringify(resultados.map((x) => (x.p.nombre.length > 22 ? x.p.nombre.slice(0, 22) + "…" : x.p.nombre) + " (" + x.r.cantidad + "u.)"))},
-            datasets: [
-              { label: "Costo", data: ${JSON.stringify(resultados.map((x) => Math.round(x.seleccionado.costoU * x.r.cantidad * 100) / 100))}, backgroundColor: "#c9bda3" },
-              { label: "Venta", data: ${JSON.stringify(resultados.map((x) => Math.round(x.ventaU * x.r.cantidad * 100) / 100))}, backgroundColor: "#B5622E" },
-              { label: "Ganancia", data: ${JSON.stringify(resultados.map((x) => Math.round(x.gananciaTotal * 100) / 100))}, backgroundColor: "#0F6E56" }
-            ]
-          },
-          options: {
-            indexAxis: "y",
-            layout: { padding: { left: 4, right: 12 } },
-            plugins: { legend: { position: "top", labels: { font: { size: 11 } } } },
-            scales: {
-              x: { ticks: { callback: function(v) { return "$" + v; } } },
-              y: { ticks: { font: { size: 10 } } }
-            }
-          }
-        });
-      <\/script>
       </div>
-    </body></html>`;
+    </div>`;
 
-  const blob = new Blob([html], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
+  const graficosInformeCompleto = [];
+  const montarGraficos = (cont) => {
+    graficosInformeCompleto.push(new Chart(cont.querySelector("#chartTorta"), {
+      type: "doughnut",
+      data: {
+        labels: ["FOB (proveedor)", "Flete"],
+        datasets: [{ data: [totales.fob, totales.flete], backgroundColor: ["#B5622E", "#0F6E56"], borderWidth: 0 }]
+      },
+      options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: "62%" }
+    }));
+
+    graficosInformeCompleto.push(new Chart(cont.querySelector("#chartBarras"), {
+      type: "bar",
+      data: {
+        labels: resultados.map((x) => (x.p.nombre.length > 22 ? x.p.nombre.slice(0, 22) + "…" : x.p.nombre) + " (" + x.r.cantidad + "u.)"),
+        datasets: [
+          { label: "Costo", data: resultados.map((x) => Math.round(x.seleccionado.costoU * x.r.cantidad * 100) / 100), backgroundColor: "#c9bda3" },
+          { label: "Venta", data: resultados.map((x) => Math.round(x.ventaU * x.r.cantidad * 100) / 100), backgroundColor: "#B5622E" },
+          { label: "Ganancia", data: resultados.map((x) => Math.round(x.gananciaTotal * 100) / 100), backgroundColor: "#0F6E56" }
+        ]
+      },
+      options: {
+        animation: false,
+        maintainAspectRatio: false,
+        indexAxis: "y",
+        layout: { padding: { left: 4, right: 12 } },
+        plugins: { legend: { position: "top", labels: { font: { size: 11 } } } },
+        scales: {
+          x: { ticks: { callback: function(v) { return "$" + v; } } },
+          y: { ticks: { font: { size: 10 } } }
+        }
+      }
+    }));
+  };
+
   const nombreArchivo = resultados.length === 1
     ? resultados[0].p.nombre.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9\-]/g,"").slice(0, 40)
     : `${resultados[0].p.nombre.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9\-]/g,"").slice(0, 25)}-y-${resultados.length - 1}-mas`;
-  a.href = url; a.download = `informe-${nombreArchivo}-${fecha.replace(/\//g,"-")}.html`;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  try {
+    await descargarComoPdf(html, `informe-${nombreArchivo}-${fecha.replace(/\//g,"-")}.pdf`, montarGraficos);
+  } finally {
+    graficosInformeCompleto.forEach((c) => c.destroy());
+  }
 }
 
-document.getElementById("informe-completo-btn").addEventListener("click", descargarInformeCompleto);
+document.getElementById("informe-completo-btn").addEventListener("click", () => {
+  descargarInformeCompleto().catch((err) => {
+    console.error("No se pudo generar el informe en PDF:", err);
+    alert("No se pudo generar el PDF. Probá de nuevo.");
+  });
+});
 </script>
 </body>
 </html>
