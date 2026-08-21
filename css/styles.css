@@ -792,7 +792,7 @@
   .footer-col a:hover { color: var(--white); }
   .footer-legal { font-size:11px; color: rgba(255,255,255,0.55); text-align:center; padding: 18px 0 0; border-top:1px solid rgba(255,255,255,0.12); }
   .footer-bottom { font-size:11px; color: rgba(255,255,255,0.55); text-align:center; padding: 8px 0 24px; }
-  .footer-credit { font-size:11px; color: rgba(255,255,255,0.55); text-align:center; padding: 0 0 24px; }
+  .footer-credit { font-size:11px; color: rgba(255,255,255,0.55); text-align:center; padding: 6px 0 32px; }
   .footer-credit a { color: var(--gold-bright); text-decoration:none; font-weight:600; }
   .footer-credit a:hover { text-decoration:underline; }
 
