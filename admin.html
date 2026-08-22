@@ -192,7 +192,44 @@
 
   <div class="panel-tabs">
     <button class="panel-tab" id="tab-btn-calculo" data-panel-tab="calculo">🧮 Cálculo</button>
+    <button class="panel-tab" id="tab-btn-stock" data-panel-tab="stock">📦 Stock</button>
+    <button class="panel-tab" id="tab-btn-pedidos" data-panel-tab="pedidos">📋 Pedidos</button>
     <button class="panel-tab" id="tab-btn-datos" data-panel-tab="datos">⚙️ Datos</button>
+  </div>
+
+  <div id="panel-stock" style="display:none;">
+  <p class="sub" style="margin:-4px 0 16px;">Stock físico (lo que ya está en depósito) y en viaje (reposiciones propias + operaciones de clientes en curso). El stock físico se edita desde el panel de Tienda — acá es de solo lectura.</p>
+
+  <div class="card">
+    <div class="card-title">📦 Stock físico</div>
+    <div id="stock-fisico-lista"><p class="sub">Cargando…</p></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🚚 En viaje — reposiciones propias</div>
+    <p class="sub" style="margin-bottom:12px;">Mercadería que le compraste a un proveedor para reponer stock de la tienda, todavía no llegó.</p>
+    <div id="reposiciones-lista"><p class="sub">Cargando…</p></div>
+    <button class="btn-ghost" id="add-reposicion-btn" style="margin-top:10px;">+ Cargar reposición</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🌍 En viaje — operaciones de clientes</div>
+    <p class="sub" style="margin-bottom:12px;">Importaciones de clientes que ya salieron o están en aduana (depósito confirmado, en tránsito, en aduana).</p>
+    <div id="operaciones-transito-lista"><p class="sub">Cargando…</p></div>
+  </div>
+
+  <button class="btn-ghost" id="descargar-informe-stock">📄 Descargar informe de stock</button>
+  </div>
+
+  <div id="panel-pedidos" style="display:none;">
+  <p class="sub" style="margin:-4px 0 16px;">Todo lo que quedó a mitad de camino — pedidos de tienda y operaciones de importación de clientes que no llegaron a "entregado".</p>
+
+  <div class="card">
+    <div class="card-title">📋 Pedidos sin finalizar</div>
+    <div id="pedidos-pendientes-lista"><p class="sub">Cargando…</p></div>
+  </div>
+
+  <button class="btn-ghost" id="descargar-informe-pedidos">📄 Descargar informe de pedidos pendientes</button>
   </div>
 
   <div id="panel-datos" style="display:none;">
@@ -442,19 +479,22 @@
 // siguientes dentro de la misma sesión de trabajo.
 (function initPanelTabs() {
   const KEY = "jawa_admin_tab";
-  const panels = { calculo: document.getElementById("panel-calculo"), datos: document.getElementById("panel-datos") };
-  const botones = { calculo: document.getElementById("tab-btn-calculo"), datos: document.getElementById("tab-btn-datos") };
+  const TABS = ["calculo", "stock", "pedidos", "datos"];
+  const panels = {}, botones = {};
+  TABS.forEach((k) => {
+    panels[k] = document.getElementById("panel-" + k);
+    botones[k] = document.getElementById("tab-btn-" + k);
+  });
   function mostrarTab(tab) {
-    Object.keys(panels).forEach((k) => {
+    TABS.forEach((k) => {
       panels[k].style.display = k === tab ? "block" : "none";
       botones[k].classList.toggle("active", k === tab);
     });
     try { localStorage.setItem(KEY, tab); } catch (e) {}
   }
-  botones.calculo.addEventListener("click", () => mostrarTab("calculo"));
-  botones.datos.addEventListener("click", () => mostrarTab("datos"));
+  TABS.forEach((k) => botones[k].addEventListener("click", () => mostrarTab(k)));
   let inicial = "calculo";
-  try { if (localStorage.getItem(KEY) === "datos") inicial = "datos"; } catch (e) {}
+  try { if (TABS.includes(localStorage.getItem(KEY))) inicial = localStorage.getItem(KEY); } catch (e) {}
   mostrarTab(inicial);
 })();
 
@@ -2812,6 +2852,273 @@ document.getElementById("informe-completo-btn").addEventListener("click", () => 
     alert("No se pudo generar el PDF. Probá de nuevo.");
   });
 });
+
+// ============================================================
+// Stock (físico + en viaje) y Pedidos sin finalizar
+// ============================================================
+let stockFisicoData = [];
+let productosParaReposicion = [];
+let reposiciones = [];
+let mostrandoFormReposicion = false;
+let operacionesTransito = [];
+let pedidosTiendaPendientes = [];
+let operacionesPendientes = [];
+
+function fmtFechaAdmin(d) {
+  if (!d) return "";
+  return new Date(d + "T00:00:00").toLocaleDateString("es-AR");
+}
+function fmtFechaHoraAdmin(iso) {
+  return new Date(iso).toLocaleString("es-AR");
+}
+function diasDesde(iso) {
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+}
+
+// ---------- Stock físico ----------
+async function cargarStockFisico() {
+  const cont = document.getElementById("stock-fisico-lista");
+  const { data, error } = await supabaseClient.from("productos").select("id, nombre, stock").eq("tipo", "fisico").order("nombre");
+  if (error) { cont.innerHTML = `<p class="sub">Error: ${escHtml(error.message)}</p>`; return; }
+  stockFisicoData = data || [];
+  productosParaReposicion = stockFisicoData;
+  if (!stockFisicoData.length) { cont.innerHTML = `<p class="sub">No hay productos físicos cargados en la tienda.</p>`; return; }
+  cont.innerHTML = `
+    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <thead><tr style="text-align:left; border-bottom:1px solid var(--line);">
+        <th style="padding:6px 4px;">Producto</th><th style="padding:6px 4px; text-align:right;">Stock físico</th>
+      </tr></thead>
+      <tbody>${stockFisicoData.map((p) => `
+        <tr style="border-bottom:1px solid var(--line);">
+          <td style="padding:6px 4px;">${escHtml(p.nombre)}</td>
+          <td style="padding:6px 4px; text-align:right; font-weight:700; ${!p.stock ? "color:var(--coral);" : ""}">${p.stock == null ? "—" : fmtInt(p.stock)}</td>
+        </tr>
+      `).join("")}</tbody>
+    </table>
+  `;
+}
+
+// ---------- Reposiciones (en viaje, mercadería propia) ----------
+async function cargarReposiciones() {
+  const { data, error } = await supabaseClient
+    .from("reposiciones_stock")
+    .select("*, productos(nombre)")
+    .neq("estado", "cancelado")
+    .order("creado_en", { ascending: false });
+  if (error) { document.getElementById("reposiciones-lista").innerHTML = `<p class="sub">Error: ${escHtml(error.message)}</p>`; return; }
+  reposiciones = data || [];
+  renderReposiciones();
+}
+
+function renderReposiciones() {
+  const cont = document.getElementById("reposiciones-lista");
+  const enViaje = reposiciones.filter((r) => r.estado === "en_viaje");
+  const filas = enViaje.map((r) => `
+    <div class="agente-resumen-row">
+      <div><b>${escHtml(r.productos ? r.productos.nombre : "(producto eliminado)")}</b> <span style="color:var(--muted);">— ${fmtInt(r.cantidad)} u. · ${escHtml(r.proveedor || "sin proveedor")}${r.fecha_estimada ? ` · llega ${fmtFechaAdmin(r.fecha_estimada)}` : ""}</span></div>
+      <div style="display:flex; gap:6px; flex:none;">
+        <button class="btn-ghost" data-reposicion-recibida="${r.id}" style="padding:5px 12px; font-size:12px;">✓ Marcar recibida</button>
+        <button class="del" data-reposicion-cancelar="${r.id}" title="Cancelar">✕</button>
+      </div>
+    </div>
+  `).join("");
+  const formHtml = mostrandoFormReposicion ? `
+    <div class="producto-card" style="margin-top:10px;">
+      <div class="field-row" style="grid-template-columns: 2fr 1fr 1fr;">
+        <div class="field">
+          <label>Producto</label>
+          <select id="rep-producto">${productosParaReposicion.map((p) => `<option value="${p.id}">${escHtml(p.nombre)}</option>`).join("")}</select>
+        </div>
+        <div class="field"><label>Cantidad</label><input type="text" inputmode="numeric" id="rep-cantidad" placeholder="0" /></div>
+        <div class="field"><label>Costo unitario (USD)</label><input type="text" inputmode="decimal" id="rep-costo" placeholder="0.00" /></div>
+      </div>
+      <div class="field-row" style="grid-template-columns: 1fr 1fr;">
+        <div class="field"><label>Proveedor</label><input type="text" id="rep-proveedor" placeholder="Ej: proveedor de Guangzhou" /></div>
+        <div class="field"><label>Fecha estimada de llegada</label><input type="date" id="rep-fecha" /></div>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center; margin-top:6px;">
+        <button class="btn-primary" id="rep-guardar" style="padding:9px 18px; font-size:13px;">Guardar</button>
+        <button class="btn-ghost" id="rep-cancelar-form" style="padding:9px 16px; font-size:13px;">Cancelar</button>
+        <span id="rep-status" style="font-size:12px; color:var(--muted);"></span>
+      </div>
+    </div>
+  ` : "";
+  cont.innerHTML = (filas || `<p class="sub">No hay reposiciones en viaje.</p>`) + formHtml;
+
+  cont.querySelectorAll("[data-reposicion-recibida]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-reposicion-recibida");
+      btn.disabled = true; btn.textContent = "Guardando…";
+      const { error } = await supabaseClient.from("reposiciones_stock").update({ estado: "recibido" }).eq("id", id);
+      if (error) { alert("No se pudo marcar como recibida: " + error.message); btn.disabled = false; btn.textContent = "✓ Marcar recibida"; return; }
+      await cargarReposiciones();
+      await cargarStockFisico();
+    });
+  });
+  cont.querySelectorAll("[data-reposicion-cancelar]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("¿Cancelar esta reposición?")) return;
+      const id = btn.getAttribute("data-reposicion-cancelar");
+      await supabaseClient.from("reposiciones_stock").update({ estado: "cancelado" }).eq("id", id);
+      cargarReposiciones();
+    });
+  });
+  const guardarBtn = document.getElementById("rep-guardar");
+  if (guardarBtn) {
+    guardarBtn.addEventListener("click", async () => {
+      const status = document.getElementById("rep-status");
+      const productoId = document.getElementById("rep-producto").value;
+      const cantidad = pNumA(document.getElementById("rep-cantidad").value);
+      const costo = pNumA(document.getElementById("rep-costo").value);
+      const proveedor = document.getElementById("rep-proveedor").value.trim();
+      const fechaEstimada = document.getElementById("rep-fecha").value || null;
+      if (!productoId || cantidad <= 0) { status.textContent = "⚠️ Elegí un producto y una cantidad mayor a 0."; return; }
+      status.textContent = "Guardando…";
+      const { error } = await supabaseClient.from("reposiciones_stock").insert({
+        producto_id: productoId, cantidad: Math.round(cantidad),
+        costo_unitario_centavos: Math.round(costo * 100), proveedor: proveedor || null, fecha_estimada: fechaEstimada,
+      });
+      if (error) { status.textContent = "⚠️ No se pudo guardar: " + error.message; return; }
+      mostrandoFormReposicion = false;
+      await cargarReposiciones();
+    });
+  }
+  const cancelarFormBtn = document.getElementById("rep-cancelar-form");
+  if (cancelarFormBtn) cancelarFormBtn.addEventListener("click", () => { mostrandoFormReposicion = false; renderReposiciones(); });
+}
+
+document.getElementById("add-reposicion-btn").addEventListener("click", () => {
+  mostrandoFormReposicion = true;
+  renderReposiciones();
+});
+
+// ---------- Operaciones de clientes en tránsito ----------
+const ESTADOS_EN_TRANSITO = ["deposito_confirmado", "en_transito", "en_aduana"];
+const ESTADO_OPERACION_LABEL = {
+  cotizado: "Cotizado", deposito_confirmado: "Depósito confirmado", en_transito: "En tránsito",
+  en_aduana: "En aduana", liberado: "Liberado", entregado: "Entregado", cancelado: "Cancelado",
+};
+
+async function cargarOperacionesTransito() {
+  const cont = document.getElementById("operaciones-transito-lista");
+  const { data, error } = await supabaseClient.rpc("operaciones_admin_listar");
+  if (error) { cont.innerHTML = `<p class="sub">Error: ${escHtml(error.message)}</p>`; return; }
+  operacionesTransito = (data || []).filter((o) => ESTADOS_EN_TRANSITO.includes(o.estado));
+  if (!operacionesTransito.length) { cont.innerHTML = `<p class="sub">No hay operaciones de clientes en tránsito ahora mismo.</p>`; return; }
+  cont.innerHTML = operacionesTransito.map((o) => `
+    <div class="agente-resumen-row">
+      <div>
+        <b>${escHtml(o.codigo)}</b> <span style="color:var(--muted);">— ${escHtml(o.cliente_nombre || o.cliente_email)} · ${o.tipo === "maritimo" ? "🚢" : o.tipo === "aereo" ? "✈️" : "📦"} ${escHtml(o.tipo)}</span>
+      </div>
+      <span class="hub-pill" style="background:var(--paper-2); color:var(--navy); font-size:11px; padding:3px 10px; border-radius:20px; font-weight:800; flex:none;">${ESTADO_OPERACION_LABEL[o.estado] || o.estado}</span>
+    </div>
+  `).join("");
+}
+
+// ---------- Pedidos sin finalizar (tienda + operaciones) ----------
+async function cargarPedidosPendientes() {
+  const cont = document.getElementById("pedidos-pendientes-lista");
+  const [{ data: pedidos, error: e1 }, { data: ops, error: e2 }] = await Promise.all([
+    supabaseClient.from("pedidos").select("id, estado, total_centavos, creado_en, direccion_envio").not("estado", "in", "(entregado,cancelado)").order("creado_en", { ascending: true }),
+    supabaseClient.rpc("operaciones_admin_listar"),
+  ]);
+  if (e1) { cont.innerHTML = `<p class="sub">Error: ${escHtml(e1.message)}</p>`; return; }
+  pedidosTiendaPendientes = pedidos || [];
+  operacionesPendientes = e2 ? [] : (ops || []).filter((o) => !["entregado", "cancelado"].includes(o.estado));
+
+  const filas = [
+    ...pedidosTiendaPendientes.map((p) => ({
+      tipo: "Tienda", label: `Pedido #${p.id.slice(0, 8)}`, estado: p.estado, creado_en: p.creado_en,
+      detalle: `$${fmtA(p.total_centavos / 100)}${p.direccion_envio && p.direccion_envio.ciudad ? " · " + escHtml(p.direccion_envio.ciudad) : ""}`,
+    })),
+    ...operacionesPendientes.map((o) => ({
+      tipo: "Importación", label: o.codigo, estado: o.estado, creado_en: o.creado_en,
+      detalle: `${escHtml(o.cliente_nombre || o.cliente_email)} · ${escHtml(o.tipo)}`,
+    })),
+  ].sort((a, b) => new Date(a.creado_en) - new Date(b.creado_en));
+
+  if (!filas.length) { cont.innerHTML = `<p class="sub">No hay nada pendiente — todo entregado. 🎉</p>`; return; }
+  cont.innerHTML = `
+    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <thead><tr style="text-align:left; border-bottom:1px solid var(--line);">
+        <th style="padding:6px 4px;">Tipo</th><th style="padding:6px 4px;">Referencia</th><th style="padding:6px 4px;">Estado</th><th style="padding:6px 4px;">Detalle</th><th style="padding:6px 4px; text-align:right;">Hace</th>
+      </tr></thead>
+      <tbody>${filas.map((f) => `
+        <tr style="border-bottom:1px solid var(--line);">
+          <td style="padding:6px 4px;">${f.tipo === "Tienda" ? "🛍️" : "🌍"} ${f.tipo}</td>
+          <td style="padding:6px 4px; font-weight:700;">${escHtml(f.label)}</td>
+          <td style="padding:6px 4px;">${ESTADO_OPERACION_LABEL[f.estado] || f.estado}</td>
+          <td style="padding:6px 4px; color:var(--muted);">${f.detalle}</td>
+          <td style="padding:6px 4px; text-align:right; ${diasDesde(f.creado_en) > 14 ? "color:var(--coral); font-weight:700;" : ""}">${diasDesde(f.creado_en)}d</td>
+        </tr>
+      `).join("")}</tbody>
+    </table>
+  `;
+}
+
+// ---------- Informes en PDF (Stock y Pedidos) ----------
+async function descargarInformeStock() {
+  const fecha = new Date().toLocaleDateString("es-AR");
+  const html = `
+    <div style="font-family: ui-monospace, Menlo, monospace; color:#2C2416; padding:24px; background:#fff;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px; border-bottom:2px solid #B5622E; padding-bottom:14px;">
+        <h1 style="font-size:19px; margin:0;">Informe de stock — Jawa Logistic</h1>
+        <span style="font-size:12px; color:#8a7a5f;">${fecha}</span>
+      </div>
+      <div style="font-size:11px; font-weight:800; text-transform:uppercase; color:#8a7a5f; margin-bottom:8px;">Stock físico</div>
+      <table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:22px;">
+        <thead><tr style="background:#f7f3ea;"><th style="text-align:left; padding:6px 8px; border-bottom:1px solid #ddd;">Producto</th><th style="text-align:right; padding:6px 8px; border-bottom:1px solid #ddd;">Stock</th></tr></thead>
+        <tbody>${stockFisicoData.map((p) => `<tr><td style="padding:5px 8px; border-bottom:1px solid #eee;">${escHtml(p.nombre)}</td><td style="padding:5px 8px; border-bottom:1px solid #eee; text-align:right;">${p.stock == null ? "—" : fmtInt(p.stock)}</td></tr>`).join("")}</tbody>
+      </table>
+      <div style="font-size:11px; font-weight:800; text-transform:uppercase; color:#8a7a5f; margin-bottom:8px;">En viaje — reposiciones propias</div>
+      <table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:22px;">
+        <thead><tr style="background:#f7f3ea;"><th style="text-align:left; padding:6px 8px; border-bottom:1px solid #ddd;">Producto</th><th style="text-align:right; padding:6px 8px; border-bottom:1px solid #ddd;">Cantidad</th><th style="text-align:left; padding:6px 8px; border-bottom:1px solid #ddd;">Proveedor</th><th style="text-align:left; padding:6px 8px; border-bottom:1px solid #ddd;">Llega</th></tr></thead>
+        <tbody>${reposiciones.filter((r) => r.estado === "en_viaje").map((r) => `<tr><td style="padding:5px 8px; border-bottom:1px solid #eee;">${escHtml(r.productos ? r.productos.nombre : "—")}</td><td style="padding:5px 8px; border-bottom:1px solid #eee; text-align:right;">${fmtInt(r.cantidad)}</td><td style="padding:5px 8px; border-bottom:1px solid #eee;">${escHtml(r.proveedor || "—")}</td><td style="padding:5px 8px; border-bottom:1px solid #eee;">${r.fecha_estimada ? fmtFechaAdmin(r.fecha_estimada) : "—"}</td></tr>`).join("") || `<tr><td colspan="4" style="padding:5px 8px; color:#a89a80;">Ninguna</td></tr>`}</tbody>
+      </table>
+      <div style="font-size:11px; font-weight:800; text-transform:uppercase; color:#8a7a5f; margin-bottom:8px;">En viaje — operaciones de clientes</div>
+      <table style="width:100%; border-collapse:collapse; font-size:12px;">
+        <thead><tr style="background:#f7f3ea;"><th style="text-align:left; padding:6px 8px; border-bottom:1px solid #ddd;">Código</th><th style="text-align:left; padding:6px 8px; border-bottom:1px solid #ddd;">Cliente</th><th style="text-align:left; padding:6px 8px; border-bottom:1px solid #ddd;">Vía</th><th style="text-align:left; padding:6px 8px; border-bottom:1px solid #ddd;">Estado</th></tr></thead>
+        <tbody>${operacionesTransito.map((o) => `<tr><td style="padding:5px 8px; border-bottom:1px solid #eee;">${escHtml(o.codigo)}</td><td style="padding:5px 8px; border-bottom:1px solid #eee;">${escHtml(o.cliente_nombre || o.cliente_email)}</td><td style="padding:5px 8px; border-bottom:1px solid #eee;">${escHtml(o.tipo)}</td><td style="padding:5px 8px; border-bottom:1px solid #eee;">${ESTADO_OPERACION_LABEL[o.estado] || o.estado}</td></tr>`).join("") || `<tr><td colspan="4" style="padding:5px 8px; color:#a89a80;">Ninguna</td></tr>`}</tbody>
+      </table>
+    </div>`;
+  await descargarComoPdf(html, `stock-${fecha.replace(/\//g, "-")}.pdf`);
+}
+
+async function descargarInformePedidos() {
+  const fecha = new Date().toLocaleDateString("es-AR");
+  const filas = [
+    ...pedidosTiendaPendientes.map((p) => ({ tipo: "Tienda", label: `Pedido #${p.id.slice(0, 8)}`, estado: p.estado, creado_en: p.creado_en, detalle: `$${fmtA(p.total_centavos / 100)}` })),
+    ...operacionesPendientes.map((o) => ({ tipo: "Importación", label: o.codigo, estado: o.estado, creado_en: o.creado_en, detalle: `${escHtml(o.cliente_nombre || o.cliente_email)} · ${escHtml(o.tipo)}` })),
+  ].sort((a, b) => new Date(a.creado_en) - new Date(b.creado_en));
+  const html = `
+    <div style="font-family: ui-monospace, Menlo, monospace; color:#2C2416; padding:24px; background:#fff;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px; border-bottom:2px solid #B5622E; padding-bottom:14px;">
+        <h1 style="font-size:19px; margin:0;">Pedidos sin finalizar — Jawa Logistic</h1>
+        <span style="font-size:12px; color:#8a7a5f;">${fecha}</span>
+      </div>
+      <table style="width:100%; border-collapse:collapse; font-size:12px;">
+        <thead><tr style="background:#f7f3ea;"><th style="text-align:left; padding:6px 8px; border-bottom:1px solid #ddd;">Tipo</th><th style="text-align:left; padding:6px 8px; border-bottom:1px solid #ddd;">Referencia</th><th style="text-align:left; padding:6px 8px; border-bottom:1px solid #ddd;">Estado</th><th style="text-align:left; padding:6px 8px; border-bottom:1px solid #ddd;">Detalle</th><th style="text-align:right; padding:6px 8px; border-bottom:1px solid #ddd;">Hace</th></tr></thead>
+        <tbody>${filas.map((f) => `<tr><td style="padding:5px 8px; border-bottom:1px solid #eee;">${f.tipo}</td><td style="padding:5px 8px; border-bottom:1px solid #eee;">${escHtml(f.label)}</td><td style="padding:5px 8px; border-bottom:1px solid #eee;">${ESTADO_OPERACION_LABEL[f.estado] || f.estado}</td><td style="padding:5px 8px; border-bottom:1px solid #eee;">${f.detalle}</td><td style="padding:5px 8px; border-bottom:1px solid #eee; text-align:right;">${diasDesde(f.creado_en)}d</td></tr>`).join("") || `<tr><td colspan="5" style="padding:5px 8px; color:#a89a80;">Nada pendiente</td></tr>`}</tbody>
+      </table>
+    </div>`;
+  await descargarComoPdf(html, `pedidos-pendientes-${fecha.replace(/\//g, "-")}.pdf`);
+}
+
+document.getElementById("descargar-informe-stock").addEventListener("click", () => {
+  descargarInformeStock().catch((err) => { console.error(err); alert("No se pudo generar el PDF. Probá de nuevo."); });
+});
+document.getElementById("descargar-informe-pedidos").addEventListener("click", () => {
+  descargarInformePedidos().catch((err) => { console.error(err); alert("No se pudo generar el PDF. Probá de nuevo."); });
+});
+
+try {
+  SUPABASE_READY.then(async () => {
+    await cargarStockFisico();
+    await cargarReposiciones();
+    await cargarOperacionesTransito();
+    await cargarPedidosPendientes();
+  });
+} catch (e) { console.error("cargar stock/pedidos:", e); }
 </script>
 </body>
 </html>
