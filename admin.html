@@ -194,6 +194,7 @@
     <button class="panel-tab" id="tab-btn-calculo" data-panel-tab="calculo">🧮 Cálculo</button>
     <button class="panel-tab" id="tab-btn-stock" data-panel-tab="stock">📦 Stock</button>
     <button class="panel-tab" id="tab-btn-pedidos" data-panel-tab="pedidos">📋 Pedidos</button>
+    <button class="panel-tab" id="tab-btn-contabilidad" data-panel-tab="contabilidad">💰 Contabilidad</button>
     <button class="panel-tab" id="tab-btn-datos" data-panel-tab="datos">⚙️ Datos</button>
   </div>
 
@@ -230,6 +231,15 @@
   </div>
 
   <button class="btn-ghost" id="descargar-informe-pedidos">📄 Descargar informe de pedidos pendientes</button>
+  </div>
+
+  <div id="panel-contabilidad" style="display:none;">
+  <!-- TODO: en construcción — plan de cuentas, registrar movimiento, caja
+       diaria/mensual, balance general, estado de resultados, libro de
+       movimientos. La migración 0026_contabilidad.sql ya está aplicada
+       (crear_asiento(), balance_general(), estado_resultados(), vista
+       libro_mayor) — solo falta esta interfaz. -->
+  <p class="sub" style="margin:-4px 0 16px;">🚧 En construcción.</p>
   </div>
 
   <div id="panel-datos" style="display:none;">
@@ -479,7 +489,7 @@
 // siguientes dentro de la misma sesión de trabajo.
 (function initPanelTabs() {
   const KEY = "jawa_admin_tab";
-  const TABS = ["calculo", "stock", "pedidos", "datos"];
+  const TABS = ["calculo", "stock", "pedidos", "contabilidad", "datos"];
   const panels = {}, botones = {};
   TABS.forEach((k) => {
     panels[k] = document.getElementById("panel-" + k);
