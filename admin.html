@@ -263,10 +263,19 @@
       <div class="field"><label>Cuenta debe</label><select id="mov-cuenta-debe"></select></div>
       <div class="field"><label>Cuenta haber</label><select id="mov-cuenta-haber"></select></div>
     </div>
-    <div class="field-row" style="grid-template-columns: 1fr 1fr 2fr;">
+    <div id="mov-monto-simple-row" class="field-row" style="grid-template-columns: 1fr 1fr 2fr;">
       <div class="field"><label>Monto (ARS)</label><input type="text" inputmode="decimal" id="mov-monto" placeholder="0.00" /></div>
       <div class="field"><label>Fecha</label><input type="date" id="mov-fecha" /></div>
       <div class="field"><label>Descripción</label><input type="text" id="mov-descripcion" placeholder="Ej: Pago flete Aerobox pedido #123" /></div>
+    </div>
+    <div id="mov-monto-otro-row" class="field-row" style="grid-template-columns: 1fr 1fr 1fr 2fr; display:none;">
+      <div class="field"><label>Monto debe (ARS)</label><input type="text" inputmode="decimal" id="mov-monto-debe" placeholder="0.00" /></div>
+      <div class="field"><label>Monto haber (ARS)</label><input type="text" inputmode="decimal" id="mov-monto-haber" placeholder="0.00" /></div>
+      <div class="field"><label>Fecha</label><input type="date" id="mov-fecha-otro" /></div>
+      <div class="field"><label>Descripción</label><input type="text" id="mov-descripcion-otro" placeholder="Ej: Pago flete Aerobox pedido #123" /></div>
+    </div>
+    <div id="mov-descuadre-aviso" style="display:none; background:#fdeeee; color:#a33; border-radius:8px; padding:8px 12px; font-size:12.5px; margin-bottom:10px;">
+      ⚠️ Este movimiento no cuadra (debe y haber son distintos) — se puede guardar igual, pero va a aparecer marcado en rojo en el Libro de movimientos y el Balance general hasta que lo corrijas.
     </div>
     <div style="display:flex; align-items:center; gap:10px;">
       <button class="btn-primary" id="mov-guardar" style="padding:10px 20px; font-size:13px;">Guardar movimiento</button>
@@ -3239,45 +3248,72 @@ const MOV_TIPO_LABEL = {
   flete_agente: "Flete a agente de carga", compra_mercaderia: "Compra de mercadería", aporte_capital: "Aporte de capital", otro: "Movimiento manual",
 };
 
+function actualizarAvisoDescuadre() {
+  const tipo = document.getElementById("mov-tipo").value;
+  const aviso = document.getElementById("mov-descuadre-aviso");
+  if (tipo !== "otro") { aviso.style.display = "none"; return; }
+  const debe = pNumA(document.getElementById("mov-monto-debe").value);
+  const haber = pNumA(document.getElementById("mov-monto-haber").value);
+  aviso.style.display = (debe > 0 || haber > 0) && debe !== haber ? "block" : "none";
+}
+
 document.getElementById("mov-tipo").addEventListener("change", (e) => {
   const esOtro = e.target.value === "otro";
   document.getElementById("mov-otro-row").style.display = esOtro ? "grid" : "none";
   document.getElementById("mov-medio-field").style.display = esOtro ? "none" : "flex";
+  document.getElementById("mov-monto-simple-row").style.display = esOtro ? "none" : "grid";
+  document.getElementById("mov-monto-otro-row").style.display = esOtro ? "grid" : "none";
+  actualizarAvisoDescuadre();
 });
+document.getElementById("mov-monto-debe").addEventListener("input", actualizarAvisoDescuadre);
+document.getElementById("mov-monto-haber").addEventListener("input", actualizarAvisoDescuadre);
 
 document.getElementById("mov-guardar").addEventListener("click", async () => {
   const status = document.getElementById("mov-status");
   const tipo = document.getElementById("mov-tipo").value;
-  const monto = pNumA(document.getElementById("mov-monto").value);
-  const fecha = document.getElementById("mov-fecha").value || new Date().toISOString().slice(0, 10);
-  const descripcion = document.getElementById("mov-descripcion").value.trim() || MOV_TIPO_LABEL[tipo];
-  if (monto <= 0) { status.textContent = "⚠️ Cargá un monto mayor a 0."; return; }
-  const montoCentavos = Math.round(monto * 100);
+  const esOtro = tipo === "otro";
 
-  let debeId, haberId;
-  if (tipo === "otro") {
+  let debeId, haberId, debeCentavos, haberCentavos, fecha, descripcion;
+  if (esOtro) {
     debeId = document.getElementById("mov-cuenta-debe").value;
     haberId = document.getElementById("mov-cuenta-haber").value;
     if (!debeId || !haberId || debeId === haberId) { status.textContent = "⚠️ Elegí dos cuentas distintas."; return; }
+    const montoDebe = pNumA(document.getElementById("mov-monto-debe").value);
+    const montoHaber = pNumA(document.getElementById("mov-monto-haber").value);
+    if (montoDebe <= 0 && montoHaber <= 0) { status.textContent = "⚠️ Cargá al menos un monto mayor a 0."; return; }
+    debeCentavos = Math.round(montoDebe * 100);
+    haberCentavos = Math.round(montoHaber * 100);
+    fecha = document.getElementById("mov-fecha-otro").value || new Date().toISOString().slice(0, 10);
+    descripcion = document.getElementById("mov-descripcion-otro").value.trim() || MOV_TIPO_LABEL[tipo];
   } else {
+    const monto = pNumA(document.getElementById("mov-monto").value);
+    if (monto <= 0) { status.textContent = "⚠️ Cargá un monto mayor a 0."; return; }
+    const montoCentavos = Math.round(monto * 100);
     const medioCodigo = document.getElementById("mov-medio").value;
     const mapa = calcularCuentasMovimiento(tipo, medioCodigo);
     const cDebe = cuentaPorCodigo(mapa.debeCodigo);
     const cHaber = cuentaPorCodigo(mapa.haberCodigo);
     if (!cDebe || !cHaber) { status.textContent = "⚠️ Falta configurar alguna cuenta contable."; return; }
     debeId = cDebe.id; haberId = cHaber.id;
+    debeCentavos = montoCentavos; haberCentavos = montoCentavos;
+    fecha = document.getElementById("mov-fecha").value || new Date().toISOString().slice(0, 10);
+    descripcion = document.getElementById("mov-descripcion").value.trim() || MOV_TIPO_LABEL[tipo];
   }
 
   status.textContent = "Guardando…";
   const lineas = [
-    { cuenta_id: debeId, debe: montoCentavos, haber: 0, descripcion },
-    { cuenta_id: haberId, debe: 0, haber: montoCentavos, descripcion },
+    { cuenta_id: debeId, debe: debeCentavos, haber: 0, descripcion },
+    { cuenta_id: haberId, debe: 0, haber: haberCentavos, descripcion },
   ];
   const { error } = await supabaseClient.rpc("crear_asiento", { p_fecha: fecha, p_descripcion: descripcion, p_origen: "manual", p_lineas: lineas });
   if (error) { status.textContent = "⚠️ No se pudo guardar: " + error.message; return; }
-  status.textContent = "✓ Guardado";
+  status.textContent = debeCentavos !== haberCentavos ? "✓ Guardado — ⚠️ quedó descuadrado, revisalo en el Libro de movimientos" : "✓ Guardado";
   document.getElementById("mov-monto").value = "";
+  document.getElementById("mov-monto-debe").value = "";
+  document.getElementById("mov-monto-haber").value = "";
   document.getElementById("mov-descripcion").value = "";
+  document.getElementById("mov-descripcion-otro").value = "";
+  document.getElementById("mov-descuadre-aviso").style.display = "none";
   setTimeout(() => { status.textContent = ""; }, 3000);
   await Promise.all([cargarCaja(), cargarBalanceGeneral(), cargarEstadoResultados(), cargarLibroMovimientos()]);
 });
@@ -3386,20 +3422,37 @@ async function cargarLibroMovimientos() {
   if (error) { cont.innerHTML = `<p class="sub">Error: ${escHtml(error.message)}</p>`; return; }
   asientosLibro = data || [];
   if (!asientosLibro.length) { cont.innerHTML = `<p class="sub">Todavía no hay movimientos cargados.</p>`; return; }
+
+  // Un asiento puede no cuadrar (se permite guardar igual) — se detecta acá
+  // comparando el total de debe vs. haber de cada asiento_id, y se marca en
+  // rojo cada línea que pertenezca a uno descuadrado.
+  const totalesPorAsiento = {};
+  asientosLibro.forEach((f) => {
+    if (!totalesPorAsiento[f.asiento_id]) totalesPorAsiento[f.asiento_id] = { debe: 0, haber: 0 };
+    totalesPorAsiento[f.asiento_id].debe += f.debe_centavos;
+    totalesPorAsiento[f.asiento_id].haber += f.haber_centavos;
+  });
+  const asientoDescuadrado = (id) => totalesPorAsiento[id].debe !== totalesPorAsiento[id].haber;
+  const cantDescuadrados = Object.keys(totalesPorAsiento).filter(asientoDescuadrado).length;
+
   cont.innerHTML = `
+    ${cantDescuadrados > 0 ? `<div style="background:#fdeeee; color:#a33; border-radius:8px; padding:8px 12px; font-size:12.5px; margin-bottom:10px;">⚠️ Hay ${cantDescuadrados} asiento${cantDescuadrados === 1 ? "" : "s"} que no cuadra${cantDescuadrados === 1 ? "" : "n"} (marcado${cantDescuadrados === 1 ? "" : "s"} en rojo abajo).</div>` : ""}
     <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
       <thead><tr style="text-align:left; border-bottom:1px solid var(--line);">
         <th style="padding:5px 4px;">Fecha</th><th style="padding:5px 4px;">Cuenta</th><th style="padding:5px 4px;">Descripción</th><th style="padding:5px 4px; text-align:right;">Debe</th><th style="padding:5px 4px; text-align:right;">Haber</th>
       </tr></thead>
-      <tbody>${asientosLibro.map((f) => `
-        <tr style="border-bottom:1px solid var(--line);">
+      <tbody>${asientosLibro.map((f) => {
+        const descuadrado = asientoDescuadrado(f.asiento_id);
+        return `
+        <tr style="border-bottom:1px solid var(--line); ${descuadrado ? "background:#fdeeee;" : ""}">
           <td style="padding:5px 4px; white-space:nowrap;">${fmtFechaAdmin(f.fecha)}</td>
           <td style="padding:5px 4px;">${escHtml(f.cuenta_codigo)} ${escHtml(f.cuenta_nombre)}</td>
-          <td style="padding:5px 4px; color:var(--muted);">${escHtml(f.asiento_descripcion)}</td>
+          <td style="padding:5px 4px; color:var(--muted);">${descuadrado ? "⚠️ " : ""}${escHtml(f.asiento_descripcion)}</td>
           <td style="padding:5px 4px; text-align:right;">${f.debe_centavos > 0 ? fmtCentavosArs(f.debe_centavos) : "—"}</td>
           <td style="padding:5px 4px; text-align:right;">${f.haber_centavos > 0 ? fmtCentavosArs(f.haber_centavos) : "—"}</td>
         </tr>
-      `).join("")}</tbody>
+      `;
+      }).join("")}</tbody>
     </table>
     <div class="sub" style="margin-top:8px;">Mostrando los últimos ${asientosLibro.length} movimientos.</div>
   `;
@@ -3483,6 +3536,7 @@ document.getElementById("descargar-informe-libro").addEventListener("click", () 
 try {
   SUPABASE_READY.then(async () => {
     document.getElementById("mov-fecha").value = new Date().toISOString().slice(0, 10);
+    document.getElementById("mov-fecha-otro").value = new Date().toISOString().slice(0, 10);
     await cargarCuentasContables();
     await cargarCaja();
     await cargarBalanceGeneral();
