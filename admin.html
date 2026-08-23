@@ -234,12 +234,79 @@
   </div>
 
   <div id="panel-contabilidad" style="display:none;">
-  <!-- TODO: en construcción — plan de cuentas, registrar movimiento, caja
-       diaria/mensual, balance general, estado de resultados, libro de
-       movimientos. La migración 0026_contabilidad.sql ya está aplicada
-       (crear_asiento(), balance_general(), estado_resultados(), vista
-       libro_mayor) — solo falta esta interfaz. -->
-  <p class="sub" style="margin:-4px 0 16px;">🚧 En construcción.</p>
+  <p class="sub" style="margin:-4px 0 16px;">Contabilidad de partida doble — cada movimiento que cargás abajo genera un asiento contable de verdad (debe = haber siempre), aunque el formulario no te pida saber qué es debe y qué es haber.</p>
+
+  <div class="card">
+    <div class="card-title">💵 Registrar movimiento</div>
+    <div class="field-row" style="grid-template-columns: 1fr 1fr;">
+      <div class="field">
+        <label>Tipo de movimiento</label>
+        <select id="mov-tipo">
+          <option value="venta_tienda">Cobré de un cliente — venta de tienda</option>
+          <option value="venta_servicio">Cobré de un cliente — servicio de importación</option>
+          <option value="gasto">Pagué un gasto operativo</option>
+          <option value="flete_agente">Pagué flete a un agente de carga</option>
+          <option value="compra_mercaderia">Compré mercadería para la tienda</option>
+          <option value="aporte_capital">Aporte de capital</option>
+          <option value="otro">Otro (elegir cuentas manualmente)</option>
+        </select>
+      </div>
+      <div class="field" id="mov-medio-field">
+        <label>Medio de pago</label>
+        <select id="mov-medio">
+          <option value="1.1">💵 Caja (efectivo)</option>
+          <option value="1.2">🏦 Banco</option>
+        </select>
+      </div>
+    </div>
+    <div id="mov-otro-row" class="field-row" style="grid-template-columns: 1fr 1fr; display:none;">
+      <div class="field"><label>Cuenta debe</label><select id="mov-cuenta-debe"></select></div>
+      <div class="field"><label>Cuenta haber</label><select id="mov-cuenta-haber"></select></div>
+    </div>
+    <div class="field-row" style="grid-template-columns: 1fr 1fr 2fr;">
+      <div class="field"><label>Monto (ARS)</label><input type="text" inputmode="decimal" id="mov-monto" placeholder="0.00" /></div>
+      <div class="field"><label>Fecha</label><input type="date" id="mov-fecha" /></div>
+      <div class="field"><label>Descripción</label><input type="text" id="mov-descripcion" placeholder="Ej: Pago flete Aerobox pedido #123" /></div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button class="btn-primary" id="mov-guardar" style="padding:10px 20px; font-size:13px;">Guardar movimiento</button>
+      <span id="mov-status" style="font-size:12px; color:var(--muted);"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📅 Caja diaria / mensual</div>
+    <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+      <button class="btn-ghost" id="caja-modo-dia" style="padding:7px 14px; font-size:12px;">Por día</button>
+      <button class="btn-ghost" id="caja-modo-mes" style="padding:7px 14px; font-size:12px;">Por mes</button>
+    </div>
+    <div id="caja-lista"><p class="sub">Cargando…</p></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚖️ Balance general</div>
+    <div class="field-row" style="grid-template-columns: 200px 1fr;">
+      <div class="field"><label>A la fecha</label><input type="date" id="balance-fecha" /></div>
+    </div>
+    <div id="balance-general-lista"><p class="sub">Cargando…</p></div>
+    <button class="btn-ghost" id="descargar-informe-balance" style="margin-top:10px;">📄 Descargar en PDF</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📈 Estado de resultados</div>
+    <div class="field-row" style="grid-template-columns: 1fr 1fr;">
+      <div class="field"><label>Desde</label><input type="date" id="resultados-desde" /></div>
+      <div class="field"><label>Hasta</label><input type="date" id="resultados-hasta" /></div>
+    </div>
+    <div id="estado-resultados-lista"><p class="sub">Cargando…</p></div>
+    <button class="btn-ghost" id="descargar-informe-resultados" style="margin-top:10px;">📄 Descargar en PDF</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📖 Libro de movimientos</div>
+    <div id="libro-movimientos-lista"><p class="sub">Cargando…</p></div>
+    <button class="btn-ghost" id="descargar-informe-libro" style="margin-top:10px;">📄 Descargar en PDF</button>
+  </div>
   </div>
 
   <div id="panel-datos" style="display:none;">
@@ -3129,6 +3196,299 @@ try {
     await cargarPedidosPendientes();
   });
 } catch (e) { console.error("cargar stock/pedidos:", e); }
+
+// ============================================================
+// Contabilidad de partida doble
+// ============================================================
+let cuentasContables = [];
+let cajaModo = "dia";
+let cajaFilas = [];
+let balanceFilas = [];
+let resultadosFilas = [];
+let asientosLibro = [];
+
+function cuentaPorCodigo(codigo) { return cuentasContables.find((c) => c.codigo === codigo); }
+function cuentaPorId(id) { return cuentasContables.find((c) => c.id === id); }
+function fmtCentavosArs(centavos) { return "$" + fmtA((centavos || 0) / 100); }
+
+async function cargarCuentasContables() {
+  const { data, error } = await supabaseClient.from("cuentas_contables").select("*").eq("activa", true).order("codigo");
+  if (error) { console.error("No se pudieron cargar las cuentas contables:", error); return; }
+  cuentasContables = data || [];
+  const selDebe = document.getElementById("mov-cuenta-debe");
+  const selHaber = document.getElementById("mov-cuenta-haber");
+  const opciones = cuentasContables.map((c) => `<option value="${c.id}">${escHtml(c.codigo)} — ${escHtml(c.nombre)}</option>`).join("");
+  selDebe.innerHTML = opciones;
+  selHaber.innerHTML = opciones;
+}
+
+// ---------- Registrar movimiento ----------
+function calcularCuentasMovimiento(tipo, medioCodigo) {
+  switch (tipo) {
+    case "venta_tienda": return { debeCodigo: medioCodigo, haberCodigo: "4.1" };
+    case "venta_servicio": return { debeCodigo: medioCodigo, haberCodigo: "4.2" };
+    case "gasto": return { debeCodigo: "5.2", haberCodigo: medioCodigo };
+    case "flete_agente": return { debeCodigo: "5.3", haberCodigo: medioCodigo };
+    case "compra_mercaderia": return { debeCodigo: "1.4", haberCodigo: medioCodigo };
+    case "aporte_capital": return { debeCodigo: medioCodigo, haberCodigo: "3.1" };
+    default: return null;
+  }
+}
+const MOV_TIPO_LABEL = {
+  venta_tienda: "Venta de tienda", venta_servicio: "Servicio de importación", gasto: "Gasto operativo",
+  flete_agente: "Flete a agente de carga", compra_mercaderia: "Compra de mercadería", aporte_capital: "Aporte de capital", otro: "Movimiento manual",
+};
+
+document.getElementById("mov-tipo").addEventListener("change", (e) => {
+  const esOtro = e.target.value === "otro";
+  document.getElementById("mov-otro-row").style.display = esOtro ? "grid" : "none";
+  document.getElementById("mov-medio-field").style.display = esOtro ? "none" : "flex";
+});
+
+document.getElementById("mov-guardar").addEventListener("click", async () => {
+  const status = document.getElementById("mov-status");
+  const tipo = document.getElementById("mov-tipo").value;
+  const monto = pNumA(document.getElementById("mov-monto").value);
+  const fecha = document.getElementById("mov-fecha").value || new Date().toISOString().slice(0, 10);
+  const descripcion = document.getElementById("mov-descripcion").value.trim() || MOV_TIPO_LABEL[tipo];
+  if (monto <= 0) { status.textContent = "⚠️ Cargá un monto mayor a 0."; return; }
+  const montoCentavos = Math.round(monto * 100);
+
+  let debeId, haberId;
+  if (tipo === "otro") {
+    debeId = document.getElementById("mov-cuenta-debe").value;
+    haberId = document.getElementById("mov-cuenta-haber").value;
+    if (!debeId || !haberId || debeId === haberId) { status.textContent = "⚠️ Elegí dos cuentas distintas."; return; }
+  } else {
+    const medioCodigo = document.getElementById("mov-medio").value;
+    const mapa = calcularCuentasMovimiento(tipo, medioCodigo);
+    const cDebe = cuentaPorCodigo(mapa.debeCodigo);
+    const cHaber = cuentaPorCodigo(mapa.haberCodigo);
+    if (!cDebe || !cHaber) { status.textContent = "⚠️ Falta configurar alguna cuenta contable."; return; }
+    debeId = cDebe.id; haberId = cHaber.id;
+  }
+
+  status.textContent = "Guardando…";
+  const lineas = [
+    { cuenta_id: debeId, debe: montoCentavos, haber: 0, descripcion },
+    { cuenta_id: haberId, debe: 0, haber: montoCentavos, descripcion },
+  ];
+  const { error } = await supabaseClient.rpc("crear_asiento", { p_fecha: fecha, p_descripcion: descripcion, p_origen: "manual", p_lineas: lineas });
+  if (error) { status.textContent = "⚠️ No se pudo guardar: " + error.message; return; }
+  status.textContent = "✓ Guardado";
+  document.getElementById("mov-monto").value = "";
+  document.getElementById("mov-descripcion").value = "";
+  setTimeout(() => { status.textContent = ""; }, 3000);
+  await Promise.all([cargarCaja(), cargarBalanceGeneral(), cargarEstadoResultados(), cargarLibroMovimientos()]);
+});
+
+// ---------- Caja diaria / mensual ----------
+async function cargarCaja() {
+  const cont = document.getElementById("caja-lista");
+  const { data, error } = await supabaseClient.from("libro_mayor").select("*").in("cuenta_codigo", ["1.1", "1.2"]).order("fecha");
+  if (error) { cont.innerHTML = `<p class="sub">Error: ${escHtml(error.message)}</p>`; return; }
+  cajaFilas = data || [];
+  document.getElementById("caja-modo-dia").classList.toggle("active", cajaModo === "dia");
+  document.getElementById("caja-modo-mes").classList.toggle("active", cajaModo === "mes");
+  if (!cajaFilas.length) { cont.innerHTML = `<p class="sub">Todavía no hay movimientos de caja o banco.</p>`; return; }
+
+  const grupos = {};
+  cajaFilas.forEach((f) => {
+    const clave = cajaModo === "dia" ? f.fecha : f.fecha.slice(0, 7);
+    if (!grupos[clave]) grupos[clave] = { ingresos: 0, egresos: 0 };
+    grupos[clave].ingresos += f.debe_centavos;
+    grupos[clave].egresos += f.haber_centavos;
+  });
+  const claves = Object.keys(grupos).sort().reverse();
+  cont.innerHTML = `
+    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <thead><tr style="text-align:left; border-bottom:1px solid var(--line);">
+        <th style="padding:6px 4px;">${cajaModo === "dia" ? "Día" : "Mes"}</th><th style="padding:6px 4px; text-align:right;">Entró</th><th style="padding:6px 4px; text-align:right;">Salió</th><th style="padding:6px 4px; text-align:right;">Neto</th>
+      </tr></thead>
+      <tbody>${claves.map((k) => {
+        const g = grupos[k];
+        const neto = g.ingresos - g.egresos;
+        return `<tr style="border-bottom:1px solid var(--line);">
+          <td style="padding:6px 4px;">${cajaModo === "dia" ? fmtFechaAdmin(k) : k}</td>
+          <td style="padding:6px 4px; text-align:right; color:#1d7a4a;">${fmtCentavosArs(g.ingresos)}</td>
+          <td style="padding:6px 4px; text-align:right; color:var(--coral);">${fmtCentavosArs(g.egresos)}</td>
+          <td style="padding:6px 4px; text-align:right; font-weight:700;">${fmtCentavosArs(neto)}</td>
+        </tr>`;
+      }).join("")}</tbody>
+    </table>
+  `;
+}
+document.getElementById("caja-modo-dia").addEventListener("click", () => { cajaModo = "dia"; cargarCaja(); });
+document.getElementById("caja-modo-mes").addEventListener("click", () => { cajaModo = "mes"; cargarCaja(); });
+
+// ---------- Balance general ----------
+async function cargarBalanceGeneral() {
+  const cont = document.getElementById("balance-general-lista");
+  const fecha = document.getElementById("balance-fecha").value || new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabaseClient.rpc("balance_general", { p_fecha: fecha });
+  if (error) { cont.innerHTML = `<p class="sub">Error: ${escHtml(error.message)}</p>`; return; }
+  balanceFilas = data || [];
+  const porTipo = (t) => balanceFilas.filter((f) => f.tipo === t);
+  const suma = (arr) => arr.reduce((a, f) => a + Number(f.saldo_centavos), 0);
+  const totalActivo = suma(porTipo("activo"));
+  const totalPasivo = suma(porTipo("pasivo"));
+  const totalPatrimonio = suma(porTipo("patrimonio"));
+  const cuadra = totalActivo === totalPasivo + totalPatrimonio;
+  const seccion = (titulo, arr, total) => `
+    <div style="font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:10px 0 4px;">${titulo}</div>
+    ${arr.map((f) => `<div style="display:flex; justify-content:space-between; font-size:13px; padding:3px 0;"><span>${escHtml(f.nombre)}</span><span>${fmtCentavosArs(f.saldo_centavos)}</span></div>`).join("")}
+    <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; border-top:1px solid var(--line); padding-top:4px; margin-top:2px;"><span>Total ${titulo.toLowerCase()}</span><span>${fmtCentavosArs(total)}</span></div>
+  `;
+  cont.innerHTML = `
+    ${seccion("Activo", porTipo("activo"), totalActivo)}
+    ${seccion("Pasivo", porTipo("pasivo"), totalPasivo)}
+    ${seccion("Patrimonio", porTipo("patrimonio"), totalPatrimonio)}
+    <div style="margin-top:12px; padding:10px 12px; border-radius:8px; font-size:12.5px; ${cuadra ? "background:#eef7ee; color:#1d7a4a;" : "background:#fdeeee; color:#a33;"}">
+      ${cuadra ? "✅ Cuadra: Activo = Pasivo + Patrimonio" : "⚠️ No cuadra — revisá los asientos cargados"}
+    </div>
+  `;
+}
+document.getElementById("balance-fecha").addEventListener("change", cargarBalanceGeneral);
+document.getElementById("balance-fecha").value = new Date().toISOString().slice(0, 10);
+
+// ---------- Estado de resultados ----------
+async function cargarEstadoResultados() {
+  const cont = document.getElementById("estado-resultados-lista");
+  const desde = document.getElementById("resultados-desde").value;
+  const hasta = document.getElementById("resultados-hasta").value || new Date().toISOString().slice(0, 10);
+  if (!desde) { cont.innerHTML = `<p class="sub">Elegí una fecha "Desde".</p>`; return; }
+  const { data, error } = await supabaseClient.rpc("estado_resultados", { p_desde: desde, p_hasta: hasta });
+  if (error) { cont.innerHTML = `<p class="sub">Error: ${escHtml(error.message)}</p>`; return; }
+  resultadosFilas = data || [];
+  const ingresos = resultadosFilas.filter((f) => f.tipo === "ingreso");
+  const egresos = resultadosFilas.filter((f) => f.tipo === "egreso");
+  const totalIngresos = ingresos.reduce((a, f) => a + Number(f.saldo_centavos), 0);
+  const totalEgresos = egresos.reduce((a, f) => a + Number(f.saldo_centavos), 0);
+  const resultado = totalIngresos - totalEgresos;
+  cont.innerHTML = `
+    <div style="font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:10px 0 4px;">Ingresos</div>
+    ${ingresos.map((f) => `<div style="display:flex; justify-content:space-between; font-size:13px; padding:3px 0;"><span>${escHtml(f.nombre)}</span><span>${fmtCentavosArs(f.saldo_centavos)}</span></div>`).join("") || `<div class="sub">Ninguno</div>`}
+    <div style="font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:10px 0 4px;">Egresos</div>
+    ${egresos.map((f) => `<div style="display:flex; justify-content:space-between; font-size:13px; padding:3px 0;"><span>${escHtml(f.nombre)}</span><span>${fmtCentavosArs(f.saldo_centavos)}</span></div>`).join("") || `<div class="sub">Ninguno</div>`}
+    <div style="margin-top:12px; padding:12px; border-radius:8px; text-align:center; background:${resultado >= 0 ? "#eef7ee" : "#fdeeee"};">
+      <div style="font-size:10px; text-transform:uppercase; color:var(--muted);">Resultado del período</div>
+      <div style="font-size:20px; font-weight:800; color:${resultado >= 0 ? "#1d7a4a" : "#a33"};">${fmtCentavosArs(resultado)}</div>
+    </div>
+  `;
+}
+document.getElementById("resultados-desde").addEventListener("change", cargarEstadoResultados);
+document.getElementById("resultados-hasta").addEventListener("change", cargarEstadoResultados);
+
+// ---------- Libro de movimientos ----------
+async function cargarLibroMovimientos() {
+  const cont = document.getElementById("libro-movimientos-lista");
+  const { data, error } = await supabaseClient.from("libro_mayor").select("*").order("fecha", { ascending: false }).order("creado_en", { ascending: false }).limit(200);
+  if (error) { cont.innerHTML = `<p class="sub">Error: ${escHtml(error.message)}</p>`; return; }
+  asientosLibro = data || [];
+  if (!asientosLibro.length) { cont.innerHTML = `<p class="sub">Todavía no hay movimientos cargados.</p>`; return; }
+  cont.innerHTML = `
+    <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+      <thead><tr style="text-align:left; border-bottom:1px solid var(--line);">
+        <th style="padding:5px 4px;">Fecha</th><th style="padding:5px 4px;">Cuenta</th><th style="padding:5px 4px;">Descripción</th><th style="padding:5px 4px; text-align:right;">Debe</th><th style="padding:5px 4px; text-align:right;">Haber</th>
+      </tr></thead>
+      <tbody>${asientosLibro.map((f) => `
+        <tr style="border-bottom:1px solid var(--line);">
+          <td style="padding:5px 4px; white-space:nowrap;">${fmtFechaAdmin(f.fecha)}</td>
+          <td style="padding:5px 4px;">${escHtml(f.cuenta_codigo)} ${escHtml(f.cuenta_nombre)}</td>
+          <td style="padding:5px 4px; color:var(--muted);">${escHtml(f.asiento_descripcion)}</td>
+          <td style="padding:5px 4px; text-align:right;">${f.debe_centavos > 0 ? fmtCentavosArs(f.debe_centavos) : "—"}</td>
+          <td style="padding:5px 4px; text-align:right;">${f.haber_centavos > 0 ? fmtCentavosArs(f.haber_centavos) : "—"}</td>
+        </tr>
+      `).join("")}</tbody>
+    </table>
+    <div class="sub" style="margin-top:8px;">Mostrando los últimos ${asientosLibro.length} movimientos.</div>
+  `;
+}
+
+// ---------- Informes en PDF ----------
+async function descargarInformeBalance() {
+  const fecha = document.getElementById("balance-fecha").value || new Date().toISOString().slice(0, 10);
+  const porTipo = (t) => balanceFilas.filter((f) => f.tipo === t);
+  const suma = (arr) => arr.reduce((a, f) => a + Number(f.saldo_centavos), 0);
+  const seccionHtml = (titulo, arr, total) => `
+    <div style="font-size:11px; font-weight:800; text-transform:uppercase; color:#8a7a5f; margin:14px 0 6px;">${titulo}</div>
+    <table style="width:100%; border-collapse:collapse; font-size:12px;">
+      ${arr.map((f) => `<tr><td style="padding:4px 8px; border-bottom:1px solid #eee;">${escHtml(f.nombre)}</td><td style="padding:4px 8px; border-bottom:1px solid #eee; text-align:right;">${fmtCentavosArs(f.saldo_centavos)}</td></tr>`).join("")}
+      <tr style="font-weight:700;"><td style="padding:4px 8px;">Total ${titulo.toLowerCase()}</td><td style="padding:4px 8px; text-align:right;">${fmtCentavosArs(total)}</td></tr>
+    </table>`;
+  const html = `
+    <div style="font-family: ui-monospace, Menlo, monospace; color:#2C2416; padding:24px; background:#fff;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px; border-bottom:2px solid #B5622E; padding-bottom:14px;">
+        <h1 style="font-size:19px; margin:0;">Balance general — Jawa Logistic</h1>
+        <span style="font-size:12px; color:#8a7a5f;">Al ${fmtFechaAdmin(fecha)}</span>
+      </div>
+      ${seccionHtml("Activo", porTipo("activo"), suma(porTipo("activo")))}
+      ${seccionHtml("Pasivo", porTipo("pasivo"), suma(porTipo("pasivo")))}
+      ${seccionHtml("Patrimonio", porTipo("patrimonio"), suma(porTipo("patrimonio")))}
+    </div>`;
+  await descargarComoPdf(html, `balance-general-${fecha}.pdf`);
+}
+
+async function descargarInformeResultados() {
+  const desde = document.getElementById("resultados-desde").value;
+  const hasta = document.getElementById("resultados-hasta").value || new Date().toISOString().slice(0, 10);
+  const ingresos = resultadosFilas.filter((f) => f.tipo === "ingreso");
+  const egresos = resultadosFilas.filter((f) => f.tipo === "egreso");
+  const totalIngresos = ingresos.reduce((a, f) => a + Number(f.saldo_centavos), 0);
+  const totalEgresos = egresos.reduce((a, f) => a + Number(f.saldo_centavos), 0);
+  const html = `
+    <div style="font-family: ui-monospace, Menlo, monospace; color:#2C2416; padding:24px; background:#fff;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px; border-bottom:2px solid #B5622E; padding-bottom:14px;">
+        <h1 style="font-size:19px; margin:0;">Estado de resultados — Jawa Logistic</h1>
+        <span style="font-size:12px; color:#8a7a5f;">${fmtFechaAdmin(desde)} — ${fmtFechaAdmin(hasta)}</span>
+      </div>
+      <div style="font-size:11px; font-weight:800; text-transform:uppercase; color:#8a7a5f; margin:14px 0 6px;">Ingresos</div>
+      <table style="width:100%; border-collapse:collapse; font-size:12px;">${ingresos.map((f) => `<tr><td style="padding:4px 8px; border-bottom:1px solid #eee;">${escHtml(f.nombre)}</td><td style="padding:4px 8px; border-bottom:1px solid #eee; text-align:right;">${fmtCentavosArs(f.saldo_centavos)}</td></tr>`).join("")}</table>
+      <div style="font-size:11px; font-weight:800; text-transform:uppercase; color:#8a7a5f; margin:14px 0 6px;">Egresos</div>
+      <table style="width:100%; border-collapse:collapse; font-size:12px;">${egresos.map((f) => `<tr><td style="padding:4px 8px; border-bottom:1px solid #eee;">${escHtml(f.nombre)}</td><td style="padding:4px 8px; border-bottom:1px solid #eee; text-align:right;">${fmtCentavosArs(f.saldo_centavos)}</td></tr>`).join("")}</table>
+      <div style="margin-top:20px; padding:14px; border-radius:8px; text-align:center; background:#fdf3ec;">
+        <div style="font-size:9px; color:#8a7a5f; text-transform:uppercase;">Resultado del período</div>
+        <div style="font-size:22px; font-weight:700; color:#B5622E;">${fmtCentavosArs(totalIngresos - totalEgresos)}</div>
+      </div>
+    </div>`;
+  await descargarComoPdf(html, `estado-resultados-${desde}-a-${hasta}.pdf`);
+}
+
+async function descargarInformeLibro() {
+  const fecha = new Date().toLocaleDateString("es-AR");
+  const html = `
+    <div style="font-family: ui-monospace, Menlo, monospace; color:#2C2416; padding:24px; background:#fff;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px; border-bottom:2px solid #B5622E; padding-bottom:14px;">
+        <h1 style="font-size:19px; margin:0;">Libro de movimientos — Jawa Logistic</h1>
+        <span style="font-size:12px; color:#8a7a5f;">${fecha}</span>
+      </div>
+      <table style="width:100%; border-collapse:collapse; font-size:11.5px;">
+        <thead><tr style="background:#f7f3ea;"><th style="text-align:left; padding:5px 8px; border-bottom:1px solid #ddd;">Fecha</th><th style="text-align:left; padding:5px 8px; border-bottom:1px solid #ddd;">Cuenta</th><th style="text-align:left; padding:5px 8px; border-bottom:1px solid #ddd;">Descripción</th><th style="text-align:right; padding:5px 8px; border-bottom:1px solid #ddd;">Debe</th><th style="text-align:right; padding:5px 8px; border-bottom:1px solid #ddd;">Haber</th></tr></thead>
+        <tbody>${asientosLibro.map((f) => `<tr><td style="padding:4px 8px; border-bottom:1px solid #eee;">${fmtFechaAdmin(f.fecha)}</td><td style="padding:4px 8px; border-bottom:1px solid #eee;">${escHtml(f.cuenta_codigo)} ${escHtml(f.cuenta_nombre)}</td><td style="padding:4px 8px; border-bottom:1px solid #eee;">${escHtml(f.asiento_descripcion)}</td><td style="padding:4px 8px; border-bottom:1px solid #eee; text-align:right;">${f.debe_centavos > 0 ? fmtCentavosArs(f.debe_centavos) : "—"}</td><td style="padding:4px 8px; border-bottom:1px solid #eee; text-align:right;">${f.haber_centavos > 0 ? fmtCentavosArs(f.haber_centavos) : "—"}</td></tr>`).join("")}</tbody>
+      </table>
+    </div>`;
+  await descargarComoPdf(html, `libro-movimientos-${fecha.replace(/\//g, "-")}.pdf`);
+}
+
+document.getElementById("descargar-informe-balance").addEventListener("click", () => {
+  descargarInformeBalance().catch((err) => { console.error(err); alert("No se pudo generar el PDF. Probá de nuevo."); });
+});
+document.getElementById("descargar-informe-resultados").addEventListener("click", () => {
+  descargarInformeResultados().catch((err) => { console.error(err); alert("No se pudo generar el PDF. Probá de nuevo."); });
+});
+document.getElementById("descargar-informe-libro").addEventListener("click", () => {
+  descargarInformeLibro().catch((err) => { console.error(err); alert("No se pudo generar el PDF. Probá de nuevo."); });
+});
+
+try {
+  SUPABASE_READY.then(async () => {
+    document.getElementById("mov-fecha").value = new Date().toISOString().slice(0, 10);
+    await cargarCuentasContables();
+    await cargarCaja();
+    await cargarBalanceGeneral();
+    await cargarLibroMovimientos();
+  });
+} catch (e) { console.error("cargar contabilidad:", e); }
 </script>
 </body>
 </html>
