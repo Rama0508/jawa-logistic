@@ -72,6 +72,7 @@
   .btn-primary { background:var(--coral); color:#fff; border:none; border-radius:8px; padding:14px 22px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; }
   .btn-primary:hover { background:var(--coral-deep); }
   .btn-ghost { background:transparent; border:1px solid var(--line); border-radius:8px; padding:12px 18px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; color:var(--ink); }
+  .btn-ghost.active { background:var(--navy); border-color:var(--navy); color:#fff; }
 
   .panel-tabs { display:flex; gap:6px; margin-bottom:20px; border-bottom:1px solid var(--line); }
   .panel-tab { background:transparent; border:none; border-bottom:2.5px solid transparent; padding:12px 18px; font-size:13.5px; font-weight:700; color:var(--muted); cursor:pointer; font-family:inherit; margin-bottom:-1px; }
@@ -3110,6 +3111,7 @@ async function cargarPedidosPendientes() {
   ]);
   if (e1) { cont.innerHTML = `<p class="sub">Error: ${escHtml(e1.message)}</p>`; return; }
   pedidosTiendaPendientes = pedidos || [];
+  if (e2) console.error("No se pudieron cargar las operaciones para el dashboard de pedidos:", e2);
   operacionesPendientes = e2 ? [] : (ops || []).filter((o) => !["entregado", "cancelado"].includes(o.estado));
 
   const filas = [
@@ -3535,11 +3537,16 @@ document.getElementById("descargar-informe-libro").addEventListener("click", () 
 
 try {
   SUPABASE_READY.then(async () => {
-    document.getElementById("mov-fecha").value = new Date().toISOString().slice(0, 10);
-    document.getElementById("mov-fecha-otro").value = new Date().toISOString().slice(0, 10);
+    const hoy = new Date().toISOString().slice(0, 10);
+    const primerDiaMes = new Date().toISOString().slice(0, 8) + "01";
+    document.getElementById("mov-fecha").value = hoy;
+    document.getElementById("mov-fecha-otro").value = hoy;
+    document.getElementById("resultados-desde").value = primerDiaMes;
+    document.getElementById("resultados-hasta").value = hoy;
     await cargarCuentasContables();
     await cargarCaja();
     await cargarBalanceGeneral();
+    await cargarEstadoResultados();
     await cargarLibroMovimientos();
   });
 } catch (e) { console.error("cargar contabilidad:", e); }
