@@ -238,6 +238,13 @@
   <p class="sub" style="margin:-4px 0 16px;">Contabilidad de partida doble — cada movimiento que cargás abajo genera un asiento contable de verdad (debe = haber siempre), aunque el formulario no te pida saber qué es debe y qué es haber.</p>
 
   <div class="card">
+    <div class="card-title">📚 Plan de cuentas</div>
+    <p class="sub" style="margin-bottom:12px;">Las cuentas que usa toda la contabilidad (Caja, Banco, Ventas, etc.). Cambiá el nombre acá si querés — no hace falta tocar código. El código y el tipo no se pueden editar una vez creada la cuenta (para no romper los movimientos ya cargados), pero podés desactivarla si ya no la usás.</p>
+    <div id="cuentas-admin"></div>
+    <button class="add-btn" id="add-cuenta-btn" style="margin-top:8px;">+ Agregar cuenta</button>
+  </div>
+
+  <div class="card">
     <div class="card-title">💵 Registrar movimiento</div>
     <div class="field-row" style="grid-template-columns: 1fr 1fr;">
       <div class="field">
@@ -3233,6 +3240,132 @@ async function cargarCuentasContables() {
   selHaber.innerHTML = opciones;
 }
 
+// ---------- Plan de cuentas (CRUD) — para que se pueda renombrar/agregar
+// cuentas sin tocar código. Código, tipo y naturaleza quedan fijos después
+// de creada la cuenta: cambiarlos rompería el signo de los saldos ya
+// calculados en libro_mayor/balance_general para los asientos existentes.
+// El nombre sí se puede cambiar libremente, y una cuenta se desactiva en
+// vez de borrarse (no se puede borrar sin romper los asientos que ya la
+// usan).
+let todasLasCuentas = [];
+let cuentaAbiertaIdx = null;
+let cuentaSnapshot = null;
+
+function nuevaCuentaLocal() { return { id: null, codigo: "", nombre: "", tipo: "activo", naturaleza: "deudora", activa: true }; }
+
+async function cargarTodasLasCuentas() {
+  const { data, error } = await supabaseClient.from("cuentas_contables").select("*").order("codigo");
+  if (error) { console.error("No se pudieron cargar las cuentas:", error); return; }
+  todasLasCuentas = data || [];
+  renderCuentasAdmin();
+}
+
+const TIPO_CUENTA_LABEL = { activo: "Activo", pasivo: "Pasivo", patrimonio: "Patrimonio", ingreso: "Ingreso", egreso: "Egreso" };
+
+function renderCuentasAdmin() {
+  const cont = document.getElementById("cuentas-admin");
+  if (!todasLasCuentas.length) { cont.innerHTML = `<p class="sub">Todavía no hay cuentas cargadas.</p>`; return; }
+  cont.innerHTML = todasLasCuentas.map((c, ci) => {
+    const abierto = ci === cuentaAbiertaIdx || !c.id;
+    if (!abierto) {
+      return `
+        <div class="agente-resumen-row" style="${c.activa ? "" : "opacity:0.5;"}">
+          <div><b>${escHtml(c.codigo)} — ${escHtml(c.nombre)}</b> <span style="color:var(--muted);">— ${TIPO_CUENTA_LABEL[c.tipo]} (${c.naturaleza})${c.activa ? "" : " · desactivada"}</span></div>
+          <div style="display:flex; gap:6px; flex:none;">
+            <button class="btn-ghost" data-cuenta-editar="${ci}" style="padding:5px 12px; font-size:12px;">✏️ Editar</button>
+          </div>
+        </div>
+      `;
+    }
+    return `
+    <div class="producto-card">
+      <div class="field-row" style="grid-template-columns: 1fr 2fr 1fr 1fr;">
+        <div class="field"><label>Código</label><input type="text" data-cuenta-field="codigo" data-cuenta-idx="${ci}" value="${escHtml(c.codigo)}" placeholder="Ej: 1.5" ${c.id ? "disabled" : ""} /></div>
+        <div class="field"><label>Nombre</label><input type="text" data-cuenta-field="nombre" data-cuenta-idx="${ci}" value="${escHtml(c.nombre)}" placeholder="Ej: Mercado Pago" /></div>
+        <div class="field">
+          <label>Tipo</label>
+          <select data-cuenta-field="tipo" data-cuenta-idx="${ci}" ${c.id ? "disabled" : ""}>
+            ${Object.entries(TIPO_CUENTA_LABEL).map(([v, l]) => `<option value="${v}" ${c.tipo === v ? "selected" : ""}>${l}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field">
+          <label>Naturaleza</label>
+          <select data-cuenta-field="naturaleza" data-cuenta-idx="${ci}" ${c.id ? "disabled" : ""}>
+            <option value="deudora" ${c.naturaleza === "deudora" ? "selected" : ""}>Deudora</option>
+            <option value="acreedora" ${c.naturaleza === "acreedora" ? "selected" : ""}>Acreedora</option>
+          </select>
+        </div>
+      </div>
+      ${c.id
+        ? `<label style="display:flex; align-items:center; gap:6px; font-size:12.5px; margin-top:4px; cursor:pointer;"><input type="checkbox" data-cuenta-field="activa" data-cuenta-idx="${ci}" ${c.activa ? "checked" : ""} /> Cuenta activa</label>`
+        : `<div class="sub" style="margin-top:4px;">Código, tipo y naturaleza no se pueden cambiar después de guardar — elegilos bien ahora. "Deudora" para activo/egreso, "Acreedora" para pasivo/patrimonio/ingreso.</div>`}
+      <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+        <button class="btn-primary" data-cuenta-guardar="${ci}" style="padding:9px 18px; font-size:13px;">✓ Guardar</button>
+        <button class="btn-ghost" data-cuenta-cancelar="${ci}" style="padding:9px 16px; font-size:13px;">Cancelar</button>
+        <span id="cuenta-status-${ci}" style="font-size:12px; color:var(--muted);"></span>
+      </div>
+    </div>
+    `;
+  }).join("");
+
+  cont.querySelectorAll("[data-cuenta-editar]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      cuentaAbiertaIdx = Number(btn.getAttribute("data-cuenta-editar"));
+      cuentaSnapshot = JSON.stringify(todasLasCuentas[cuentaAbiertaIdx]);
+      renderCuentasAdmin();
+    });
+  });
+  cont.querySelectorAll("[data-cuenta-cancelar]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.getAttribute("data-cuenta-cancelar"));
+      const c = todasLasCuentas[idx];
+      if (!c.id) todasLasCuentas.splice(idx, 1);
+      else if (cuentaSnapshot) todasLasCuentas[idx] = JSON.parse(cuentaSnapshot);
+      cuentaAbiertaIdx = null; cuentaSnapshot = null;
+      renderCuentasAdmin();
+    });
+  });
+  cont.querySelectorAll("[data-cuenta-guardar]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const idx = Number(btn.getAttribute("data-cuenta-guardar"));
+      const c = todasLasCuentas[idx];
+      const status = document.getElementById(`cuenta-status-${idx}`);
+      if (!c.codigo.trim() || !c.nombre.trim()) { status.textContent = "⚠️ Completá código y nombre."; return; }
+      status.textContent = "Guardando…";
+      try {
+        if (c.id) {
+          const { error } = await supabaseClient.from("cuentas_contables").update({ nombre: c.nombre, activa: c.activa }).eq("id", c.id);
+          if (error) throw error;
+        } else {
+          const { data, error } = await supabaseClient.from("cuentas_contables").insert({ codigo: c.codigo.trim(), nombre: c.nombre.trim(), tipo: c.tipo, naturaleza: c.naturaleza }).select("id").single();
+          if (error) throw error;
+          c.id = data.id;
+        }
+        cuentaAbiertaIdx = null; cuentaSnapshot = null;
+        await cargarTodasLasCuentas();
+        await cargarCuentasContables();
+      } catch (err) {
+        status.textContent = "⚠️ No se pudo guardar: " + (err.code === "23505" ? "ya existe una cuenta con ese código." : err.message);
+      }
+    });
+  });
+}
+
+document.getElementById("cuentas-admin").addEventListener("input", (e) => {
+  const idx = e.target.getAttribute("data-cuenta-idx");
+  if (idx === null) return;
+  const field = e.target.getAttribute("data-cuenta-field");
+  const c = todasLasCuentas[idx];
+  if (!c || !field) return;
+  c[field] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+});
+
+document.getElementById("add-cuenta-btn").addEventListener("click", () => {
+  todasLasCuentas.push(nuevaCuentaLocal());
+  cuentaAbiertaIdx = todasLasCuentas.length - 1;
+  renderCuentasAdmin();
+});
+
 // ---------- Registrar movimiento ----------
 function calcularCuentasMovimiento(tipo, medioCodigo) {
   switch (tipo) {
@@ -3543,6 +3676,7 @@ try {
     document.getElementById("mov-fecha-otro").value = hoy;
     document.getElementById("resultados-desde").value = primerDiaMes;
     document.getElementById("resultados-hasta").value = hoy;
+    await cargarTodasLasCuentas();
     await cargarCuentasContables();
     await cargarCaja();
     await cargarBalanceGeneral();
