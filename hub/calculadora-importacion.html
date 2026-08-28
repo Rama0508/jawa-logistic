@@ -425,6 +425,18 @@ try {
         const nz = (v) => (v === null || v === undefined ? null : String(v));
         const map = { die: nz(t.die), iva: nz(t.iva), ivaAdicional: nz(t.ivaAdicional), ganancias: nz(t.ganancias), iibb: nz(t.iibb), tasaEstadistica: nz(t.te) };
         Object.keys(map).forEach((k) => { if (map[k] !== null) p.alicuotas[k] = map[k]; });
+        if (data.parcial) {
+          // Código de subpartida: VUCE solo tiene el arancel general, no los
+          // impuestos completos. Aplicamos lo que vino (ej. DIE) pero NO
+          // marcamos "oficial VUCE" — el resto sigue siendo estimación de IA.
+          if (estado) {
+            estado.innerHTML = "ℹ️ VUCE tiene los impuestos completos solo para el código SIM de 12 dígitos. Trajimos el arancel general; el resto queda como estimación." +
+              (data.urlOficial ? ` <a href="${escHtml(data.urlOficial)}" target="_blank" rel="noopener" style="color:var(--coral); font-weight:700;">Ver en VUCE →</a>` : "");
+          }
+          guardarWiz();
+          render();
+          return;
+        }
         p.codigoHSFuente = "vuce";
         // Guardamos una versión reducida (localStorage + se serializa en la
         // cotización) — sin la jerarquía ni los resúmenes largos.

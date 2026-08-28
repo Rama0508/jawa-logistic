@@ -111,6 +111,7 @@ function renderFichaVUCE(data, contenedor, opts) {
       </div>
       <div style="font-size:15px; font-weight:800; color:var(--navy); font-family:ui-monospace,Menlo,monospace;">${escHtml(data.posicion)}</div>
       ${data.descripcionCorta ? `<div style="font-size:13px; color:var(--ink); margin-top:2px;">${escHtml(data.descripcionCorta)}</div>` : ""}
+      ${data.parcial ? `<div style="margin-top:8px; font-size:11.5px; color:#7a5416; background:#fff4de; border-radius:8px; padding:8px 10px; line-height:1.5;">⚠️ Este es un código de subpartida. VUCE tiene los impuestos completos e intervenciones solo para el código SIM completo (12 dígitos, ej. ${escHtml(data.posicion)}.999A). Abajo mostramos lo disponible a este nivel — el resto lo confirma Jawa con despachante.</div>` : ""}
       <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:11.5px; color:var(--muted); margin-top:6px;">
         ${data.unidad ? `<span>Unidad: <b style="color:var(--ink);">${escHtml(data.unidad)}</b></span>` : ""}
         ${data.ramo ? `<span>Ramo: <b style="color:var(--ink);">${escHtml(data.ramo)}</b></span>` : ""}

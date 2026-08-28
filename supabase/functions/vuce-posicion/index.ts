@@ -252,18 +252,28 @@ async function consultarFicha(codigo: string, operacion: string, pais: string, r
   const huboAlgo = cicePosData || arr(tribs).length || arr(ivs).length;
   if (!huboAlgo) throw new Error("VUCE no devolvió datos para " + codigo);
 
+  const tributos = mapTributos(tribs, cicePosData);
+  const intervenciones = mapIntervenciones(ivs);
+  // VUCE solo tiene tributos completos + intervenciones a nivel de posición
+  // SIM "hoja" (termina en letra de control, …999A). Para una subpartida
+  // (8518.22.00) solo devuelve el arancel general. Marcamos eso para que el
+  // front avise y no pise las estimaciones de IA con datos a medias.
+  const esHoja = /[A-Za-z]$/.test(codigo);
+  const parcial = !esHoja && tributos.iva === null && tributos.iibb === null;
+
   return {
     posicion: codigo,
     operacion: op,
     pais,
+    parcial,
     descripcionCorta: (cObj?.descripcion || (jerarquia[jerarquia.length - 1]?.texto) || "").trim(),
     jerarquia,
     textoPartida: tp,
     unidad: first(unidades) ? `${first(unidades).id_unidad || ""} - ${first(unidades).descripcion || ""}`.trim() : "",
     ramo: first(ramos)?.descripcion || "",
     codigoAfip: first(codAfip)?.codigo_afip || "",
-    tributos: mapTributos(tribs, cicePosData),
-    intervenciones: mapIntervenciones(ivs),
+    tributos,
+    intervenciones,
     preferencias,
     antidumping,
     actualizadoAl: cObj?.actualizado || "",
