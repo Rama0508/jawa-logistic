@@ -259,7 +259,8 @@ async function consultarFicha(codigo: string, operacion: string, pais: string, r
   // un código incompleto/inexistente solo devuelve —a lo sumo— el arancel
   // general. Si no vino IVA ni IIBB, marcamos la ficha como parcial para que
   // el front avise y no pise las estimaciones de IA con datos a medias.
-  const parcial = tributos.iva === null && tributos.iibb === null;
+  // Solo para importación: en exportación no hay IVA/IIBB por naturaleza.
+  const parcial = op === "I" && tributos.iva === null && tributos.iibb === null;
 
   return {
     posicion: codigo,
