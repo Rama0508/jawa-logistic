@@ -254,12 +254,12 @@ async function consultarFicha(codigo: string, operacion: string, pais: string, r
 
   const tributos = mapTributos(tribs, cicePosData);
   const intervenciones = mapIntervenciones(ivs);
-  // VUCE solo tiene tributos completos + intervenciones a nivel de posición
-  // SIM "hoja" (termina en letra de control, …999A). Para una subpartida
-  // (8518.22.00) solo devuelve el arancel general. Marcamos eso para que el
-  // front avise y no pise las estimaciones de IA con datos a medias.
-  const esHoja = /[A-Za-z]$/.test(codigo);
-  const parcial = !esHoja && tributos.iva === null && tributos.iibb === null;
+  // VUCE solo tiene los impuestos completos a nivel de posición SIM "hoja"
+  // (12 díg, termina en letra de control). Para una subpartida (8518.22.00) o
+  // un código incompleto/inexistente solo devuelve —a lo sumo— el arancel
+  // general. Si no vino IVA ni IIBB, marcamos la ficha como parcial para que
+  // el front avise y no pise las estimaciones de IA con datos a medias.
+  const parcial = tributos.iva === null && tributos.iibb === null;
 
   return {
     posicion: codigo,
