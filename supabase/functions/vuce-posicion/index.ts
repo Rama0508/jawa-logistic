@@ -13,11 +13,11 @@
 //   - ante cualquier fallo devuelve { success:false, urlOficial } con HTTP 200
 //     para que el front caiga limpio al link de la ficha oficial de VUCE.
 //
-// Auth de VUCE: su SPA pide un token anónimo a POST {base}/auth/generate con
-// una x-api-key embebida en su propio bundle JS y el email fijo
-// vuce@vuce.gob.ar. Replicamos eso: bajamos el bundle de VUCE, extraemos la
-// key y el host de la API, y pedimos el token igual que el browser. Se puede
-// forzar con las env VUCE_API_KEY / VUCE_API_BASE si algún día hay que fijarlas.
+// Auth de VUCE: POST https://qa.ci.vuce.gob.ar/auth/generate con body
+// {"email":"vuce@vuce.gob.ar"} y SIN headers devuelve {data:"<token>"}. Ese
+// token va en el header `x-api-key` de cada GET (no como Bearer). El param
+// `operacion` de la API es 'I'/'E' (no 'importacion'/'exportacion'). Se puede
+// override el host con la env VUCE_API_BASE.
 //
 // Seguridad: sin "Enforce JWT" a nivel plataforma (rompe CORS), el chequeo de
 // sesión real se hace acá contra el JWT que manda el hub. Además un tope de
@@ -87,13 +87,15 @@ function urlOficialDe(posicion: string, operacion: string, pais: string): string
 }
 
 // ---------- Auth contra VUCE ----------
-// La SPA de VUCE pide un token anónimo a POST {base}/auth/generate con una
-// x-api-key (un JWT) embebida en su bundle JS y el email fijo
-// vuce@vuce.gob.ar. Replicamos eso: bajamos el bundle, sacamos los JWT
-// candidatos y el host, y probamos cada candidato hasta que uno autentique.
-// El par (apiKey, base) que funcionó queda cacheado en la instancia tibia.
-let vuceAuth: { apiKey: string; base: string; token: string; obtenidoEn: number } | null = null;
-const AUTH_TTL_MS = 20 * 60 * 1000; // el token de VUCE dura poco; lo renovamos seguido
+// La API de VUCE es simple: POST {base}/auth/generate con body
+// {"email":"vuce@vuce.gob.ar"} y SIN headers de auth devuelve
+// {status,message,data:"<token>"}. Ese token va después en el header
+// `x-api-key` de cada GET (no como Bearer). El token dura ~24 h; lo
+// renovamos cada 20 min por las dudas. El único host de API que responde
+// es qa.ci.vuce.gob.ar (ci.vuce.gob.ar redirige al sitio público).
+const VUCE_API_BASE_DEFAULT = "https://qa.ci.vuce.gob.ar";
+let vuceAuth: { base: string; token: string; obtenidoEn: number } | null = null;
+const AUTH_TTL_MS = 20 * 60 * 1000;
 
 function extraerTokenDe(j: any): string {
   const d = j?.data ?? j;
@@ -101,75 +103,42 @@ function extraerTokenDe(j: any): string {
   return d?.token || d?.accessToken || d?.access_token || d?.jwt || d?.bearer || "";
 }
 
-async function generarToken(apiKey: string, base: string): Promise<string> {
+async function autenticarVuce(): Promise<{ base: string; token: string }> {
+  if (vuceAuth && Date.now() - vuceAuth.obtenidoEn < AUTH_TTL_MS) {
+    return { base: vuceAuth.base, token: vuceAuth.token };
+  }
+  const base = (Deno.env.get("VUCE_API_BASE") || "").trim().replace(/\/$/, "") || VUCE_API_BASE_DEFAULT;
   const resp = await fetch(base + "/auth/generate", {
     method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json", "x-api-key": apiKey },
+    headers: { "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify({ email: "vuce@vuce.gob.ar" }),
   });
-  if (!resp.ok) return "";
+  if (!resp.ok) throw new Error(`/auth/generate de VUCE respondió ${resp.status}`);
   const j = await resp.json().catch(() => null);
-  if (!j) return "";
-  const token = extraerTokenDe(j);
-  if (!token) console.error("vuce-posicion: /auth/generate 200 pero sin token reconocible:", JSON.stringify(j).slice(0, 300));
-  return token;
+  const token = j ? extraerTokenDe(j) : "";
+  if (!token) {
+    console.error("vuce-posicion: /auth/generate sin token reconocible:", JSON.stringify(j).slice(0, 300));
+    throw new Error("no se pudo obtener token de VUCE");
+  }
+  vuceAuth = { base, token, obtenidoEn: Date.now() };
+  return { base, token };
 }
 
-async function autenticarVuce(): Promise<{ apiKey: string; base: string; token: string }> {
-  if (vuceAuth && Date.now() - vuceAuth.obtenidoEn < AUTH_TTL_MS) {
-    return { apiKey: vuceAuth.apiKey, base: vuceAuth.base, token: vuceAuth.token };
-  }
-
-  const envKey = (Deno.env.get("VUCE_API_KEY") || "").trim();
-  const envBase = (Deno.env.get("VUCE_API_BASE") || "").trim().replace(/\/$/, "");
-
-  const bases: string[] = [];
-  if (envBase) bases.push(envBase);
-
-  const candidatas: string[] = [];
-  if (envKey) candidatas.push(envKey);
-
-  if (!envKey || !envBase) {
-    const home = await fetch(VUCE_SITE + "/", { headers: { "user-agent": "Mozilla/5.0" } }).then((r) => r.text());
-    const bundleRef = home.match(/src="(\/[\w.\-/]*index[\w.\-]*\.js)"/i)?.[1]
-      || home.match(/src="(\/[\w.\-/]+\.js)"/i)?.[1];
-    if (!bundleRef) throw new Error("no se encontró el bundle JS de VUCE en la home");
-    const bundle = await fetch(VUCE_SITE + bundleRef, { headers: { "user-agent": "Mozilla/5.0" } }).then((r) => r.text());
-
-    for (const m of bundle.matchAll(/https:\/\/(?:qa\.)?ci\.vuce\.gob\.ar/g)) {
-      if (!bases.includes(m[0])) bases.push(m[0]);
-    }
-    // primero el JWT que esté junto a x-api-key/apiKey, después el resto (más largos primero)
-    const cerca = bundle.match(/(?:x-api-key|apiKey|api_key)["'`:\s]{1,16}["'`](eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)["'`]/i)?.[1];
-    if (cerca && !candidatas.includes(cerca)) candidatas.push(cerca);
-    const todos = [...new Set(bundle.match(/eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+/g) || [])]
-      .sort((a, b) => b.length - a.length);
-    for (const j of todos) if (!candidatas.includes(j)) candidatas.push(j);
-  }
-  if (!bases.length) bases.push("https://ci.vuce.gob.ar", "https://qa.ci.vuce.gob.ar");
-  if (!candidatas.length) throw new Error("no se encontró ninguna x-api-key candidata en el bundle de VUCE");
-
-  for (const base of bases) {
-    for (const apiKey of candidatas.slice(0, 8)) {
-      const token = await generarToken(apiKey, base).catch(() => "");
-      if (token) {
-        vuceAuth = { apiKey, base, token, obtenidoEn: Date.now() };
-        return { apiKey, base, token };
-      }
-    }
-  }
-  throw new Error(`ninguna combinación api-key/host autenticó contra VUCE (probadas ${candidatas.length} keys × ${bases.length} hosts)`);
+// operacion para la API de VUCE: 'I' o 'E' (no 'importacion'/'exportacion' —
+// tributaciones/obtenerOperacion devuelve datos incompletos con el nombre largo).
+function opCorta(operacion: string): string {
+  return operacion === "exportacion" ? "E" : "I";
 }
 
 // ---------- Llamadas a la API de VUCE ----------
-function crearGet(base: string, token: string, apiKey: string) {
+function crearGet(base: string, token: string) {
   return async function get(path: string): Promise<{ ok: boolean; status: number; json: any }> {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 18000);
     try {
       const resp = await fetch(base + path, {
         signal: ctrl.signal,
-        headers: { accept: "application/json", Authorization: "Bearer " + token, "x-api-key": apiKey },
+        headers: { accept: "application/json", "x-api-key": token },
       });
       const json = resp.ok ? await resp.json().catch(() => null) : null;
       return { ok: resp.ok, status: resp.status, json };
@@ -241,9 +210,9 @@ function mapDescripcion(cicePos: any, textoPartida: any): { jerarquia: any[]; te
 }
 
 async function consultarFicha(codigo: string, operacion: string, pais: string, reintento = false): Promise<any> {
-  const { apiKey, base, token } = await autenticarVuce();
-  const get = crearGet(base, token, apiKey);
-  const op = operacion === "exportacion" ? "exportacion" : "importacion";
+  const { base, token } = await autenticarVuce();
+  const get = crearGet(base, token);
+  const op = opCorta(operacion);
 
   const res = await Promise.all([
     get(`/cice/posicion/${codigo}`),
@@ -302,9 +271,9 @@ async function consultarFicha(codigo: string, operacion: string, pais: string, r
 }
 
 async function consultarArbol(parcial: string, operacion: string, reintento = false): Promise<{ posicion: string; hijos: any[] }> {
-  const { apiKey, base, token } = await autenticarVuce();
-  const get = crearGet(base, token, apiKey);
-  const op = operacion === "exportacion" ? "exportacion" : "importacion";
+  const { base, token } = await autenticarVuce();
+  const get = crearGet(base, token);
+  const op = opCorta(operacion);
 
   const mapHijos = (j: any) => arr(j).map((d: any) => ({
     codigo: d.posicion,
