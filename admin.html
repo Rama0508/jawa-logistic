@@ -500,6 +500,7 @@
 <script src="js/rates.js"></script>
 <script src="js/mfa.js"></script>
 <script src="js/cotizador-core.js"></script>
+<script src="js/vuce.js"></script>
 <script>
 // ---------- Login ----------
 (function () {
@@ -1322,6 +1323,36 @@ async function extraerLinkAdmin(id) {
   }
 }
 
+// Trae la ficha oficial de VUCE (tributos + intervenciones de organismos)
+// para el código HS del producto y la muestra debajo de sus datos. No toca
+// el cálculo de costos (el modelo interno usa alícuota única del agente),
+// es una referencia para clasificar y para cargar la biblioteca NCM.
+async function consultarVuceAdmin(id) {
+  const p = productos.find((x) => x.id === id);
+  if (!p || !p.codigoHS) return;
+  const panel = document.getElementById(`vuce-panel-${id}`);
+  if (!panel) return;
+  panel.innerHTML = `<div style="font-size:11.5px; color:var(--muted); padding:8px 0;">Consultando VUCE…</div>`;
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) { panel.innerHTML = `<div style="font-size:11.5px; color:var(--coral-deep);">Sesión inválida — volvé a iniciar sesión.</div>`; return; }
+    const origen = document.getElementById("cfg-origen").value;
+    const data = await consultarVUCE({
+      posicion: p.codigoHS,
+      operacion: "importacion",
+      pais: (typeof PAIS_VUCE !== "undefined" && PAIS_VUCE[origen]) || "156",
+      accessToken: session.access_token,
+    });
+    if (data && data.success) {
+      p.vuceFicha = data;
+      p.vuceCategoria = data.descripcionCorta || (Array.isArray(data.jerarquia) && data.jerarquia.length ? data.jerarquia[data.jerarquia.length - 1].texto : "") || "";
+    }
+    renderFichaVUCE(data, panel, { compacto: true });
+  } catch (err) {
+    panel.innerHTML = `<div style="font-size:11.5px; color:var(--coral-deep);">No se pudo consultar VUCE.</div>`;
+  }
+}
+
 // ---------- Render formulario ----------
 function renderFormulario() {
   const cont = document.getElementById("productos-admin");
@@ -1352,12 +1383,16 @@ function renderFormulario() {
               <label>Nombre del producto</label>
               <input type="text" data-field="nombre" data-id="${p.id}" value="${escHtml(p.nombre)}" placeholder="Ej: soporte magnético" />
             </div>
-            <div class="field" style="width:130px; flex:none;">
+            <div class="field" style="width:150px; flex:none;">
               <label>Código HS / NCM</label>
               <input type="text" data-field="codigoHS" data-id="${p.id}" value="${escHtml(p.codigoHS || "")}" placeholder="Ej: 8517.62.00" />
-              ${p.nombre && p.codigoHS ? `<button type="button" class="btn-ghost" data-guardar-ncm="${p.id}" style="margin-top:4px; padding:4px 8px; font-size:10.5px;">+ Guardar en biblioteca</button>` : ""}
+              <div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:4px;">
+                ${p.codigoHS ? `<button type="button" class="btn-ghost" data-vuce="${p.id}" style="padding:4px 8px; font-size:10.5px;">🔎 VUCE</button>` : ""}
+                ${p.nombre && p.codigoHS ? `<button type="button" class="btn-ghost" data-guardar-ncm="${p.id}" style="padding:4px 8px; font-size:10.5px;">+ Guardar en biblioteca</button>` : ""}
+              </div>
             </div>
           </div>
+          <div id="vuce-panel-${p.id}" style="margin-bottom:10px;"></div>
           <div class="field">
             <label>Descripción (para el cliente)</label>
             <textarea data-field="descripcion" data-id="${p.id}" placeholder="Ej: soporte magnético para auto, imán reforzado" style="width:100%; min-height:44px; resize:vertical; background:var(--paper); border:1px solid var(--line); border-radius:6px; color:var(--ink); font-size:12.5px; padding:7px 9px; font-family:inherit;">${escHtml(p.descripcion || "")}</textarea>
@@ -1541,6 +1576,16 @@ function renderFormulario() {
     `;
     cont.appendChild(div);
   });
+  // Re-pintar la ficha de VUCE ya consultada (renderFormulario corre en cada
+  // tecla, así que sin esto el panel se vaciaría al editar cualquier campo).
+  if (typeof renderFichaVUCE === "function") {
+    productos.forEach((p) => {
+      if (p.vuceFicha) {
+        const panel = document.getElementById(`vuce-panel-${p.id}`);
+        if (panel) renderFichaVUCE(p.vuceFicha, panel, { compacto: true });
+      }
+    });
+  }
   renderAcumuladoCourier();
   if (informeGenerado) generarInforme();
 }
@@ -1622,11 +1667,18 @@ document.getElementById("productos-admin").addEventListener("click", (e) => {
   }
   const extraerLinkId = e.target.getAttribute("data-extraer-link");
   if (extraerLinkId) { extraerLinkAdmin(extraerLinkId); return; }
+  const vuceId = e.target.getAttribute("data-vuce");
+  if (vuceId) { consultarVuceAdmin(vuceId); return; }
   const ncmId = e.target.getAttribute("data-guardar-ncm");
   if (ncmId) {
     const p = productos.find((x) => x.id === ncmId);
     if (p && p.nombre && p.codigoHS) {
-      supabaseClient.from("ncm_biblioteca").insert({ producto_nombre: p.nombre, codigo_hs: p.codigoHS }).then(({ error }) => {
+      const fila = { producto_nombre: p.nombre, codigo_hs: p.codigoHS };
+      // Si ya se consultó VUCE para este producto, guardamos también la
+      // descripción oficial como categoría (la biblioteca alimenta las
+      // estimaciones de IA — cuanto más contexto real, mejor).
+      if (p.vuceCategoria) fila.categoria = p.vuceCategoria;
+      supabaseClient.from("ncm_biblioteca").insert(fila).then(({ error }) => {
         e.target.textContent = error ? "Error al guardar" : "✓ Guardado en biblioteca";
         e.target.disabled = true;
       });

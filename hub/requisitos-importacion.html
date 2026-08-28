@@ -38,6 +38,7 @@
 <script src="../js/rates.js"></script>
 <script src="../js/cuenta.js"></script>
 <script src="../js/hub.js"></script>
+<script src="../js/vuce.js"></script>
 <script>
 try {
   (async function () {
@@ -106,6 +107,26 @@ try {
       `;
     }
 
+    async function mostrarVuce(codigo) {
+      let box = document.getElementById("req-vuce");
+      if (!box) {
+        box = document.createElement("div");
+        box.id = "req-vuce";
+        box.style.marginTop = "18px";
+        cont.appendChild(box);
+      }
+      box.innerHTML = `
+        <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--navy); margin-bottom:8px;">Datos oficiales de esta posición (VUCE)</div>
+        <p class="hub-empty">Consultando VUCE…</p>`;
+      const contFicha = document.createElement("div");
+      const data = await consultarVUCE({
+        posicion: codigo, operacion: "importacion", pais: "156", accessToken: session.access_token,
+      });
+      box.innerHTML = `<div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--navy); margin-bottom:8px;">Datos oficiales de esta posición (VUCE)</div>`;
+      box.appendChild(contFicha);
+      renderFichaVUCE(data, contFicha);
+    }
+
     function renderError(msg) {
       cont.innerHTML = `
         <div class="requisitos-error">
@@ -133,6 +154,11 @@ try {
           renderError(data.error || "No pudimos analizar este producto. Escribinos por WhatsApp y te asesoramos directamente.");
         } else {
           renderResultado(data);
+          // Si hay un código HS (el que cargó la persona o el que sugirió la
+          // biblioteca interna), traemos además la ficha OFICIAL de VUCE —
+          // separada visualmente de la estimación de IA de arriba.
+          const codigoVuce = (codigoHS || data.codigoHSSugerido || "").trim();
+          if (codigoVuce) mostrarVuce(codigoVuce);
         }
       } catch (err) {
         renderError("No pudimos conectar con el análisis. Escribinos por WhatsApp y te asesoramos directamente.");

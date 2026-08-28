@@ -38,6 +38,7 @@
 <script src="../js/cuenta.js"></script>
 <script src="../js/cotizador-core.js"></script>
 <script src="../js/hub.js"></script>
+<script src="../js/vuce.js"></script>
 <script>
 try {
   (async function () {
@@ -64,7 +65,7 @@ try {
     // ---------- Estado ----------
     function nuevoProductoWiz() {
       return {
-        id: uid(), nombre: "", codigoHS: "", codigoHSFuente: "", descripcion: "", foto: "",
+        id: uid(), nombre: "", codigoHS: "", codigoHSFuente: "", vuceData: null, vuceActualizadoAl: "", descripcion: "", foto: "",
         fotoPath: "", fotoNombre: "", linkProducto: "",
         rubro: "", confianza: "", advertenciaIA: "",
         alicuotas: { die: "", iva: "21", ivaAdicional: "20", ganancias: "6", iibb: "0", tasaEstadistica: "3" },
@@ -396,6 +397,56 @@ try {
       }
     }
 
+    // Trae los tributos OFICIALES de VUCE para el código HS cargado y pisa
+    // las alícuotas estimadas por IA (el cliente igual puede editarlas).
+    async function traerVUCE() {
+      const p = productoActivo();
+      const estado = document.getElementById("wiz-vuce-estado");
+      const codigo = (p.codigoHS || "").trim();
+      if (!codigo) { if (estado) estado.textContent = "Cargá primero el código HS / NCM."; return; }
+      const btn = document.getElementById("wiz-vuce-btn");
+      if (btn) { btn.disabled = true; btn.textContent = "Consultando VUCE…"; }
+      if (estado) estado.textContent = "";
+      try {
+        const data = await consultarVUCE({
+          posicion: codigo,
+          operacion: "importacion",
+          pais: PAIS_VUCE[p.origen] || "156",
+          accessToken: session.access_token,
+        });
+        if (!data || !data.success) {
+          if (estado) {
+            estado.innerHTML = "⚠️ " + escHtml((data && data.error) || "No pudimos consultar VUCE.") +
+              (data && data.urlOficial ? ` <a href="${escHtml(data.urlOficial)}" target="_blank" rel="noopener" style="color:var(--coral); font-weight:700;">Ver ficha oficial →</a>` : "");
+          }
+          return;
+        }
+        const t = data.tributos || {};
+        const nz = (v) => (v === null || v === undefined ? null : String(v));
+        const map = { die: nz(t.die), iva: nz(t.iva), ivaAdicional: nz(t.ivaAdicional), ganancias: nz(t.ganancias), iibb: nz(t.iibb), tasaEstadistica: nz(t.te) };
+        Object.keys(map).forEach((k) => { if (map[k] !== null) p.alicuotas[k] = map[k]; });
+        p.codigoHSFuente = "vuce";
+        // Guardamos una versión reducida (localStorage + se serializa en la
+        // cotización) — sin la jerarquía ni los resúmenes largos.
+        p.vuceData = {
+          posicion: data.posicion,
+          descripcionCorta: data.descripcionCorta || "",
+          actualizadoAl: data.actualizadoAl || "",
+          urlOficial: data.urlOficial || "",
+          tributos: data.tributos || {},
+          intervenciones: (data.intervenciones || []).map((i) => ({ organismo: i.organismo, tramite: i.tramite, obligatorio: i.obligatorio })),
+        };
+        p.vuceActualizadoAl = data.actualizadoAl || "";
+        guardarWiz();
+        render();
+      } catch (e) {
+        if (estado) estado.textContent = "⚠️ No se pudo conectar con el servicio de consulta a VUCE.";
+      } finally {
+        const b = document.getElementById("wiz-vuce-btn");
+        if (b) { b.disabled = false; b.textContent = "🔎 Traer datos de VUCE"; }
+      }
+    }
+
     function cargarSinIA() {
       const p = productoActivo();
       const descripcion = document.getElementById("wiz-descripcion").value.trim();
@@ -498,16 +549,26 @@ try {
         <div style="font-size:12.5px; color:var(--muted); margin-bottom:10px;">Paso 2 de 4. Revisá la clasificación y los impuestos estimados.</div>
         ${renderChips()}
         ${p.rubro ? `<div class="wiz-note">✨ Clasificado por IA${p.confianza ? " · confianza " + escHtml(p.confianza) : ""} — <b>${escHtml(p.rubro)}</b></div>` : `<div class="wiz-note">Todavía no clasificaste este producto con IA — completá las alícuotas a mano o volvé al paso 1.</div>`}
-        <div class="hub-field" style="max-width:220px; margin-top:10px;">
-          <label>Código HS / NCM (si lo conocés) <span class="hub-tooltip" tabindex="0" title="Es el código que clasifica tu producto ante la aduana argentina — de él depende qué arancel pagás y qué permisos necesitás. Pedíselo siempre a tu proveedor (en Alibaba, 1688, etc. suele figurar como &quot;HS Code&quot; en la ficha del producto). Si no lo tiene, no pasa nada: lo confirmamos nosotros.">?</span></label>
-          <input type="text" data-field="codigoHS" value="${escHtml(p.codigoHS || "")}" placeholder="Ej: 8517.62.00" />
+        <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-top:10px;">
+          <div class="hub-field" style="max-width:220px; margin-bottom:0;">
+            <label>Código HS / NCM (si lo conocés) <span class="hub-tooltip" tabindex="0" title="Es el código que clasifica tu producto ante la aduana argentina — de él depende qué arancel pagás y qué permisos necesitás. Pedíselo siempre a tu proveedor (en Alibaba, 1688, etc. suele figurar como &quot;HS Code&quot; en la ficha del producto). Si no lo tiene, no pasa nada: lo confirmamos nosotros.">?</span></label>
+            <input type="text" data-field="codigoHS" value="${escHtml(p.codigoHS || "")}" placeholder="Ej: 8517.62.00" />
+          </div>
+          <button class="hub-btn-ghost" id="wiz-vuce-btn" type="button" ${p.codigoHS ? "" : "disabled"}>🔎 Traer datos de VUCE</button>
         </div>
-        ${p.codigoHSFuente === "biblioteca_interna" ? `
-          <div class="wiz-note" style="margin-top:-6px;">💡 Sugerido desde nuestra biblioteca interna — ya lo confirmamos en una operación anterior con un producto similar. Revisalo igual, puede no aplicar exacto a tu caso.</div>
+        <div id="wiz-vuce-estado" style="font-size:11.5px; color:var(--muted); margin-top:6px;"></div>
+        ${p.codigoHSFuente === "vuce" ? `
+          <div class="wiz-note" style="margin-top:6px; background:var(--green-bg); color:var(--green);">✔ Alícuotas oficiales de VUCE${p.vuceActualizadoAl ? " — actualizado al " + escHtml(p.vuceActualizadoAl) : ""}. Podés ajustarlas igual si tu despachante te confirma otra cosa.</div>
+          ${(p.vuceData && Array.isArray(p.vuceData.intervenciones) && p.vuceData.intervenciones.length) ? `
+            <details style="font-size:12px; margin-top:6px;"><summary style="cursor:pointer; color:var(--coral); font-weight:700;">Ver ${p.vuceData.intervenciones.length} intervención${p.vuceData.intervenciones.length === 1 ? "" : "es"} de organismos (VUCE)</summary>
+            <div style="margin-top:6px;">${p.vuceData.intervenciones.map((i) => `<div style="background:var(--paper); border-radius:8px; padding:8px 10px; margin-bottom:6px;"><b style="font-size:10.5px; text-transform:uppercase; color:var(--coral);">${escHtml(i.organismo)}${i.obligatorio ? " · obligatorio" : " · optativo"}</b><div style="font-size:12.5px; color:var(--navy); font-weight:600;">${escHtml(i.tramite)}</div></div>`).join("")}</div></details>
+          ` : ""}
+        ` : p.codigoHSFuente === "biblioteca_interna" ? `
+          <div class="wiz-note" style="margin-top:6px;">💡 Sugerido desde nuestra biblioteca interna — ya lo confirmamos en una operación anterior con un producto similar. Tocá "Traer datos de VUCE" para los tributos oficiales.</div>
         ` : `
-          <div style="font-size:11px; color:var(--muted); margin-top:-6px; margin-bottom:10px;">Opcional — no lo estimamos con IA porque no tenemos la base arancelaria oficial. Confirmalo con tu despachante si no lo tenés.</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px; margin-bottom:10px;">Con el código, traemos de VUCE los tributos oficiales (reemplazan la estimación de IA). Sin código, seguimos con la estimación.</div>
         `}
-        <div class="hub-card-title" style="margin-top:14px;">Alícuotas estimadas — tocá un valor para ajustarlo</div>
+        <div class="hub-card-title" style="margin-top:14px;">${p.codigoHSFuente === "vuce" ? "Alícuotas oficiales (VUCE) — tocá un valor para ajustarlo" : "Alícuotas estimadas — tocá un valor para ajustarlo"}</div>
         <div class="wiz-alicuotas">
           ${Object.keys(ALICUOTA_LABELS).map((k) => `
             <div class="wiz-alicuota-box">
@@ -519,7 +580,9 @@ try {
             </div>
           `).join("")}
         </div>
-        <div class="wiz-note warn">⚠️ ${escHtml(p.advertenciaIA || "Alícuotas estimadas — no reemplazan la clasificación oficial NCM. Las percepciones (IVA adicional, IIBB, Ganancias) se recuperan si importás con tu CUIT como Responsable Inscripto.")}</div>
+        <div class="wiz-note warn">⚠️ ${p.codigoHSFuente === "vuce"
+          ? "Tributos oficiales de VUCE. Las percepciones (IVA adicional, IIBB, Ganancias) se recuperan si importás con tu CUIT como Responsable Inscripto. La clasificación final la confirma Jawa con despachante matriculado."
+          : escHtml(p.advertenciaIA || "Alícuotas estimadas — no reemplazan la clasificación oficial NCM. Las percepciones (IVA adicional, IIBB, Ganancias) se recuperan si importás con tu CUIT como Responsable Inscripto.")}</div>
       `;
     }
 
@@ -676,6 +739,7 @@ try {
           licencia, via: viaElegida,
           productos: r.detalle.map(({ p, c, flete, impuestos }) => ({
             nombre: p.nombre, codigoHS: p.codigoHS, rubro: p.rubro, alicuotas: p.alicuotas,
+            codigoHSFuente: p.codigoHSFuente || "", vuceActualizadoAl: p.vuceActualizadoAl || "",
             cantidad: c.cantidad, fobTotal: c.fobTotal, flete, impuestos: impuestos.total, cif: impuestos.cif,
             foto: p.fotoPath || "",
           })),
@@ -728,6 +792,7 @@ try {
             <div style="flex:1;">
               <div style="font-size:15px; font-weight:700; color:#16223d;">${escHtml(p.nombre)}${p.codigoHS ? ` <span style="font-size:10.5px; font-weight:700; color:#5b6472; background:#f6f7fa; border:1px solid #dde1e8; border-radius:5px; padding:2px 7px;">HS ${escHtml(p.codigoHS)}</span>` : ""}</div>
               ${p.rubro ? `<div style="font-size:11.5px; color:#5b6472; margin-top:3px;">${escHtml(p.rubro)}</div>` : ""}
+              ${p.codigoHSFuente === "vuce" ? `<div style="font-size:10.5px; color:#1f8a4c; margin-top:3px;">Arancel: fuente VUCE (oficial${p.vuceActualizadoAl ? ", actualizado al " + escHtml(p.vuceActualizadoAl) : ""})</div>` : ""}
               <div style="font-size:12px; color:#171b22; margin-top:6px;">Cantidad: <b>${c.cantidad} u.</b> · FOB unitario: <b>$${fmt(c.fobU)}</b></div>
             </div>
             <div style="text-align:right; flex:none;">
@@ -864,6 +929,7 @@ try {
         if (e.target.id === "wiz-extraer-link") { extraerDeLink(); }
         if (e.target.id === "wiz-analizar-ia") { analizarConIA(); }
         if (e.target.id === "wiz-cargar-sin-ia") { cargarSinIA(); }
+        if (e.target.id === "wiz-vuce-btn") { traerVUCE(); }
         if (e.target.id === "wiz-solicitar") { solicitarCotizacion(); }
         if (e.target.id === "wiz-sumar") { sumarBorrador(); }
         return;
@@ -921,7 +987,13 @@ try {
       if (!field && !alic) return;
       if (field) p[field] = e.target.value;
       else p.alicuotas[alic] = e.target.value;
-      if (field === "codigoHS") p.codigoHSFuente = ""; // el cliente lo tocó a mano, ya no es "sugerido"
+      if (field === "codigoHS") {
+        p.codigoHSFuente = ""; // el cliente lo tocó a mano, ya no es "sugerido" ni "vuce"
+        p.vuceData = null;
+        p.vuceActualizadoAl = "";
+        const vbtn = document.getElementById("wiz-vuce-btn");
+        if (vbtn) vbtn.disabled = !e.target.value.trim();
+      }
       if (field === "pesoTotalRef") {
         // Congela la cantidad que había al cargar el peso del lote — así el
         // peso por unidad no cambia si después se edita la cantidad, mismo

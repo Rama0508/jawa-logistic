@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Posición arancelaria (VUCE) — Portal de cliente — Jawa Logistic</title>
+<meta name="description" content="Consultá una posición arancelaria HS/NCM contra VUCE — Portal de cliente de Jawa Logistic. Tributos oficiales, intervenciones de organismos y descripción de la posición." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 236 236'%3E%3Ccircle cx='118' cy='118' r='106' fill='%23ffffff' stroke='%2316223d' stroke-width='10'/%3E%3Crect x='88' y='88' width='60' height='60' fill='%23c9502e' transform='rotate(45 118 118)'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+<noscript><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet" /></noscript>
+<link rel="stylesheet" href="../css/hub.css" />
+<style>
+  .pa-form { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+  .pa-form .hub-field { margin-bottom:0; }
+  .pa-form .hub-field.grow { flex:1 1 220px; }
+  .pa-op { display:flex; gap:14px; font-size:12.5px; color:var(--ink); }
+  .pa-op label { display:flex; align-items:center; gap:5px; cursor:pointer; }
+  .pa-op input { width:auto; }
+  .pa-hint { font-size:11.5px; color:var(--muted); margin-top:8px; line-height:1.6; }
+  .pa-result { margin-top:22px; padding-top:22px; border-top:1px dashed var(--line); }
+  .pa-tree-node { display:flex; gap:10px; align-items:baseline; padding:10px 12px; border:1px solid var(--line); border-radius:8px; margin-bottom:6px; cursor:pointer; background:var(--white); transition:border-color .12s ease; }
+  .pa-tree-node:hover { border-color:var(--gold); }
+  .pa-tree-node .cod { font-family:ui-monospace,Menlo,monospace; font-weight:800; color:var(--navy); font-size:12.5px; flex:none; }
+  .pa-tree-node .desc { font-size:12.5px; color:var(--ink); }
+  .pa-tree-node.hoja { border-left:3px solid var(--coral); }
+  .pa-crumbs { font-size:12px; color:var(--muted); margin-bottom:10px; }
+  .pa-crumbs button { background:none; border:none; color:var(--coral); font-weight:700; cursor:pointer; font-family:inherit; font-size:12px; padding:0; }
+</style>
+</head>
+<body>
+
+<div id="hub-shell">
+  <div id="hub-page">
+    <p class="hub-page-lead">Cargá el código HS/NCM de tu producto y traé la ficha oficial de VUCE: qué impuestos paga, qué organismos intervienen (SENASA, ANMAT, ENACOM…) y la descripción arancelaria. Si no sabés el código exacto, escribí los primeros dígitos y navegá el árbol.</p>
+    <div class="hub-card">
+      <div class="pa-form">
+        <div class="hub-field grow">
+          <label for="pa-input">Posición arancelaria (HS / NCM)</label>
+          <input type="text" id="pa-input" placeholder="Ej: 8517.62.00 o 3926909090" autocomplete="off" />
+        </div>
+        <div class="hub-field">
+          <label>Operación</label>
+          <div class="pa-op">
+            <label><input type="radio" name="pa-op" value="importacion" checked /> Importación</label>
+            <label><input type="radio" name="pa-op" value="exportacion" /> Exportación</label>
+          </div>
+        </div>
+        <div class="hub-field">
+          <label for="pa-pais">País de origen / destino</label>
+          <select id="pa-pais">
+            <option value="156" selected>China</option>
+            <option value="840">Estados Unidos</option>
+          </select>
+        </div>
+        <button class="hub-btn-primary" id="pa-btn" type="button">Consultar</button>
+      </div>
+      <div class="pa-hint">Los datos son oficiales de VUCE (vuce.gob.ar). La clasificación final de tu producto siempre la confirma Jawa con despachante matriculado.</div>
+      <div id="pa-result"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/rates.js"></script>
+<script src="../js/cuenta.js"></script>
+<script src="../js/hub.js"></script>
+<script src="../js/vuce.js"></script>
+<script>
+try {
+  (async function () {
+    const session = await iniciarHub("posicion-arancelaria");
+    if (!session) return;
+    await SUPABASE_READY;
+
+    const input = document.getElementById("pa-input");
+    const btn = document.getElementById("pa-btn");
+    const paisSel = document.getElementById("pa-pais");
+    const cont = document.getElementById("pa-result");
+
+    function operacion() {
+      const r = document.querySelector('input[name="pa-op"]:checked');
+      return r ? r.value : "importacion";
+    }
+
+    // Prefill desde ?posicion= / ?codigoHS= (ej. viniendo de la calculadora)
+    (function prefill() {
+      const p = new URLSearchParams(location.search);
+      const cod = p.get("posicion") || p.get("codigoHS");
+      if (cod) { input.value = cod; consultar(); }
+    })();
+
+    function setBtn(cargando) {
+      btn.disabled = cargando;
+      btn.textContent = cargando ? "Consultando…" : "Consultar";
+    }
+
+    // Un código "hoja" en la nomenclatura SIM termina en letra de control
+    // (…999A). Si el usuario cargó algo más corto, mostramos el árbol.
+    function pareceHoja(v) {
+      return /[A-Za-z]\s*$/.test(v) || v.replace(/[^0-9A-Za-z]/g, "").length >= 12;
+    }
+
+    async function consultar() {
+      const posicion = input.value.trim();
+      if (!posicion) { input.focus(); return; }
+      cont.innerHTML = "";
+      setBtn(true);
+      try {
+        if (pareceHoja(posicion)) {
+          await mostrarFicha(posicion);
+        } else {
+          await mostrarArbol(posicion, []);
+        }
+      } finally {
+        setBtn(false);
+      }
+    }
+
+    async function mostrarFicha(posicion) {
+      cont.innerHTML = `<div class="pa-result"><p class="hub-empty">Consultando VUCE…</p></div>`;
+      const data = await consultarVUCE({
+        posicion, operacion: operacion(), pais: paisSel.value, accessToken: session.access_token,
+      });
+      const box = document.createElement("div");
+      box.className = "pa-result";
+      cont.innerHTML = "";
+      cont.appendChild(box);
+      renderFichaVUCE(data, box);
+      if (data && data.success) {
+        const cta = document.createElement("div");
+        cta.style.marginTop = "14px";
+        cta.innerHTML = `<a class="hub-btn-ghost" style="text-decoration:none; display:inline-flex; align-items:center;" href="calculadora-importacion.html?codigoHS=${encodeURIComponent(data.posicion)}">Cotizar un producto con esta posición →</a>`;
+        box.appendChild(cta);
+      }
+    }
+
+    async function mostrarArbol(parcial, camino) {
+      cont.innerHTML = `<div class="pa-result"><p class="hub-empty">Buscando en el árbol de VUCE…</p></div>`;
+      const data = await consultarVUCE({
+        posicion: parcial, operacion: operacion(), pais: paisSel.value, accessToken: session.access_token, modo: "arbol",
+      });
+      const box = document.createElement("div");
+      box.className = "pa-result";
+      cont.innerHTML = "";
+      cont.appendChild(box);
+
+      if (!data || !data.success) {
+        fichaVUCEFallback(data && data.urlOficial, box, data && data.error);
+        return;
+      }
+      const hijos = data.hijos || [];
+      if (!hijos.length) {
+        // sin hijos: probablemente ya es una hoja, intentamos la ficha
+        await mostrarFicha(parcial);
+        return;
+      }
+
+      const crumbs = camino.length
+        ? `<div class="pa-crumbs">${camino.map((c, i) => `<button data-crumb="${i}">${escHtml(c)}</button>`).join(" › ")} › <b>${escHtml(data.posicion)}</b></div>`
+        : `<div class="pa-crumbs"><b>${escHtml(data.posicion)}</b> — elegí el nivel que corresponda a tu producto</div>`;
+
+      box.innerHTML = crumbs + hijos.map((h) => `
+        <div class="pa-tree-node ${h.esHoja ? "hoja" : ""}" data-cod="${escHtml(h.codigo)}" data-hoja="${h.esHoja ? "1" : "0"}">
+          <span class="cod">${escHtml(h.codigo)}</span>
+          <span class="desc">${escHtml(h.descripcion)}</span>
+        </div>
+      `).join("");
+
+      box.querySelectorAll("[data-cod]").forEach((el) => {
+        el.addEventListener("click", () => {
+          const cod = el.getAttribute("data-cod");
+          if (el.getAttribute("data-hoja") === "1") {
+            input.value = cod;
+            mostrarFicha(cod);
+          } else {
+            mostrarArbol(cod, camino.concat([data.posicion]));
+          }
+        });
+      });
+      box.querySelectorAll("[data-crumb]").forEach((el) => {
+        el.addEventListener("click", () => {
+          const i = parseInt(el.getAttribute("data-crumb"), 10);
+          mostrarArbol(camino[i], camino.slice(0, i));
+        });
+      });
+    }
+
+    btn.addEventListener("click", consultar);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") consultar(); });
+  })();
+} catch (e) { console.error("posición arancelaria (hub):", e); }
+</script>
+</body>
+</html>
