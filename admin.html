@@ -1456,6 +1456,7 @@ function renderFormulario() {
   cont.innerHTML = "";
   const origenActual = document.getElementById("cfg-origen").value;
   productos.forEach((p) => {
+   try {
     const c = calcularMetodos(p, origenActual);
     const div = document.createElement("div");
     div.className = "producto-card";
@@ -1707,6 +1708,15 @@ function renderFormulario() {
       <div class="live-resultado">${renderLiveResultado(p, c)}</div>
     `;
     cont.appendChild(div);
+   } catch (err) {
+    // Un producto que rompe el cálculo NO debe dejar en blanco todo el
+    // panel ni cortar el resto de la inicialización (agentes de carga, etc.).
+    console.error("renderFormulario: no se pudo renderizar el producto", p && p.nombre, err);
+    const errDiv = document.createElement("div");
+    errDiv.className = "producto-card";
+    errDiv.innerHTML = `<div style="color:var(--coral-deep); font-size:12.5px; padding:6px 0;">⚠️ No se pudo calcular <b>${escHtml((p && p.nombre) || "este producto")}</b>. Probá recargar con Ctrl+Shift+R; si sigue, revisá los datos cargados.</div>`;
+    cont.appendChild(errDiv);
+   }
   });
   // Re-pintar la ficha de VUCE ya consultada (renderFormulario corre en cada
   // tecla, así que sin esto el panel se vaciaría al editar cualquier campo).
@@ -2172,11 +2182,15 @@ async function descargarComoPdf(innerHtml, nombreArchivo, onMounted) {
   // Nada de opacity:0 ni position:fixed con offset negativo para "ocultarlo" — probado a mano:
   // html2canvas captura en blanco o recortado con esos trucos. Va en el flujo normal del
   // documento (al final del body), así quede fuera de la vista sin romper la captura.
-  cont.style.cssText = "width:800px; background:#fff;";
-  // box-sizing:border-box en todo + tablas que nunca se desbordan: sin esto,
-  // una tabla o caja con width:100% + padding/borde se pasa de los 800px y
-  // el PDF sale cortado a la derecha (reportado con nombres de agente largos).
-  cont.innerHTML = "<style>*{box-sizing:border-box;} table{max-width:100%;} td,th{overflow-wrap:anywhere;word-break:break-word;}</style>" + innerHtml;
+  // width Y max-width fijos + overflow:hidden: pase lo que pase adentro
+  // (nombres largos, marca de agua con transform, una tabla ancha), el
+  // contenedor que captura html2canvas NUNCA mide más de 800px, así el PDF
+  // no puede salir cortado a la derecha.
+  cont.style.cssText = "width:800px; max-width:800px; overflow:hidden; background:#fff;";
+  // box-sizing:border-box + celdas y fotos que se ajustan solas (NO forzamos
+  // table-layout acá para no descuadrar los otros PDF de contabilidad; las
+  // tablas del informe ya traen su propio table-layout:fixed).
+  cont.innerHTML = "<style>.jl-pdf-root,.jl-pdf-root *{box-sizing:border-box;} .jl-pdf-root table{max-width:100%;} .jl-pdf-root td,.jl-pdf-root th{overflow-wrap:anywhere;word-break:break-word;} .jl-pdf-root img{max-width:100%;}</style><div class=\"jl-pdf-root\" style=\"width:100%; overflow:hidden;\">" + innerHtml + "</div>";
   document.body.appendChild(cont);
   try {
     if (onMounted) onMounted(cont);
@@ -2365,26 +2379,42 @@ function nuevoAgenteLocal() {
   return { id: null, nombre: "", tramos: [{ hastaKg: "", tarifaKg: "" }], alicuotaImpuestos: 50, baseImpuestos: "fob", handling: "", margenPct: 50, porcentajeRecuperable: "", modoPublico: "" };
 }
 
-try {
-  SUPABASE_READY.then(async () => {
+// Estado de la carga de agentes: "cargando" | "ok" | "error". Sirve para que
+// renderAgentesAdmin muestre "Cargando…" o un aviso de error en vez de
+// "todavía no cargaste ninguno" (que hace parecer que se borraron los datos).
+let agentesEstado = "cargando";
+
+async function cargarAgentesDeCarga(reintento) {
+  try {
     const { data, error } = await supabaseClient.from("agentes_carga").select("*").order("creado_en");
-    if (!error && data) {
-      agentes = data.map((a) => ({
-        id: a.id, nombre: a.nombre || "",
-        tramos: (Array.isArray(a.tramos) && a.tramos.length ? a.tramos : [{ hastaKg: null, tarifaKg: "" }])
-          .map((t) => ({ hastaKg: t.hastaKg === null || t.hastaKg === undefined ? "" : t.hastaKg, tarifaKg: t.tarifaKg })),
-        alicuotaImpuestos: a.alicuota_impuestos, baseImpuestos: a.base_impuestos || "fob",
-        handling: a.handling || "",
-        margenPct: a.margen_pct != null ? a.margen_pct : 50,
-        porcentajeRecuperable: a.porcentaje_recuperable || "",
-        modoPublico: a.modo_publico || "",
-      }));
-    } else if (error) {
-      console.error("No se pudieron cargar los agentes de carga:", error);
+    if (error) throw error;
+    agentes = (data || []).map((a) => ({
+      id: a.id, nombre: a.nombre || "",
+      tramos: (Array.isArray(a.tramos) && a.tramos.length ? a.tramos : [{ hastaKg: null, tarifaKg: "" }])
+        .map((t) => ({ hastaKg: t.hastaKg === null || t.hastaKg === undefined ? "" : t.hastaKg, tarifaKg: t.tarifaKg })),
+      alicuotaImpuestos: a.alicuota_impuestos, baseImpuestos: a.base_impuestos || "fob",
+      handling: a.handling || "",
+      margenPct: a.margen_pct != null ? a.margen_pct : 50,
+      porcentajeRecuperable: a.porcentaje_recuperable || "",
+      modoPublico: a.modo_publico || "",
+    }));
+    agentesEstado = "ok";
+  } catch (err) {
+    console.error("No se pudieron cargar los agentes de carga:", err);
+    if (!reintento) {
+      // Un reintento a los 2s antes de dar error — evita que un hipo de red
+      // en la carga deje la sección vacía toda la sesión.
+      await new Promise((r) => setTimeout(r, 2000));
+      return cargarAgentesDeCarga(true);
     }
-    renderAgentesAdmin();
-    renderFormulario();
-  });
+    agentesEstado = "error";
+  }
+  try { renderAgentesAdmin(); } catch (e) { console.error("renderAgentesAdmin:", e); }
+  try { renderFormulario(); } catch (e) { console.error("renderFormulario:", e); }
+}
+
+try {
+  SUPABASE_READY.then(() => cargarAgentesDeCarga(false));
 } catch (e) { console.error("cargar agentes de carga:", e); }
 
 // Los agentes ya guardados se muestran COLAPSADOS (una fila resumen) para no
@@ -2427,7 +2457,15 @@ function renderAgentesAdmin() {
   const cont = document.getElementById("agentes-admin");
   if (!cont) return;
   if (!agentes.length) {
-    cont.innerHTML = `<div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Todavía no cargaste ningún agente.</div>`;
+    if (typeof agentesEstado !== "undefined" && agentesEstado === "cargando") {
+      cont.innerHTML = `<div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Cargando agentes de carga…</div>`;
+    } else if (typeof agentesEstado !== "undefined" && agentesEstado === "error") {
+      cont.innerHTML = `<div style="font-size:12px; color:var(--coral-deep); margin-bottom:10px;">⚠️ No se pudieron cargar los agentes de carga (problema de conexión con la base). Tus datos NO se borraron — <button type="button" id="reintentar-agentes" class="btn-ghost" style="padding:3px 10px; font-size:11.5px;">reintentar</button> o recargá la página.</div>`;
+      const btn = document.getElementById("reintentar-agentes");
+      if (btn) btn.addEventListener("click", () => { agentesEstado = "cargando"; renderAgentesAdmin(); cargarAgentesDeCarga(true); });
+    } else {
+      cont.innerHTML = `<div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Todavía no cargaste ningún agente.</div>`;
+    }
     return;
   }
   cont.innerHTML = agentes.map((a, ai) => {
