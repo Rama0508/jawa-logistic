@@ -512,10 +512,13 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script src="js/rates.js"></script>
-<script src="js/mfa.js"></script>
-<script src="js/cotizador-core.js"></script>
-<script src="js/vuce.js"></script>
+<!-- ?v= : cache-busting. Subir este número en CADA deploy que toque admin.html
+     o cualquiera de estos .js — si no, el navegador puede quedarse con una
+     mezcla de HTML nuevo + JS viejo cacheado y romper el panel entero. -->
+<script src="js/rates.js?v=20260902-2"></script>
+<script src="js/mfa.js?v=20260902-2"></script>
+<script src="js/cotizador-core.js?v=20260902-2"></script>
+<script src="js/vuce.js?v=20260902-2"></script>
 <script>
 // ---------- Login ----------
 (function () {
@@ -700,6 +703,15 @@ let informeGenerado = false;
 })();
 
 // ---------- Motor de cálculo ----------
+// Config del "marítimo blanco", leída de forma DEFENSIVA: si el navegador tiene
+// cacheada una copia vieja de js/rates.js (de antes de que existiera esta
+// constante), no queremos que se rompa TODO el cálculo con un ReferenceError —
+// caemos a los valores por defecto y la calculadora sigue funcionando. Con
+// rates.js al día, devuelve la config real (editable en Datos → Tarifas).
+function marBlancoCfg() {
+  try { return MAR_BLANCO; } catch (e) { return { tarifaAlta: 9.99, tarifaBaja: 5.5, corteKg: 100 }; }
+}
+
 // Deriva el peso total (kg) del producto según el modo elegido: cargado
 // directamente por unidad (× cantidad) o como peso total de un lote ya
 // pesado en el depósito — igual criterio que la calculadora de referencia.
@@ -885,7 +897,8 @@ function calcularMetodos(p, origen) {
   // escalonado (así, pasar de 100 a 101 kg baja el total). Menos del piso
   // del tramo alto igual paga esa tarifa. Convierte a ARS con el blue, igual
   // que aéreo/marítimo genérico (no con MEP).
-  const tarifaMaritimoBlancoKg = pesoTotal > MAR_BLANCO.corteKg ? MAR_BLANCO.tarifaBaja : MAR_BLANCO.tarifaAlta;
+  const mb = marBlancoCfg();
+  const tarifaMaritimoBlancoKg = pesoTotal > mb.corteKg ? mb.tarifaBaja : mb.tarifaAlta;
   const fleteMaritimoBlancoTotal = pesoTotal * tarifaMaritimoBlancoKg;
 
   // Mismas cajas que en marítimo (es el mismo bulto físico) — si el pedido
@@ -926,7 +939,7 @@ function calcularMetodos(p, origen) {
       fleteU: fleteMaritimoBlancoTotal / cantidad, impuestosU: 0,
       costoU: fobU + fleteMaritimoBlancoTotal / cantidad,
       total: fobTotal + fleteMaritimoBlancoTotal,
-      disponible: MAR_BLANCO.tarifaAlta > 0 && pesoTotal > 0,
+      disponible: mb.tarifaAlta > 0 && pesoTotal > 0,
     },
     courier: {
       label: "📦 Courier", medida: `CIF $${fmtA(cifTotal)}`,
@@ -1485,7 +1498,7 @@ function renderFormulario() {
 
       <div style="margin-top:10px; padding:12px; background:var(--paper); border-radius:8px; border:1px solid var(--line);">
         <div style="font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px;">🚢 Marítimo — SOLO referencia, no se elige solo</div>
-        <div style="font-size:11px; color:var(--muted); margin-bottom:8px;">Se muestra para comparar el número, pero el sistema nunca lo va a elegir automáticamente aunque salga más barato — si querés usarlo en un pedido puntual, elegilo a mano abajo en "Vía a usar". <b>Marítimo genérico</b> cobra por m³ (estas medidas de caja); <b>Marítimo blanco</b> cobra por kg (el peso total de más arriba), tramo fijo — hasta ${MAR_BLANCO.corteKg} kg $${fmtA(MAR_BLANCO.tarifaAlta)}/kg, de ahí en adelante $${fmtA(MAR_BLANCO.tarifaBaja)}/kg.</div>
+        <div style="font-size:11px; color:var(--muted); margin-bottom:8px;">Se muestra para comparar el número, pero el sistema nunca lo va a elegir automáticamente aunque salga más barato — si querés usarlo en un pedido puntual, elegilo a mano abajo en "Vía a usar". <b>Marítimo genérico</b> cobra por m³ (estas medidas de caja); <b>Marítimo blanco</b> cobra por kg (el peso total de más arriba), tramo fijo — hasta ${marBlancoCfg().corteKg} kg $${fmtA(marBlancoCfg().tarifaAlta)}/kg, de ahí en adelante $${fmtA(marBlancoCfg().tarifaBaja)}/kg.</div>
         <div style="font-size:10.5px; color:var(--muted); margin-bottom:8px;">Las medidas de "la caja" son las del bulto que te manda el proveedor. "Unidades por caja": si lo sabés, cargalo directo; si no, dejalo vacío y cargá las medidas del <b>producto individual</b> más abajo — se calcula solo probando cómo entra mejor.</div>
         <div class="field-row" style="grid-template-columns: repeat(2,1fr);">
           <div class="field">
@@ -2208,9 +2221,9 @@ try {
     document.getElementById("tarifa-air-china").value = FLETE_RATES.air.china || "";
     document.getElementById("tarifa-air-miami").value = FLETE_RATES.air.miami || "";
     document.getElementById("tarifa-courier").value = RATE_COURIER_USD_KG || "";
-    document.getElementById("tarifa-marblanco-alta").value = MAR_BLANCO.tarifaAlta || "";
-    document.getElementById("tarifa-marblanco-baja").value = MAR_BLANCO.tarifaBaja || "";
-    document.getElementById("tarifa-marblanco-corte").value = MAR_BLANCO.corteKg || "";
+    document.getElementById("tarifa-marblanco-alta").value = marBlancoCfg().tarifaAlta || "";
+    document.getElementById("tarifa-marblanco-baja").value = marBlancoCfg().tarifaBaja || "";
+    document.getElementById("tarifa-marblanco-corte").value = marBlancoCfg().corteKg || "";
     renderFormulario();
   });
 
@@ -2245,9 +2258,11 @@ try {
       FLETE_RATES.air.china = filas[2].valor;
       FLETE_RATES.air.miami = filas[3].valor;
       RATE_COURIER_USD_KG = filas[4].valor;
-      MAR_BLANCO.tarifaAlta = filasMarBlanco[0].valor;
-      MAR_BLANCO.tarifaBaja = filasMarBlanco[1].valor;
-      MAR_BLANCO.corteKg = filasMarBlanco[2].valor;
+      try {
+        MAR_BLANCO.tarifaAlta = filasMarBlanco[0].valor;
+        MAR_BLANCO.tarifaBaja = filasMarBlanco[1].valor;
+        MAR_BLANCO.corteKg = filasMarBlanco[2].valor;
+      } catch (e) { /* rates.js viejo cacheado — se toma al recargar */ }
       status.textContent = "✓ Guardado — ya se está usando en todo el sitio.";
     } catch (err) {
       status.textContent = "⚠️ No se pudo guardar: " + (err.message || "revisá tu conexión.");
