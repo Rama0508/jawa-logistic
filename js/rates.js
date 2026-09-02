@@ -43,6 +43,9 @@ let FLETE_RATES = {
 let CBM_MINIMO = 0.5;
 let DIVISOR_VOLUMETRICO_AEREO = 6000;
 let RATE_COURIER_USD_KG = 0;
+// Marítimo blanco — SOLO panel interno (admin.html). Flete = peso total × la
+// tarifa del tramo (fija, no escalonada). Los cotizadores públicos no lo usan.
+let MAR_BLANCO = { tarifaAlta: 9.99, tarifaBaja: 5.5, corteKg: 100 };
 let COURIER_REGIMEN = { limitePesoKg: 50, limiteCifUsd: 3000, alicuota: 0.5, maxUnidadesMismaEspecie: 3 };
 
 // Tarifa de flete que ve el cliente, calculada del lado del servidor a
@@ -101,6 +104,9 @@ const SUPABASE_READY = (async function cargarConfiguracion() {
       air: { china: t.air_china || 0, miami: t.air_miami || 0 },
     };
     RATE_COURIER_USD_KG = t.courier || 0;
+    if (t.mar_blanco_alta != null) MAR_BLANCO.tarifaAlta = t.mar_blanco_alta;
+    if (t.mar_blanco_baja != null) MAR_BLANCO.tarifaBaja = t.mar_blanco_baja;
+    if (t.mar_blanco_corte != null) MAR_BLANCO.corteKg = t.mar_blanco_corte;
 
     const c = Object.fromEntries((config || []).map((r) => [r.clave, r.valor]));
     if (c.cbm_minimo != null) CBM_MINIMO = Number(c.cbm_minimo);

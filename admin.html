@@ -354,6 +354,21 @@
         <input type="text" inputmode="decimal" id="tarifa-courier" />
       </div>
     </div>
+    <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:14px 0 4px;">Marítimo blanco — solo panel interno (cobra por peso, tramo fijo)</div>
+    <div class="field-row" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="field">
+        <label>Hasta el corte (USD/kg)</label>
+        <input type="text" inputmode="decimal" id="tarifa-marblanco-alta" placeholder="9.99" />
+      </div>
+      <div class="field">
+        <label>Pasado el corte (USD/kg)</label>
+        <input type="text" inputmode="decimal" id="tarifa-marblanco-baja" placeholder="5.5" />
+      </div>
+      <div class="field">
+        <label>Corte de peso (kg)</label>
+        <input type="text" inputmode="decimal" id="tarifa-marblanco-corte" placeholder="100" />
+      </div>
+    </div>
     <div style="display:flex; align-items:center; gap:12px; margin-top:6px; flex-wrap:wrap;">
       <button class="btn-ghost" id="guardar-tarifas">Guardar tarifas</button>
       <span id="tarifas-status" style="font-size:12px; color:var(--muted);"></span>
@@ -859,9 +874,19 @@ function calcularMetodos(p, origen) {
   const cbm = cajas * m3PorCaja;
 
   const toneladas = pesoTotal / 1000;
-  const cbmCobrable = Math.max(cbm, toneladas, CBM_MINIMO);
   const rateSea = FLETE_RATES.sea[origen] || 0;
-  const fleteMaritimoTotal = cbmCobrable * rateSea;
+  // Marítimo genérico (panel interno): m³ reales × tarifa, sin mínimo de CBM
+  // ni regla peso/volumen (decisión 2026-09-02 — Rama). El marítimo "real"
+  // con W/M y mínimo de 0,5 m³ sigue vivo tal cual en los cotizadores
+  // públicos (js/cotizador-core.js, js/ruta-calc.js) — esto es solo acá.
+  const fleteMaritimoTotal = cbm * rateSea;
+  // Marítimo blanco (panel interno): circuito formal, se cobra ÚNICAMENTE por
+  // peso, con tramo fijo — todos los kilos a la tarifa del tramo, no
+  // escalonado (así, pasar de 100 a 101 kg baja el total). Menos del piso
+  // del tramo alto igual paga esa tarifa. Convierte a ARS con el blue, igual
+  // que aéreo/marítimo genérico (no con MEP).
+  const tarifaMaritimoBlancoKg = pesoTotal > MAR_BLANCO.corteKg ? MAR_BLANCO.tarifaBaja : MAR_BLANCO.tarifaAlta;
+  const fleteMaritimoBlancoTotal = pesoTotal * tarifaMaritimoBlancoKg;
 
   // Mismas cajas que en marítimo (es el mismo bulto físico) — si el pedido
   // ocupa 3 cajas, el peso volumétrico es el de las 3, no el de una sola.
@@ -890,11 +915,18 @@ function calcularMetodos(p, origen) {
       disponible: rateAir > 0,
     },
     maritimo: {
-      label: "🚢 Marítimo", medida: `${cbm.toFixed(2)} m³`,
+      label: "🚢 Marítimo genérico", medida: `${cbm.toFixed(2)} m³`,
       fleteU: fleteMaritimoTotal / cantidad, impuestosU: 0,
       costoU: fobU + fleteMaritimoTotal / cantidad,
       total: fobTotal + fleteMaritimoTotal,
       disponible: rateSea > 0,
+    },
+    maritimo_blanco: {
+      label: "🚢 Marítimo blanco", medida: `${pesoTotal.toFixed(2)} kg × $${fmtA(tarifaMaritimoBlancoKg)}/kg`,
+      fleteU: fleteMaritimoBlancoTotal / cantidad, impuestosU: 0,
+      costoU: fobU + fleteMaritimoBlancoTotal / cantidad,
+      total: fobTotal + fleteMaritimoBlancoTotal,
+      disponible: MAR_BLANCO.tarifaAlta > 0 && pesoTotal > 0,
     },
     courier: {
       label: "📦 Courier", medida: `CIF $${fmtA(cifTotal)}`,
@@ -977,10 +1009,10 @@ function calcularMetodos(p, origen) {
   }
   const mejorOpcionGlobal = getMejorOpcionGlobal();
 
-  // Marítimo queda A PROPÓSITO afuera de la selección automática y del
-  // "conviene más": en el papel casi siempre sale más barato, pero no es la
-  // vía que se termina usando en la operatoria real — solo se usa si se
-  // elige a mano en "Vía a usar". La selección automática compite
+  // Marítimo (genérico y blanco) queda A PROPÓSITO afuera de la selección
+  // automática y del "conviene más": en el papel casi siempre sale más
+  // barato, pero no es la vía que se termina usando en la operatoria real —
+  // solo se usa si se elige a mano en "Vía a usar". La selección automática compite
   // únicamente entre Aéreo y Courier, y si quedan a USD 1 o menos de
   // diferencia se prefiere Courier (tiene papeles/respaldo formal).
   function elegirEntreAereoYCourier() {
@@ -1102,7 +1134,7 @@ function renderLiveResultado(p, rPrecalculado) {
 
   const elegidoFilaId = r.elegido === "agente" ? "agente:" + p.agenteElegidoId : r.elegido;
   const todasLasFilas = [
-    ...["aereo", "maritimo", "courier"].map((key) => {
+    ...["aereo", "maritimo", "maritimo_blanco", "courier"].map((key) => {
       const met = r.metodos[key];
       return filaVia(key, met.label, met.medida, met.fleteU, met.impuestosU, met.costoU, key === r.elegido, !met.disponible ? " (sin datos)" : "");
     }),
@@ -1453,7 +1485,7 @@ function renderFormulario() {
 
       <div style="margin-top:10px; padding:12px; background:var(--paper); border-radius:8px; border:1px solid var(--line);">
         <div style="font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px;">🚢 Marítimo — SOLO referencia, no se elige solo</div>
-        <div style="font-size:11px; color:var(--muted); margin-bottom:8px;">Se muestra para comparar el número, pero el sistema nunca lo va a elegir automáticamente aunque salga más barato — si querés usarlo en un pedido puntual, elegilo a mano abajo en "Vía a usar".</div>
+        <div style="font-size:11px; color:var(--muted); margin-bottom:8px;">Se muestra para comparar el número, pero el sistema nunca lo va a elegir automáticamente aunque salga más barato — si querés usarlo en un pedido puntual, elegilo a mano abajo en "Vía a usar". <b>Marítimo genérico</b> cobra por m³ (estas medidas de caja); <b>Marítimo blanco</b> cobra por kg (el peso total de más arriba), tramo fijo — hasta ${MAR_BLANCO.corteKg} kg $${fmtA(MAR_BLANCO.tarifaAlta)}/kg, de ahí en adelante $${fmtA(MAR_BLANCO.tarifaBaja)}/kg.</div>
         <div style="font-size:10.5px; color:var(--muted); margin-bottom:8px;">Las medidas de "la caja" son las del bulto que te manda el proveedor. "Unidades por caja": si lo sabés, cargalo directo; si no, dejalo vacío y cargá las medidas del <b>producto individual</b> más abajo — se calcula solo probando cómo entra mejor.</div>
         <div class="field-row" style="grid-template-columns: repeat(2,1fr);">
           <div class="field">
@@ -1522,7 +1554,8 @@ function renderFormulario() {
           <select data-field="metodo" data-id="${p.id}">
             <option value="auto" ${p.metodo === "auto" ? "selected" : ""}>Automático (Aéreo vs Courier)</option>
             <option value="aereo" ${p.metodo === "aereo" ? "selected" : ""}>✈️ Aéreo</option>
-            <option value="maritimo" ${p.metodo === "maritimo" ? "selected" : ""}>🚢 Marítimo</option>
+            <option value="maritimo" ${p.metodo === "maritimo" ? "selected" : ""}>🚢 Marítimo genérico (por m³)</option>
+            <option value="maritimo_blanco" ${p.metodo === "maritimo_blanco" ? "selected" : ""}>🚢 Marítimo blanco (por kg)</option>
             <option value="courier" ${p.metodo === "courier" ? "selected" : ""}>📦 Courier</option>
             <option value="agente" ${p.metodo === "agente" ? "selected" : ""}>🚚 Agente de carga</option>
           </select>
@@ -2053,7 +2086,13 @@ async function descargarComoPdf(innerHtml, nombreArchivo, onMounted) {
         margin: [10, 10],
         filename: nombreArchivo,
         image: { type: "jpeg", quality: 0.95 },
-        html2canvas: { useCORS: true },
+        // scrollX/scrollY en 0: sin esto, si la página está scrolleada hacia
+        // abajo cuando se genera el PDF (típico: se apretó "Generar informe",
+        // la página bajó hasta el reporte, y desde ahí se pide el informe
+        // completo), html2canvas toma el scroll de la ventana y renderiza el
+        // contenedor fuera del canvas — sale un PDF con todas las hojas en
+        // blanco. Probado a mano.
+        html2canvas: { useCORS: true, scrollX: 0, scrollY: 0 },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
         pagebreak: { mode: ["css", "legacy"] },
       })
@@ -2169,6 +2208,9 @@ try {
     document.getElementById("tarifa-air-china").value = FLETE_RATES.air.china || "";
     document.getElementById("tarifa-air-miami").value = FLETE_RATES.air.miami || "";
     document.getElementById("tarifa-courier").value = RATE_COURIER_USD_KG || "";
+    document.getElementById("tarifa-marblanco-alta").value = MAR_BLANCO.tarifaAlta || "";
+    document.getElementById("tarifa-marblanco-baja").value = MAR_BLANCO.tarifaBaja || "";
+    document.getElementById("tarifa-marblanco-corte").value = MAR_BLANCO.corteKg || "";
     renderFormulario();
   });
 
@@ -2182,9 +2224,20 @@ try {
       { id: "air_miami", valor: pNumA(document.getElementById("tarifa-air-miami").value) },
       { id: "courier", valor: pNumA(document.getElementById("tarifa-courier").value) },
     ];
+    // Marítimo blanco: upsert (no update) — así funciona aunque todavía no se
+    // haya corrido la migración 0028 que crea estas filas.
+    const filasMarBlanco = [
+      { id: "mar_blanco_alta", valor: pNumA(document.getElementById("tarifa-marblanco-alta").value), unidad: "usd_kg" },
+      { id: "mar_blanco_baja", valor: pNumA(document.getElementById("tarifa-marblanco-baja").value), unidad: "usd_kg" },
+      { id: "mar_blanco_corte", valor: pNumA(document.getElementById("tarifa-marblanco-corte").value), unidad: "kg" },
+    ];
     try {
       for (const fila of filas) {
         const { error } = await supabaseClient.from("tarifas").update({ valor: fila.valor, actualizado_en: new Date().toISOString() }).eq("id", fila.id);
+        if (error) throw error;
+      }
+      for (const fila of filasMarBlanco) {
+        const { error } = await supabaseClient.from("tarifas").upsert({ id: fila.id, valor: fila.valor, unidad: fila.unidad, actualizado_en: new Date().toISOString() });
         if (error) throw error;
       }
       FLETE_RATES.sea.china = filas[0].valor;
@@ -2192,6 +2245,9 @@ try {
       FLETE_RATES.air.china = filas[2].valor;
       FLETE_RATES.air.miami = filas[3].valor;
       RATE_COURIER_USD_KG = filas[4].valor;
+      MAR_BLANCO.tarifaAlta = filasMarBlanco[0].valor;
+      MAR_BLANCO.tarifaBaja = filasMarBlanco[1].valor;
+      MAR_BLANCO.corteKg = filasMarBlanco[2].valor;
       status.textContent = "✓ Guardado — ya se está usando en todo el sitio.";
     } catch (err) {
       status.textContent = "⚠️ No se pudo guardar: " + (err.message || "revisá tu conexión.");
@@ -2511,6 +2567,136 @@ function calcularResultadosInforme(origen, blue, mep, margenGeneral) {
   return { resultados, totales };
 }
 
+// ---------- Análisis "qué vía conviene" ----------
+// Compara, por producto: (1) marítimo genérico vs marítimo blanco entre sí, y
+// (2) aéreo convencional vs courier vs cada agente de carga (Aerobox, etc.).
+// Cada familia se ordena por costo por unidad de menor a mayor. Los agentes se
+// comparan por su COSTO REAL (neto del crédito fiscal recuperable) porque esa
+// es la plata que efectivamente cuesta la vía; aéreo/courier no tienen recupero
+// así que su costo real = nominal. Se usa en el informe en pantalla y en el PDF.
+function analizarViasInforme(x) {
+  const m = x.r.metodos, cant = x.r.cantidad;
+  const totalDe = (o) => (o.total != null ? o.total : o.costoU * cant);
+
+  const marOpts = ["maritimo", "maritimo_blanco"]
+    .filter((k) => m[k] && m[k].disponible)
+    .map((k) => ({ key: k, label: m[k].label, medida: m[k].medida, fleteU: m[k].fleteU, costoU: m[k].costoU, costoRealU: m[k].costoU, recuperableU: 0, total: totalDe(m[k]), sel: x.r.elegido === k }))
+    .sort((a, b) => a.costoU - b.costoU);
+
+  const formalOpts = [];
+  if (m.aereo && m.aereo.disponible) formalOpts.push({ key: "aereo", label: m.aereo.label, medida: m.aereo.medida, fleteU: m.aereo.fleteU, costoU: m.aereo.costoU, costoRealU: m.aereo.costoU, recuperableU: 0, total: totalDe(m.aereo), sel: x.r.elegido === "aereo" });
+  if (m.courier && m.courier.disponible) formalOpts.push({ key: "courier", label: m.courier.label, medida: m.courier.medida, fleteU: m.courier.fleteU, costoU: m.courier.costoU, costoRealU: m.courier.costoU, recuperableU: 0, total: totalDe(m.courier), sel: x.r.elegido === "courier" });
+  x.r.metodosAgentes.filter((a) => a.disponible).forEach((a) => formalOpts.push({
+    key: "agente:" + a.id, label: a.label, medida: a.medida, fleteU: a.fleteU,
+    costoU: a.costoU, costoRealU: (a.costoRealU != null ? a.costoRealU : a.costoU), recuperableU: a.recuperableU || 0,
+    total: a.total, sel: x.r.elegido === "agente" && x.p.agenteElegidoId === a.id,
+  }));
+  formalOpts.sort((a, b) => a.costoRealU - b.costoRealU);
+
+  const familia = (opts, campo) => {
+    const g = opts[0] || null, s = opts[1] || null;
+    return { opciones: opts, ganadora: g, campo, delta: (g && s) ? s[campo] - g[campo] : 0, deltaTotal: (g && s) ? (s[campo] - g[campo]) * cant : 0 };
+  };
+
+  // "Más barato de todo": marítimos por costo nominal, formales por costo real.
+  const todas = [
+    ...marOpts.map((o) => ({ label: o.label, costo: o.costoU })),
+    ...formalOpts.map((o) => ({ label: o.label, costo: o.costoRealU })),
+  ].sort((a, b) => a.costo - b.costo);
+  const elegidaCosto = x.seleccionado.costoRealU != null ? x.seleccionado.costoRealU : x.seleccionado.costoU;
+  const elegidaLabel = m[x.r.elegido] ? m[x.r.elegido].label : x.r.elegido;
+  const gan = todas[0] || null;
+
+  return {
+    maritimo: familia(marOpts, "costoU"),
+    formal: familia(formalOpts, "costoRealU"),
+    global: gan ? {
+      ganadoraLabel: gan.label, ganadoraCosto: gan.costo,
+      elegidaLabel, elegidaCosto,
+      esMasBarata: Math.abs(elegidaCosto - gan.costo) < 0.005,
+      delta: elegidaCosto - gan.costo, deltaTotal: (elegidaCosto - gan.costo) * cant,
+    } : null,
+  };
+}
+
+// Render del análisis para el PDF (estilos inline, paleta cálida del informe).
+function analisisViasHtmlPDF(x) {
+  const a = analizarViasInforme(x), cant = x.r.cantidad;
+  const val = (o, campo) => (campo === "costoRealU" ? o.costoRealU : o.costoU);
+  const filaOpt = (o, g, campo) => {
+    const esGan = o.key === g.key;
+    const recup = campo === "costoRealU" && o.recuperableU > 0 ? ` <span style="color:#8a7a5f;">(real, −$${fmtA(o.recuperableU)} recup.)</span>` : "";
+    const dif = val(o, campo) - val(g, campo);
+    return `<tr style="${o.sel ? "background:#fdf3ec;" : ""}">
+      <td style="padding:4px 8px; border-bottom:1px solid #eee;">${esGan ? "🥇 " : ""}${o.label}${o.sel ? " ✓ elegida" : ""}</td>
+      <td style="text-align:right; padding:4px 8px; border-bottom:1px solid #eee;">${o.medida}</td>
+      <td style="text-align:right; padding:4px 8px; border-bottom:1px solid #eee;">$${fmtA(o.fleteU)}</td>
+      <td style="text-align:right; padding:4px 8px; border-bottom:1px solid #eee; font-weight:${esGan ? "700" : "400"};">$${fmtA(val(o, campo))}${recup}</td>
+      <td style="text-align:right; padding:4px 8px; border-bottom:1px solid #eee;">${dif < 0.005 ? "—" : "+$" + fmtA(dif) + "/u."}</td>
+    </tr>`;
+  };
+  const bloque = (titulo, fam, vacioMsg) => {
+    if (!fam.opciones.length) return `<div style="font-size:11px; color:#a89a80; margin-bottom:8px;"><b>${titulo}:</b> ${vacioMsg}</div>`;
+    if (fam.opciones.length === 1) {
+      const o = fam.opciones[0];
+      return `<div style="font-size:11.5px; margin-bottom:10px;"><b>${titulo}:</b> única vía con tarifa cargada — ${o.label}, $${fmtA(val(o, fam.campo))}/u.</div>`;
+    }
+    const g = fam.ganadora;
+    return `
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11.5px; margin-bottom:5px;"><b>${titulo}:</b> conviene <b style="color:#0F6E56;">${g.label}</b> — $${fmtA(val(g, fam.campo))}/u., <b>$${fmtA(fam.delta)}/u. más barata</b> que la siguiente (≈ $${fmtA(fam.deltaTotal)} en esta compra de ${fmtInt(cant)} u.).</div>
+      <table style="width:100%; border-collapse:collapse; font-size:10.5px;">
+        <thead><tr style="background:#f7f3ea; color:#8a7a5f;">
+          <th style="text-align:left; padding:4px 8px;">Vía</th><th style="text-align:right; padding:4px 8px;">Medida</th>
+          <th style="text-align:right; padding:4px 8px;">Flete u.</th><th style="text-align:right; padding:4px 8px;">Costo u.</th>
+          <th style="text-align:right; padding:4px 8px;">Dif. vs 🥇</th>
+        </tr></thead>
+        <tbody>${fam.opciones.map((o) => filaOpt(o, g, fam.campo)).join("")}</tbody>
+      </table>
+    </div>`;
+  };
+  const gl = a.global;
+  const glHtml = !gl ? "" : `
+    <div style="font-size:11.5px; padding:8px 10px; border-radius:6px; background:${gl.esMasBarata ? "#eef7ee" : "#fdf0e6"}; border:1px solid ${gl.esMasBarata ? "#cfe6cf" : "#f0d8c0"};">
+      ${gl.esMasBarata
+        ? `✅ La vía elegida (<b>${gl.elegidaLabel}</b>, $${fmtA(gl.elegidaCosto)}/u.) es la más barata de todas las disponibles.`
+        : `⚠️ La más barata de todas es <b>${gl.ganadoraLabel}</b> a $${fmtA(gl.ganadoraCosto)}/u. La vía elegida (<b>${gl.elegidaLabel}</b>, $${fmtA(gl.elegidaCosto)}/u.) sale <b>$${fmtA(gl.delta)}/u. más</b> (≈ $${fmtA(gl.deltaTotal)} en la compra) — puede ser a propósito (papeles, tiempos), pero conviene tenerlo a la vista.`}
+    </div>`;
+  return `
+    <div style="border:1px solid #e3d9c4; border-radius:8px; padding:12px 14px; margin-bottom:14px; background:#fbf8f1;">
+      <div style="font-size:9px; color:#8a7a5f; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">Qué conviene en cada caso</div>
+      ${bloque("Entre los marítimos", a.maritimo, "sin tarifa marítima cargada (revisá Marítimo China/Miami).")}
+      ${bloque("Aéreo / courier / agentes de carga", a.formal, "sin tarifas de aéreo/courier/agentes cargadas.")}
+      ${glHtml}
+    </div>`;
+}
+
+// Render compacto del mismo análisis para el informe en pantalla.
+function analisisViasHtmlPantalla(x) {
+  const a = analizarViasInforme(x);
+  const val = (o, campo) => (campo === "costoRealU" ? o.costoRealU : o.costoU);
+  const linea = (titulo, fam) => {
+    if (fam.opciones.length < 2) {
+      return fam.opciones.length === 1
+        ? `<div style="font-size:11.5px; color:var(--muted); margin-top:3px;"><b>${titulo}:</b> única vía con tarifa (${fam.opciones[0].label}).</div>` : "";
+    }
+    const g = fam.ganadora;
+    const resto = fam.opciones.slice(1).map((o) => `${o.label} $${fmtA(val(o, fam.campo))}`).join(" · ");
+    return `<div style="font-size:11.5px; margin-top:3px;"><b>${titulo}:</b> conviene <b style="color:var(--green);">${g.label}</b> ($${fmtA(val(g, fam.campo))}/u.), $${fmtA(fam.delta)}/u. menos que la siguiente <span style="color:var(--muted);">(vs ${resto})</span>.</div>`;
+  };
+  const gl = a.global;
+  const glLinea = !gl ? ""
+    : gl.esMasBarata
+      ? `<div style="font-size:11.5px; color:var(--green); margin-top:3px;">✅ La vía elegida es la más barata de todas.</div>`
+      : `<div style="font-size:11.5px; color:var(--coral-deep); margin-top:3px;">⚠️ La vía elegida sale $${fmtA(gl.delta)}/u. más que la más barata (${gl.ganadoraLabel}, $${fmtA(gl.ganadoraCosto)}/u.).</div>`;
+  return `<div style="margin-top:8px; padding:10px 12px; background:var(--paper); border-radius:8px; border:1px solid var(--line);">
+    <div style="font-size:9.5px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px;">Qué conviene</div>
+    ${linea("Marítimos", a.maritimo)}
+    ${linea("Aéreo / courier / agentes", a.formal)}
+    ${glLinea}
+  </div>`;
+}
+
 function generarInforme(opts) {
   const scroll = !!(opts && opts.scroll);
   const origen = document.getElementById("cfg-origen").value;
@@ -2558,7 +2744,7 @@ function generarInforme(opts) {
   const detalle = document.getElementById("detalle-productos");
   detalle.innerHTML = resultados.map((x) => {
     const m = x.r.metodos;
-    const filas = ["aereo", "maritimo", "courier"].map((key) => {
+    const filas = ["aereo", "maritimo", "maritimo_blanco", "courier"].map((key) => {
       const met = m[key];
       const isSel = key === x.r.elegido;
       const disp = met.disponible;
@@ -2586,18 +2772,14 @@ function generarInforme(opts) {
       </tr>`;
     }).join("");
 
-    const masBarataLabel = x.r.masBarataKey ? m[x.r.masBarataKey].label : "—";
-    const convieneNota = x.r.masBarataKey && x.r.masBarataKey !== x.r.elegido
-      ? `<div style="font-size:11.5px; color:var(--coral-deep); margin-top:4px;">${masBarataLabel} conviene más</div>` : "";
-    const trofeoNota = x.r.mejorOpcionGlobal
-      ? `<div style="font-size:11.5px; color:var(--muted); margin-top:4px;">🏆 Mejor opción global (aéreo/courier/agentes): <b>${x.r.mejorOpcionGlobal.label}</b> a $${fmtA(x.r.mejorOpcionGlobal.costoU)}/u.</div>` : "";
+    const analisisVias = analisisViasHtmlPantalla(x);
 
     let mlBlock = "";
     if (x.precioML > 0) {
       const gananciaML = x.precioML - x.seleccionado.costoU;
       const margenReal = (gananciaML / x.precioML) * 100;
       const diff = margenReal - x.margen;
-      const metodosML = ["aereo", "maritimo", "courier"]
+      const metodosML = ["aereo", "maritimo", "maritimo_blanco", "courier"]
         .filter((k) => m[k].disponible)
         .map((k) => `<span>${m[k].label}: <b>$${fmtA(x.precioML - m[k].costoU)}</b> (${(((x.precioML - m[k].costoU) / x.precioML) * 100).toFixed(2)}%)${k === x.r.elegido ? " 👈" : ""}</span>`)
         .join("");
@@ -2651,8 +2833,7 @@ function generarInforme(opts) {
           <thead><tr><th>Vía</th><th>Medida</th><th>Flete u.</th><th>Impuestos u.</th><th>Costo u.</th><th>Total</th></tr></thead>
           <tbody>${filas}</tbody>
         </table>
-        ${convieneNota}
-        ${trofeoNota}
+        ${analisisVias}
 
         ${(() => {
           const pago = pagoAhoraYDespues(x.r);
@@ -2707,12 +2888,12 @@ async function descargarInformeCompleto() {
     const m = x.r.metodos;
     const tasaProducto = (x.r.elegido === "courier" || x.r.elegido === "agente") ? mep : blue;
     const tasaLabel = (x.r.elegido === "courier" || x.r.elegido === "agente") ? "MEP" : "blue";
-    const modoIcono = x.r.elegido === "maritimo" ? "🚢" : x.r.elegido === "courier" ? "📦" : x.r.elegido === "agente" ? "🚚" : "✈️";
+    const modoIcono = (x.r.elegido === "maritimo" || x.r.elegido === "maritimo_blanco") ? "🚢" : x.r.elegido === "courier" ? "📦" : x.r.elegido === "agente" ? "🚚" : "✈️";
     const modoNombre = m[x.r.elegido] ? m[x.r.elegido].label.replace(/^\S+\s*/, "") : x.r.elegido;
     const costoUnitElegido = x.seleccionado.costoU;
     const costoUnitElegidoARS = costoUnitElegido * tasaProducto;
 
-    const filasMetodos = ["aereo", "maritimo", "courier"].map((key) => {
+    const filasMetodos = ["aereo", "maritimo", "maritimo_blanco", "courier"].map((key) => {
       const met = m[key];
       const isSel = key === x.r.elegido;
       return `<tr style="${isSel ? "background:#fdf3ec; font-weight:700;" : ""}">
@@ -2763,6 +2944,8 @@ async function descargarInformeCompleto() {
         </div>` : ""}
       </div>
 
+      ${analisisViasHtmlPDF(x)}
+
       <div style="display:flex; justify-content:space-between; align-items:center; background:#f0e4d0; border-radius:6px; padding:8px 12px; margin-bottom:10px;">
         <span style="font-size:11px; color:#6b5d47; text-transform:uppercase; letter-spacing:0.5px;">${x.esPrecioFijo ? "Precio de venta fijo cargado — margen equivalente" : "Margen de ganancia aplicado (solo sobre el flete)"}</span>
         <span style="font-size:18px; font-weight:700; color:#B5622E;">${x.esPrecioFijo ? "$" + fmtA(x.ventaU) : x.margen.toFixed(0) + "%"}</span>
@@ -2803,7 +2986,7 @@ async function descargarInformeCompleto() {
         const gananciaML = x.precioML - x.seleccionado.costoU;
         const margenReal = x.precioML > 0 ? (gananciaML / x.precioML) * 100 : 0;
         const diff = margenReal - x.margen;
-        const metodosMLHtml = ["aereo", "maritimo", "courier"].filter((k) => m[k].disponible).map((k) =>
+        const metodosMLHtml = ["aereo", "maritimo", "maritimo_blanco", "courier"].filter((k) => m[k].disponible).map((k) =>
           `<div style="${k === x.r.elegido ? "font-weight:700;" : "opacity:0.6;"}">${m[k].label}: <b style="color:${(x.precioML - m[k].costoU) > 0 ? "#1d7a4a" : "#a33"};">$${fmtA(x.precioML - m[k].costoU)}</b> (${(((x.precioML - m[k].costoU) / x.precioML) * 100).toFixed(1)}%)${k === x.r.elegido ? " 👈" : ""}</div>`
         ).join("");
         return `
@@ -2846,7 +3029,7 @@ async function descargarInformeCompleto() {
             ? `📈 El mercado paga más de lo que estimaste: podrías vender con <b>${diff.toFixed(1)} puntos más</b> de margen que tu ${x.margen.toFixed(0)}% aplicado.`
             : `📉 Tu margen aplicado está por encima de lo que paga el mercado en ML (${Math.abs(diff).toFixed(1)} puntos de diferencia).`}
         </div>
-        <div style="margin-top:12px; padding-top:10px; border-top:1px dashed #d8cfb8; display:grid; grid-template-columns:repeat(${["aereo","maritimo","courier"].filter((k)=>m[k].disponible).length || 1},1fr); gap:8px; font-size:11px;">
+        <div style="margin-top:12px; padding-top:10px; border-top:1px dashed #d8cfb8; display:grid; grid-template-columns:repeat(${["aereo","maritimo","maritimo_blanco","courier"].filter((k)=>m[k].disponible).length || 1},1fr); gap:8px; font-size:11px;">
           ${metodosMLHtml}
         </div>
       </div>`;
