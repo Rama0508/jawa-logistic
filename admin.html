@@ -618,7 +618,7 @@ function nuevoProductoAdmin() {
     id: uidA(), nombre: "", codigoHS: "", cantidad: "", fob: "", linkProducto: "",
     pesoModo: "total", peso: "", pesoTotalRef: "", pesoTotalRefCantidad: "", pesoUnidad: "kg",
     largo: "", ancho: "", alto: "", dimUnidad: "cm", unidadesPorCaja: "",
-    prodLargo: "", prodAncho: "", prodAlto: "",
+    prodLargo: "", prodAncho: "", prodAlto: "", cajaModo: "caja",
     margen: "40", precioML: "", precioVentaPropio: "", metodo: "auto",
     foto: "", descripcion: "",
     fleteCourierManual: "", seguroCourier: "",
@@ -710,6 +710,45 @@ let informeGenerado = false;
 // rates.js al día, devuelve la config real (editable en Datos → Tarifas).
 function marBlancoCfg() {
   try { return MAR_BLANCO; } catch (e) { return { tarifaAlta: 9.99, tarifaBaja: 5.5, corteKg: 100 }; }
+}
+
+// Estima las medidas de una caja capaz de contener `unidades` de un producto
+// de l×w×h cm, acomodándolas en una grilla nx×ny×nz. Es el "inverso" de
+// mejorEmpaque: en vez de (caja + producto → cuántas entran), hace
+// (producto + cuántas por caja → qué caja hace falta). Prueba las 6
+// orientaciones del producto y se queda con la caja que menos lugares
+// desperdicia y, a igual desperdicio, la más compacta (lado más largo más
+// chico). Es una ESTIMACIÓN — la caja real del proveedor puede diferir.
+const _cajaDesdeProductoCache = {};
+function cajaDesdeProducto(l, w, h, unidades) {
+  if (!(l > 0 && w > 0 && h > 0)) return null;
+  const U = Math.max(1, Math.min(Math.round(unidades) || 1, 3000));
+  const key = l + "|" + w + "|" + h + "|" + U;
+  if (_cajaDesdeProductoCache[key] !== undefined) return _cajaDesdeProductoCache[key];
+  const dims = [l, w, h];
+  const perms = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
+  let mejor = null;
+  for (let nx = 1; nx <= U; nx++) {
+    const nyMax = Math.ceil(U / nx);
+    for (let ny = 1; ny <= nyMax; ny++) {
+      const nz = Math.max(1, Math.ceil(U / (nx * ny)));
+      const slots = nx * ny * nz;
+      const waste = slots - U;
+      const counts = [nx, ny, nz];
+      for (let pi = 0; pi < perms.length; pi++) {
+        const pm = perms[pi];
+        const bx = counts[0] * dims[pm[0]];
+        const by = counts[1] * dims[pm[1]];
+        const bz = counts[2] * dims[pm[2]];
+        const score = waste * 100000 + Math.max(bx, by, bz);
+        if (!mejor || score < mejor.score) {
+          mejor = { score, waste, slots, arreglo: [nx, ny, nz], cajaL: bx, cajaW: by, cajaH: bz };
+        }
+      }
+    }
+  }
+  _cajaDesdeProductoCache[key] = mejor;
+  return mejor;
 }
 
 // Deriva el peso total (kg) del producto según el modo elegido: cargado
@@ -860,28 +899,41 @@ function calcularMetodos(p, origen) {
   const fobU = pNumA(p.fob);
   const pesoTotal = pesoTotalKgDe(p);
 
-  // Marítimo: las medidas de la CAJA son las del bulto que te manda el
-  // proveedor. "Unidades por caja" se puede cargar a mano (si el proveedor
-  // te lo dice, ej. "esta caja trae 100 unidades") o calcular solo: si
-  // cargás además las medidas del PRODUCTO individual, se prueban las 6
-  // orientaciones posibles (mejorEmpaque, compartida con los cotizadores
-  // públicos en js/cotizador-core.js) y se usa la que más unidades entran —
-  // división entera eje por eje, no por volumen total (los productos no se
-  // "licúan" para llenar huecos). El valor manual, si está cargado, siempre
-  // gana — el cálculo automático es solo para cuando no lo sabés de memoria.
+  // Marítimo: el volumen sale de la CAJA (bulto que despacha el proveedor).
+  // Dos formas de completarla (p.cajaModo):
+  //  · "caja" — tenés las medidas de la caja del proveedor. "Unidades por
+  //    caja" se carga a mano, o se calcula solo con mejorEmpaque si además
+  //    cargás las medidas del producto individual (prueba las 6
+  //    orientaciones, división entera eje por eje).
+  //  · "producto" — NO tenés la caja: cargás las medidas de UNA unidad y
+  //    cuántas van por caja, y cajaDesdeProducto() estima las medidas de la
+  //    caja armando la grilla más compacta. Estimación, no dato del proveedor.
+  // El aéreo (peso volumétrico) usa la misma caja, estimada o real.
   const factorDim = p.dimUnidad === "mm" ? 0.1 : 1; // convierte a cm
   const l = pNumA(p.largo) * factorDim, w = pNumA(p.ancho) * factorDim, h = pNumA(p.alto) * factorDim;
   const prodL = pNumA(p.prodLargo) * factorDim, prodW = pNumA(p.prodAncho) * factorDim, prodH = pNumA(p.prodAlto) * factorDim;
   const unidadesPorCajaManual = pNumA(p.unidadesPorCaja);
+  const cajaModo = p.cajaModo === "producto" ? "producto" : "caja";
   let empaque = null;
   let empaqueFallido = false; // true = se intentó calcular y el producto NO entra (distinto de "faltan medidas")
+  let cajaEstimada = null;
   let unidadesPorCaja = unidadesPorCajaManual;
-  if (!(unidadesPorCaja > 0) && prodL > 0 && prodW > 0 && prodH > 0 && l > 0 && w > 0 && h > 0) {
+  let lCaja = l, wCaja = w, hCaja = h;
+  if (cajaModo === "producto") {
+    const uPorCaja = unidadesPorCajaManual > 0 ? unidadesPorCajaManual : (cantidad > 0 ? cantidad : 1);
+    if (prodL > 0 && prodW > 0 && prodH > 0) {
+      cajaEstimada = cajaDesdeProducto(prodL, prodW, prodH, uPorCaja);
+      if (cajaEstimada) {
+        lCaja = cajaEstimada.cajaL; wCaja = cajaEstimada.cajaW; hCaja = cajaEstimada.cajaH;
+        unidadesPorCaja = uPorCaja;
+      }
+    }
+  } else if (!(unidadesPorCaja > 0) && prodL > 0 && prodW > 0 && prodH > 0 && l > 0 && w > 0 && h > 0) {
     empaque = mejorEmpaque(l, w, h, prodL, prodW, prodH);
     if (empaque) unidadesPorCaja = empaque.total;
     else empaqueFallido = true;
   }
-  const m3PorCaja = (l * w * h) / 1000000;
+  const m3PorCaja = (lCaja * wCaja * hCaja) / 1000000;
   const cajas = unidadesPorCaja > 0 ? Math.ceil(cantidad / unidadesPorCaja) : (cantidad > 0 ? 1 : 0);
   const cbm = cajas * m3PorCaja;
 
@@ -901,9 +953,9 @@ function calcularMetodos(p, origen) {
   const tarifaMaritimoBlancoKg = pesoTotal > mb.corteKg ? mb.tarifaBaja : mb.tarifaAlta;
   const fleteMaritimoBlancoTotal = pesoTotal * tarifaMaritimoBlancoKg;
 
-  // Mismas cajas que en marítimo (es el mismo bulto físico) — si el pedido
-  // ocupa 3 cajas, el peso volumétrico es el de las 3, no el de una sola.
-  const pesoVolumetrico = cajas * ((l * w * h) / DIVISOR_VOLUMETRICO_AEREO);
+  // Mismas cajas que en marítimo (es el mismo bulto físico, real o estimado)
+  // — si el pedido ocupa 3 cajas, el peso volumétrico es el de las 3.
+  const pesoVolumetrico = cajas * ((lCaja * wCaja * hCaja) / DIVISOR_VOLUMETRICO_AEREO);
   const pesoCobrableAereo = Math.max(pesoTotal, pesoVolumetrico);
   const rateAir = FLETE_RATES.air[origen] || 0;
   const fleteAereoTotal = pesoCobrableAereo * rateAir;
@@ -1047,7 +1099,7 @@ function calcularMetodos(p, origen) {
 
   return {
     cantidad, fobU, pesoTotal, cbm, toneladas, cifTotal, courierElegible, seguroCourierTotal,
-    m3PorCaja, cajas, unidadesPorCaja, unidadesPorCajaManual, empaque, empaqueFallido, rateAir,
+    m3PorCaja, cajas, unidadesPorCaja, unidadesPorCajaManual, empaque, empaqueFallido, cajaEstimada, cajaModo, lCaja, wCaja, hCaja, rateAir,
     metodos, elegido, masBarataKey, metodosAgentes, mejorOpcionGlobal,
   };
 }
@@ -1499,7 +1551,16 @@ function renderFormulario() {
       <div style="margin-top:10px; padding:12px; background:var(--paper); border-radius:8px; border:1px solid var(--line);">
         <div style="font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px;">🚢 Marítimo — SOLO referencia, no se elige solo</div>
         <div style="font-size:11px; color:var(--muted); margin-bottom:8px;">Se muestra para comparar el número, pero el sistema nunca lo va a elegir automáticamente aunque salga más barato — si querés usarlo en un pedido puntual, elegilo a mano abajo en "Vía a usar". <b>Marítimo genérico</b> cobra por m³ (estas medidas de caja); <b>Marítimo blanco</b> cobra por kg (el peso total de más arriba), tramo fijo — hasta ${marBlancoCfg().corteKg} kg $${fmtA(marBlancoCfg().tarifaAlta)}/kg, de ahí en adelante $${fmtA(marBlancoCfg().tarifaBaja)}/kg.</div>
-        <div style="font-size:10.5px; color:var(--muted); margin-bottom:8px;">Las medidas de "la caja" son las del bulto que te manda el proveedor. "Unidades por caja": si lo sabés, cargalo directo; si no, dejalo vacío y cargá las medidas del <b>producto individual</b> más abajo — se calcula solo probando cómo entra mejor.</div>
+        <div class="field" style="margin-bottom:8px;">
+          <label>Cómo obtener el volumen de la caja <span style="font-weight:400; text-transform:none; color:var(--muted);">— dos formas de calcular solo</span></label>
+          <select data-field="cajaModo" data-id="${p.id}">
+            <option value="caja" ${p.cajaModo !== "producto" ? "selected" : ""}>Tengo las medidas de la caja del proveedor</option>
+            <option value="producto" ${p.cajaModo === "producto" ? "selected" : ""}>Estimar la caja desde el producto + cuántas por caja</option>
+          </select>
+        </div>
+        <div style="font-size:10.5px; color:var(--muted); margin-bottom:8px;">${p.cajaModo === "producto"
+          ? `Cargás las medidas de <b>una unidad</b> y cuántas van por caja — se estima la caja acomodándolas en la grilla más compacta. Es una estimación: la caja real del proveedor puede diferir.`
+          : `Las medidas de "la caja" son las del bulto que te manda el proveedor. "Unidades por caja": si lo sabés, cargalo directo; si no, dejalo vacío y cargá las medidas del <b>producto individual</b> más abajo — se calcula solo probando cómo entra mejor.`}</div>
         <div class="field-row" style="grid-template-columns: repeat(2,1fr);">
           <div class="field">
             <label>Unidad de medida</label>
@@ -1509,10 +1570,34 @@ function renderFormulario() {
             </select>
           </div>
           <div class="field">
-            <label>Unidades por caja <span style="font-weight:400; text-transform:none; color:var(--muted);">— vacío = se calcula solo</span></label>
-            <input type="text" inputmode="decimal" data-field="unidadesPorCaja" data-id="${p.id}" value="${p.unidadesPorCaja}" placeholder="${c.empaque ? c.empaque.total : "Ej: 100"}" />
+            <label>Unidades por caja <span style="font-weight:400; text-transform:none; color:var(--muted);">— ${p.cajaModo === "producto" ? "vacío = todas en una caja" : "vacío = se calcula solo"}</span></label>
+            <input type="text" inputmode="decimal" data-field="unidadesPorCaja" data-id="${p.id}" value="${p.unidadesPorCaja}" placeholder="${p.cajaModo === "producto" ? (pNumA(p.cantidad) || "Ej: 100") : (c.empaque ? c.empaque.total : "Ej: 100")}" />
           </div>
         </div>
+        ${p.cajaModo === "producto" ? `
+        <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:10px 0 4px;">Medidas de una unidad del producto</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Largo producto (${p.dimUnidad === "mm" ? "mm" : "cm"})</label>
+            <input type="text" inputmode="decimal" data-field="prodLargo" data-id="${p.id}" value="${p.prodLargo}" placeholder="0" />
+          </div>
+          <div class="field">
+            <label>Ancho producto (${p.dimUnidad === "mm" ? "mm" : "cm"})</label>
+            <input type="text" inputmode="decimal" data-field="prodAncho" data-id="${p.id}" value="${p.prodAncho}" placeholder="0" />
+          </div>
+          <div class="field">
+            <label>Alto producto (${p.dimUnidad === "mm" ? "mm" : "cm"})</label>
+            <input type="text" inputmode="decimal" data-field="prodAlto" data-id="${p.id}" value="${p.prodAlto}" placeholder="0" />
+          </div>
+        </div>
+        ${c.cajaEstimada ? `
+          <div style="font-size:11px; color:var(--ink); margin-top:6px; padding:8px 10px; background:var(--white); border:1px solid var(--line); border-radius:6px;">
+            Caja estimada: <b>${fmtA(c.cajaEstimada.cajaL)} × ${fmtA(c.cajaEstimada.cajaW)} × ${fmtA(c.cajaEstimada.cajaH)} cm</b>
+            <span style="color:var(--muted);">(${c.cajaEstimada.arreglo[0]}×${c.cajaEstimada.arreglo[1]}×${c.cajaEstimada.arreglo[2]} = ${c.cajaEstimada.slots} lugares${c.cajaEstimada.waste > 0 ? `, ${c.cajaEstimada.waste} sin usar` : ", justo"})</span>
+            <div style="color:var(--muted); margin-top:2px;">${fmtA(c.m3PorCaja)} m³ por caja — estimación, la caja real del proveedor puede variar.</div>
+          </div>
+        ` : `<div style="font-size:10.5px; color:var(--coral-deep); margin-top:4px;">Cargá las 3 medidas del producto para estimar la caja.</div>`}
+        ` : `
         <div class="field-row">
           <div class="field">
             <label>Largo caja (${p.dimUnidad === "mm" ? "mm" : "cm"})</label>
@@ -1546,6 +1631,7 @@ function renderFormulario() {
           <div style="font-size:10.5px; color:var(--muted); margin-top:4px;">${c.empaque.lados[0]}cm ÷ ${c.empaque.medidas[0]}cm = ${c.empaque.conteos[0]} &nbsp;|&nbsp; ${c.empaque.lados[1]}cm ÷ ${c.empaque.medidas[1]}cm = ${c.empaque.conteos[1]} &nbsp;|&nbsp; ${c.empaque.lados[2]}cm ÷ ${c.empaque.medidas[2]}cm = ${c.empaque.conteos[2]}</div>
           <div style="font-size:11px; color:var(--ink); margin-top:2px;">${c.empaque.conteos[0]} × ${c.empaque.conteos[1]} × ${c.empaque.conteos[2]} = <b>${c.empaque.total} unidades por caja</b> (mejor orientación, calculado)</div>
         ` : (c.empaqueFallido ? `<div style="font-size:10.5px; color:var(--coral-deep); margin-top:4px;">⚠️ El producto no entra en la caja con esas medidas — revisá los datos.</div>` : "")}
+        `}
         ${c.cajas > 0 ? `<div style="font-size:11px; color:var(--muted); margin-top:6px;">${c.cajas} caja(s) × ${fmtA(c.m3PorCaja)} m³ c/u = <b style="color:var(--ink);">${fmtA(c.cbm)} m³</b> totales</div>` : ""}
       </div>
 
@@ -1680,6 +1766,7 @@ document.getElementById("productos-admin").addEventListener("change", (e) => {
   if (field === "pesoModo") { p.pesoModo = e.target.value; guardarProductos(); renderFormulario(); }
   else if (field === "pesoUnidad") { p.pesoUnidad = e.target.value; guardarProductos(); renderFormulario(); }
   else if (field === "dimUnidad") { p.dimUnidad = e.target.value; guardarProductos(); renderFormulario(); }
+  else if (field === "cajaModo") { p.cajaModo = e.target.value; guardarProductos(); renderFormulario(); }
   else if (field === "metodo") { p.metodo = e.target.value; guardarProductos(); renderFormulario(); }
   else if (field === "agenteElegidoId") { p.agenteElegidoId = e.target.value; guardarProductos(); renderFormulario(); }
   else if (field === "escenarioAgenteElegido") { p.escenarioAgenteElegido = e.target.value; guardarProductos(); renderFormulario(); }
@@ -2086,7 +2173,10 @@ async function descargarComoPdf(innerHtml, nombreArchivo, onMounted) {
   // html2canvas captura en blanco o recortado con esos trucos. Va en el flujo normal del
   // documento (al final del body), así quede fuera de la vista sin romper la captura.
   cont.style.cssText = "width:800px; background:#fff;";
-  cont.innerHTML = innerHtml;
+  // box-sizing:border-box en todo + tablas que nunca se desbordan: sin esto,
+  // una tabla o caja con width:100% + padding/borde se pasa de los 800px y
+  // el PDF sale cortado a la derecha (reportado con nombres de agente largos).
+  cont.innerHTML = "<style>*{box-sizing:border-box;} table{max-width:100%;} td,th{overflow-wrap:anywhere;word-break:break-word;}</style>" + innerHtml;
   document.body.appendChild(cont);
   try {
     if (onMounted) onMounted(cont);
@@ -2638,16 +2728,17 @@ function analizarViasInforme(x) {
 function analisisViasHtmlPDF(x) {
   const a = analizarViasInforme(x), cant = x.r.cantidad;
   const val = (o, campo) => (campo === "costoRealU" ? o.costoRealU : o.costoU);
+  const tdBase = "padding:4px 6px; border-bottom:1px solid #eee; overflow-wrap:anywhere; word-break:break-word; vertical-align:top;";
   const filaOpt = (o, g, campo) => {
     const esGan = o.key === g.key;
-    const recup = campo === "costoRealU" && o.recuperableU > 0 ? ` <span style="color:#8a7a5f;">(real, −$${fmtA(o.recuperableU)} recup.)</span>` : "";
+    const recup = campo === "costoRealU" && o.recuperableU > 0 ? `<div style="color:#8a7a5f; font-weight:400;">real −$${fmtA(o.recuperableU)}</div>` : "";
     const dif = val(o, campo) - val(g, campo);
     return `<tr style="${o.sel ? "background:#fdf3ec;" : ""}">
-      <td style="padding:4px 8px; border-bottom:1px solid #eee;">${esGan ? "🥇 " : ""}${o.label}${o.sel ? " ✓ elegida" : ""}</td>
-      <td style="text-align:right; padding:4px 8px; border-bottom:1px solid #eee;">${o.medida}</td>
-      <td style="text-align:right; padding:4px 8px; border-bottom:1px solid #eee;">$${fmtA(o.fleteU)}</td>
-      <td style="text-align:right; padding:4px 8px; border-bottom:1px solid #eee; font-weight:${esGan ? "700" : "400"};">$${fmtA(val(o, campo))}${recup}</td>
-      <td style="text-align:right; padding:4px 8px; border-bottom:1px solid #eee;">${dif < 0.005 ? "—" : "+$" + fmtA(dif) + "/u."}</td>
+      <td style="${tdBase}">${esGan ? "🥇 " : ""}${o.label}${o.sel ? " ✓" : ""}</td>
+      <td style="${tdBase} text-align:right;">${o.medida}</td>
+      <td style="${tdBase} text-align:right;">$${fmtA(o.fleteU)}</td>
+      <td style="${tdBase} text-align:right; font-weight:${esGan ? "700" : "400"};">$${fmtA(val(o, campo))}${recup}</td>
+      <td style="${tdBase} text-align:right;">${dif < 0.005 ? "—" : "+$" + fmtA(dif)}</td>
     </tr>`;
   };
   const bloque = (titulo, fam, vacioMsg) => {
@@ -2660,11 +2751,12 @@ function analisisViasHtmlPDF(x) {
     return `
     <div style="margin-bottom:12px;">
       <div style="font-size:11.5px; margin-bottom:5px;"><b>${titulo}:</b> conviene <b style="color:#0F6E56;">${g.label}</b> — $${fmtA(val(g, fam.campo))}/u., <b>$${fmtA(fam.delta)}/u. más barata</b> que la siguiente (≈ $${fmtA(fam.deltaTotal)} en esta compra de ${fmtInt(cant)} u.).</div>
-      <table style="width:100%; border-collapse:collapse; font-size:10.5px;">
+      <table style="width:100%; table-layout:fixed; border-collapse:collapse; font-size:10px;">
+        <colgroup><col style="width:31%;"><col style="width:25%;"><col style="width:14%;"><col style="width:18%;"><col style="width:12%;"></colgroup>
         <thead><tr style="background:#f7f3ea; color:#8a7a5f;">
-          <th style="text-align:left; padding:4px 8px;">Vía</th><th style="text-align:right; padding:4px 8px;">Medida</th>
-          <th style="text-align:right; padding:4px 8px;">Flete u.</th><th style="text-align:right; padding:4px 8px;">Costo u.</th>
-          <th style="text-align:right; padding:4px 8px;">Dif. vs 🥇</th>
+          <th style="text-align:left; padding:4px 6px;">Vía</th><th style="text-align:right; padding:4px 6px;">Medida</th>
+          <th style="text-align:right; padding:4px 6px;">Flete u.</th><th style="text-align:right; padding:4px 6px;">Costo u.</th>
+          <th style="text-align:right; padding:4px 6px;">vs 🥇</th>
         </tr></thead>
         <tbody>${fam.opciones.map((o) => filaOpt(o, g, fam.campo)).join("")}</tbody>
       </table>
@@ -2907,27 +2999,28 @@ async function descargarInformeCompleto() {
     const modoNombre = m[x.r.elegido] ? m[x.r.elegido].label.replace(/^\S+\s*/, "") : x.r.elegido;
     const costoUnitElegido = x.seleccionado.costoU;
     const costoUnitElegidoARS = costoUnitElegido * tasaProducto;
+    const tdInf = "padding:5px 6px; border-bottom:1px solid #eee; overflow-wrap:anywhere; word-break:break-word; vertical-align:top;";
 
     const filasMetodos = ["aereo", "maritimo", "maritimo_blanco", "courier"].map((key) => {
       const met = m[key];
       const isSel = key === x.r.elegido;
       return `<tr style="${isSel ? "background:#fdf3ec; font-weight:700;" : ""}">
-        <td style="padding:6px 8px; border-bottom:1px solid #eee;">${met.label}${isSel ? " ✓" : ""}${!met.disponible ? " (sin tarifa)" : ""}</td>
-        <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee;">${met.medida}</td>
-        <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee;">$${fmtA(met.fleteU)}</td>
-        <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee; color:#999;">${met.impuestosU > 0 ? "$" + fmtA(met.impuestosU) : "—"}</td>
-        <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee; font-size:${isSel ? "15px" : "12px"};">$${fmtA(met.costoU)}</td>
-        <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee;">$${fmtA(met.costoU * x.r.cantidad)}</td>
+        <td style="${tdInf}">${met.label}${isSel ? " ✓" : ""}${!met.disponible ? " (sin tarifa)" : ""}</td>
+        <td style="${tdInf} text-align:right;">${met.medida}</td>
+        <td style="${tdInf} text-align:right;">$${fmtA(met.fleteU)}</td>
+        <td style="${tdInf} text-align:right; color:#999;">${met.impuestosU > 0 ? "$" + fmtA(met.impuestosU) : "—"}</td>
+        <td style="${tdInf} text-align:right; font-size:${isSel ? "14px" : "11px"};">$${fmtA(met.costoU)}</td>
+        <td style="${tdInf} text-align:right;">$${fmtA(met.costoU * x.r.cantidad)}</td>
       </tr>`;
     }).join("") + x.r.metodosAgentes.filter((a) => a.disponible).map((a) => {
       const isSel = x.r.elegido === "agente" && x.p.agenteElegidoId === a.id;
       return `<tr style="${isSel ? "background:#fdf3ec; font-weight:700;" : ""}">
-        <td style="padding:6px 8px; border-bottom:1px solid #eee;">${a.label}${isSel ? " ✓" : ""}</td>
-        <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee;">${a.medida}</td>
-        <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee;">$${fmtA(a.fleteU)}</td>
-        <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee; color:#999;">${a.impuestosU > 0 ? "$" + fmtA(a.impuestosU) : "—"}</td>
-        <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee; font-size:${isSel ? "15px" : "12px"};">$${fmtA(a.costoU)}</td>
-        <td style="text-align:right; padding:6px 8px; border-bottom:1px solid #eee;">$${fmtA(a.total)}</td>
+        <td style="${tdInf}">${a.label}${isSel ? " ✓" : ""}</td>
+        <td style="${tdInf} text-align:right;">${a.medida}</td>
+        <td style="${tdInf} text-align:right;">$${fmtA(a.fleteU)}</td>
+        <td style="${tdInf} text-align:right; color:#999;">${a.impuestosU > 0 ? "$" + fmtA(a.impuestosU) : "—"}</td>
+        <td style="${tdInf} text-align:right; font-size:${isSel ? "14px" : "11px"};">$${fmtA(a.costoU)}</td>
+        <td style="${tdInf} text-align:right;">$${fmtA(a.total)}</td>
       </tr>`;
     }).join("");
 
@@ -2966,14 +3059,15 @@ async function descargarInformeCompleto() {
         <span style="font-size:18px; font-weight:700; color:#B5622E;">${x.esPrecioFijo ? "$" + fmtA(x.ventaU) : x.margen.toFixed(0) + "%"}</span>
       </div>
 
-      <table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:10px;">
+      <table style="width:100%; table-layout:fixed; border-collapse:collapse; font-size:11px; margin-bottom:10px;">
+        <colgroup><col style="width:24%;"><col style="width:22%;"><col style="width:13%;"><col style="width:15%;"><col style="width:12%;"><col style="width:14%;"></colgroup>
         <thead><tr style="background:#f7f3ea;">
-          <th style="text-align:left; padding:6px 8px; border-bottom:1px solid #ddd;">Vía</th>
-          <th style="text-align:right; padding:6px 8px; border-bottom:1px solid #ddd;">Medida</th>
-          <th style="text-align:right; padding:6px 8px; border-bottom:1px solid #ddd;">Flete u.</th>
-          <th style="text-align:right; padding:6px 8px; border-bottom:1px solid #ddd;">Impuestos u.</th>
-          <th style="text-align:right; padding:6px 8px; border-bottom:1px solid #ddd;">Costo u.</th>
-          <th style="text-align:right; padding:6px 8px; border-bottom:1px solid #ddd;">Total compra</th>
+          <th style="text-align:left; padding:5px 6px; border-bottom:1px solid #ddd;">Vía</th>
+          <th style="text-align:right; padding:5px 6px; border-bottom:1px solid #ddd;">Medida</th>
+          <th style="text-align:right; padding:5px 6px; border-bottom:1px solid #ddd;">Flete u.</th>
+          <th style="text-align:right; padding:5px 6px; border-bottom:1px solid #ddd;">Imp. u.</th>
+          <th style="text-align:right; padding:5px 6px; border-bottom:1px solid #ddd;">Costo u.</th>
+          <th style="text-align:right; padding:5px 6px; border-bottom:1px solid #ddd;">Total</th>
         </tr></thead>
         <tbody>${filasMetodos}</tbody>
       </table>
@@ -3057,8 +3151,8 @@ async function descargarInformeCompleto() {
     : `Informe — ${resultados[0].p.nombre} y ${resultados.length - 1} más — Jawa Logistic`;
 
   const html = `
-    <div style="font-family: ui-monospace, Menlo, monospace; color:#2C2416; padding: 24px; background:#fff; position:relative;">
-      <div style="position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; display:flex; flex-wrap:wrap; align-content:flex-start; justify-content:center; gap:60px; transform:rotate(-30deg) scale(1.4);">${Array(200).fill('<span style="font-size:22px; font-weight:700; letter-spacing:2px; color:#B5622E; opacity:0.07; white-space:nowrap;">JAWA LOGISTIC</span>').join("")}</div>
+    <div style="font-family: ui-monospace, Menlo, monospace; color:#2C2416; padding: 24px; background:#fff; position:relative; overflow:hidden;">
+      <div style="position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; display:flex; flex-wrap:wrap; align-content:flex-start; justify-content:center; gap:60px; transform:rotate(-30deg) scale(1.4); transform-origin:center;">${Array(200).fill('<span style="font-size:22px; font-weight:700; letter-spacing:2px; color:#B5622E; opacity:0.07; white-space:nowrap;">JAWA LOGISTIC</span>').join("")}</div>
       <div style="position:relative; z-index:1;">
 
       <div style="display:flex; align-items:center; gap:12px; padding-bottom:18px; border-bottom:2px solid #B5622E; margin-bottom:24px;">
